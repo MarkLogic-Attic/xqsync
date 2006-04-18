@@ -1,6 +1,20 @@
 /*
- * Copyright 2005-2006 Mark Logic Corporation. All rights reserved.
+ * Copyright (c)2004-2006 Mark Logic Corporation
  *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * The use of the Apache License does not indicate that this project is
+ * affiliated with the Apache Software Foundation.
  */
 package com.marklogic.ps.xqsync;
 
@@ -27,7 +41,7 @@ import com.marklogic.xdmp.XDMPPermission;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- * 
+ *
  */
 public class XQSyncManager extends Thread implements PropertyClientInterface {
 
@@ -84,19 +98,19 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
     public void run() {
         /*
          * multiple run modes:
-         * 
+         *
          * collection mode if property XDBC_COLLECTION is not null open xdbc
          * conneciton and list collection uris sync every uri to the OUTPUT_PATH
-         * 
+         *
          * directory mode if property XDBC_ROOT_DIRECTORY is not null open xdbc
          * connection and list contents of XDBC_ROOT_DIRECTORY walk the tree,
          * synchronizing as we go sync every uri to the OUTPUT_PATH
-         * 
+         *
          * default database mode open xdbc connection and list input() uris sync
          * every uri to the OUTPUT_PATH
-         * 
+         *
          * if OUTPUT_PATH seems to be an xdbc "url", output to remote connection
-         * 
+         *
          */
         if (properties == null || !properties.keys().hasMoreElements()) {
             logger.severe("null or empty properties");
@@ -214,7 +228,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
 
     /**
      * @throws XDBCException
-     * 
+     *
      */
     private void runWorkerThreads() throws XDBCException {
         int threads = new Integer(properties.getProperty("THREADS", "1"))
@@ -238,7 +252,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
 
     /**
      * @throws IOException
-     * 
+     *
      */
     private void listPackage(String _path) throws IOException {
         // list contents of package
@@ -320,7 +334,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties)
      */
     public void setProperties(Properties _properties) {
@@ -404,7 +418,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
     /**
      * @param hasStart
      * @throws XDBCException
-     * 
+     *
      */
     private void listInput(boolean hasStart) throws Exception {
         // list all the documents in the database

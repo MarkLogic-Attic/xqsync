@@ -1,6 +1,20 @@
 /*
- * Copyright 2005 Mark Logic Corporation. All rights reserved.
+ * Copyright (c)2004-2006 Mark Logic Corporation
  *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * The use of the Apache License does not indicate that this project is
+ * affiliated with the Apache Software Foundation.
  */
 package com.marklogic.ps.xqsync;
 
@@ -21,7 +35,7 @@ import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *  
+ *
  */
 public class XQSyncPackage {
 
@@ -77,7 +91,7 @@ public class XQSyncPackage {
 
     /**
      * @throws IOException
-     *  
+     *
      */
     public void flush() throws IOException {
         synchronized (outPkg) {
@@ -87,7 +101,7 @@ public class XQSyncPackage {
 
     /**
      * @throws IOException
-     *  
+     *
      */
     public void close() throws IOException {
         synchronized (outPkg) {
@@ -136,13 +150,13 @@ public class XQSyncPackage {
 
         String path;
         ZipEntry entry;
-        while (e.hasMoreElements()) {            
+        while (e.hasMoreElements()) {
             entry = (ZipEntry) e.nextElement();
-            
+
             // ignore directories
             if (entry.isDirectory())
                 continue;
-            
+
             path = entry.getName();
             //logger.finest("found " + path);
             // whether it's metadata or not, we add the same path
@@ -150,14 +164,14 @@ public class XQSyncPackage {
                 path = path.substring(0, path.length()
                         - XQSyncDocument.METADATA_EXT.length());
             }
-            
+
             // make sure we don't add duplicates
             if (!documentList.containsKey(path)) {
                 //logger.finest("adding " + path);
                 documentList.put(path, null);
             }
         }
-        
+
         return new LinkedList(documentList.keySet());
     }
 
