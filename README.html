@@ -23,18 +23,31 @@
 <title>XQSync README</title>
 </head>
 <body>
-<p>Required libraries:</p>
+<h1>XQSync</h1>
+
+<h2>Running XQSync</h2>
+<p>The entry point is the main method in the
+ com.marklogic.ps.xqsync.XQSync class.
+It takes zero or more property files as its arguments.
+Any specified system properties will override file-based properties,
+and properties found in later files may override properties
+specified in earlier files on the command line.
+See src/xqsync.sh for a sample shell script.
+</p>
+
+<h2>Required libraries:</h2>
 <ul>
   <li>Codehaus <a href="http://xstream.codehaus.org/">XStream</a></li>
   <li>MarkLogic <a href="http://developer.marklogic.com/">XDBC</a></li>
 </ul>
 
-<p>Required properties:</p>
+<h2>Required properties:</h2>
 <ul>
 <li>one of: INPUT_PACKAGE, INPUT_PATH, INPUT_CONNECTION_STRING</li>
 <li>one of: OUTPUT_PACKAGE, OUTPUT_PATH, OUTPUT_CONNECTION_STRING</li>
 </ul>
-<p>Available properties:</p>
+
+<h2>Available properties:</h2>
 <table>
 <tr><th>Property</th><th>default value</th><th>notes</th></tr>
 <tr>
