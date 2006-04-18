@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<project name="xqsync" basedir="." default="jar">
+    <property name="name" value="xqsync"/>
+    <property file="build.properties"/>
+
+    <property name="src.dir" value="java"/>
+    <property name="dist.dir" value="../lib"/>
+    <property name="build.dir" value="${src.dir}"/>
+
+    <path id="master-classpath">
+        <fileset dir="${java.library.user}">
+            <include name="xdbc.jar"/>
+            <include name="xdmp.jar"/>
+            <include name="xstream-1.1.2.jar"/>
+        </fileset>
+        <fileset dir="${java.library.system}">
+        </fileset>
+        <pathelement path="${build.dir}"/>
+    </path>
+	
+	<target name="build" 
+			description="Compile main source tree java files">
+	  <mkdir dir="${build.dir}"/>
+	  <javac destdir="${build.dir}" target="1.4" source="1.4">
+		<src path="${src.dir}"/>
+		<classpath refid="master-classpath"/>
+	  </javac>
+    </target>
+
+	<target name="jar" depends="build"
+			description="generate the jarfile" >
+	  <mkdir dir="${dist.dir}"/>
+	  <jar jarfile="${dist.dir}/${name}.jar" basedir="${build.dir}"
+		   compress="true" index="true"
+		   excludes="*.java,*.class,**/.*,**/*~"/>
+	</target>
+
+</project>
