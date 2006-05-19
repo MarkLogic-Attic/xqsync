@@ -352,7 +352,6 @@ public class Utilities {
      * @throws IOException
      */
     public static void copy(File _in, File _out) throws IOException {
-        // TODO Auto-generated method stub
         InputStream in = new FileInputStream(_in);
         OutputStream out = new FileOutputStream(_out);
         copy(in, out);
