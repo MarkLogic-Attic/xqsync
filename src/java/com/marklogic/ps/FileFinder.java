@@ -36,7 +36,7 @@ public class FileFinder {
 
     private FileFilter filter;
 
-    private Vector list = new Vector();
+    private List list = new Vector();
 
     private String includePattern;
 
@@ -224,7 +224,7 @@ public class FileFinder {
         return list.size();
     }
 
-    public Vector list() {
+    public List list() {
         return list;
     }
 
@@ -260,6 +260,13 @@ public class FileFinder {
             paths.add(f.getAbsolutePath().substring(rootLength));
         }
         return paths;
+    }
+
+    /**
+     * @param _file
+     */
+    public void add(File _file) {
+        list.add(_file);
     }
 
 }

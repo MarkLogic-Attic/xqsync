@@ -321,7 +321,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
 
             while (rs.hasNext()) {
                 rs.next();
-                list.add(rs.getAnyURI().asString());
+                list.add(rs.get_String());
             }
             rs.close();
         } finally {
@@ -387,7 +387,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
                 + (hasStart ? START_POSITION_DEFINE_VARIABLE : "")
                 + "for $i in collection($uri)\n"
                 + (hasStart ? START_POSITION_PREDICATE : "")
-                + "return base-uri($i)";
+                + "return string(base-uri($i))\n";
         Map externs = new Hashtable(1);
         externs.put(new XDBCXName("", "uri"), xdbcCollection);
         if (hasStart)
@@ -407,7 +407,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
                 + (hasStart ? START_POSITION_DEFINE_VARIABLE : "")
                 + "for $i in xdmp:directory($uri, 'infinity')\n"
                 + (hasStart ? START_POSITION_PREDICATE : "")
-                + "return base-uri($i)";
+                + "return string(base-uri($i))\n";
         Map externs = new Hashtable(1);
         externs.put(new XDBCXName("", "uri"), xdbcRootDirectory);
         if (hasStart)
@@ -426,7 +426,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
         String query = (hasStart ? START_POSITION_DEFINE_VARIABLE : "")
                 + "for $i in doc()\n"
                 + (hasStart ? START_POSITION_PREDICATE : "")
-                + "return base-uri($i)";
+                + "return string(base-uri($i))";
         Map externs = null;
         if (hasStart) {
             externs = new Hashtable(1);

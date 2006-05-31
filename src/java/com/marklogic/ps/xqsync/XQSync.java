@@ -32,7 +32,7 @@ import com.marklogic.ps.PropertyManager;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2006-04-14";
+    public static String VERSION = "2006-05-31.1";
 
     public static void main(String[] args) throws FileNotFoundException,
             IOException {
