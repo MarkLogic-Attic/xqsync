@@ -17,6 +17,7 @@
  * affiliated with the Apache Software Foundation.
  */
 package com.marklogic.ps;
+
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Hashtable;
@@ -30,10 +31,55 @@ import java.util.logging.SimpleFormatter;
 
 /**
  * @author Michael Blakeley michael.blakeley@marklogic.com
- *
+ * 
  * wrapper for java logging
  */
 public class SimpleLogger extends Logger implements PropertyClientInterface {
+    /**
+     * 
+     */
+    static public final String LOG_FILEHANDLER_LIMIT = "LOG_FILEHANDLER_LIMIT";
+
+    /**
+     * 
+     */
+    static public final String LOG_FILEHANDLER_COUNT = "LOG_FILEHANDLER_COUNT";
+
+    /**
+     * 
+     */
+    static public final String LOG_FILEHANDLER_APPEND = "LOG_FILEHANDLER_APPEND";
+
+    /**
+     * 
+     */
+    static public final String LOG_FILEHANDLER_PATH = "LOG_FILEHANDLER_PATH";
+
+    /**
+     * 
+     */
+    static public final String DEFAULT_LOG_HANDLER = "CONSOLE,FILE";
+
+    /**
+     * 
+     */
+    static public final String DEFAULT_LOG_LEVEL = "INFO";
+
+    /**
+     * 
+     */
+    static public final String LOG_HANDLER = "LOG_HANDLER";
+
+    /**
+     * 
+     */
+    static public final String LOG_LEVEL = "LOG_LEVEL";
+
+    /**
+     * 
+     */
+    static public final String DEFAULT_FILEHANDLER_PATH = "simplelogger-%u-%g.log";
+
     static public final String LOGGER_NAME = "com.marklogic.ps";
 
     private static Hashtable loggers = new Hashtable();
@@ -92,14 +138,19 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
         setUseParentHandlers(false);
 
         // now set the user's properties, if available
-        String logLevel = _prop.getProperty("LOG_LEVEL", "INFO");
+        String logLevel = _prop.getProperty(LOG_LEVEL, DEFAULT_LOG_LEVEL);
 
         // support multiple handlers: comma-separated
-        String[] logHandler = _prop.getProperty("LOG_HANDLER", "CONSOLE,FILE")
+        String[] logHandler = _prop.getProperty(LOG_HANDLER, DEFAULT_LOG_HANDLER)
                 .split(",");
-        String logFileProp = _prop.getProperty("LOG_FILEHANDLER_PATH",
-                "simplelogger-%u-%g.log");
-        String logFile = logFileProp;
+        String logFilePath = _prop.getProperty(LOG_FILEHANDLER_PATH,
+                DEFAULT_FILEHANDLER_PATH);
+        boolean logFileAppend = Boolean.parseBoolean(_prop.getProperty(
+                LOG_FILEHANDLER_APPEND, "true"));
+        int logFileCount = Integer.parseInt(_prop.getProperty(
+                LOG_FILEHANDLER_COUNT, "1"));
+        int logFileLimit = Integer.parseInt(_prop.getProperty(
+                LOG_FILEHANDLER_LIMIT, "0"));
 
         Handler h = null;
         if (logHandler != null && logHandler.length > 0) {
@@ -115,9 +166,10 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
                     continue;
                 // allow the user to specify the file
                 if (logHandler[i].equals("FILE")) {
-                    System.err.println("logging to file " + logFile);
+                    System.err.println("logging to file " + logFilePath);
                     try {
-                        h = new FileHandler(logFile);
+                        h = new FileHandler(logFilePath, logFileLimit,
+                                logFileCount, logFileAppend);
                     } catch (SecurityException e) {
                         e.printStackTrace();
                         // fatal error
@@ -137,7 +189,8 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
                 } else {
                     // try to load the string as a classname
                     try {
-                        Class lhc = Class.forName( logHandler[i], true, ClassLoader.getSystemClassLoader() );
+                        Class lhc = Class.forName(logHandler[i], true,
+                                ClassLoader.getSystemClassLoader());
                         System.err.println("logging to class " + logHandler[i]);
                         Constructor con = lhc.getConstructor(new Class[] {});
                         h = (Handler) con.newInstance(new Object[] {});
@@ -183,7 +236,9 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
         super.log(Level.SEVERE, message, exception);
     } // logException
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties)
      */
     public void setProperties(Properties _properties) {

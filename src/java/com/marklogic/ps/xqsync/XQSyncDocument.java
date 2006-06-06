@@ -345,19 +345,25 @@ public class XQSyncDocument {
                         _placeKeys, metadata.getFormat(), null);
 
                 if (metadata.isBinary()) {
+                    logger.finer("writing " + outputPath + " as binary");
                     InputStream is = new ByteArrayInputStream(contentBytes);
                     bytes = Utilities.copy(is, os);
+                    os.flush();
+                    os.commit();
+                    os.close();
+                    os = null;
                     is.close();
                 } else {
+                    logger.finer("writing " + outputPath + " as " + metadata.getFormatName());
                     Reader r = new InputStreamReader(new ByteArrayInputStream(
                             contentBytes));
                     bytes = Utilities.copy(r, os);
+                    os.flush();
+                    os.commit();
+                    os.close();
+                    os = null;
                     r.close();
                 }
-                os.flush();
-                os.commit();
-                os.close();
-                os = null;
                 // break out of the retry loop
                 break;
             } catch (XDBCXQueryException e) {

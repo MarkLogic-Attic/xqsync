@@ -26,7 +26,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.io.Writer;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -38,7 +40,7 @@ import java.util.Set;
 
 /**
  * @author mike.blakeley@marklogic.com
- *
+ * 
  */
 public class Utilities {
 
@@ -48,7 +50,7 @@ public class Utilities {
     // private static DateFormat m_ISO8601plusRFC822 = new SimpleDateFormat(
     // "yyyy-MM-dd'T'HH:mm:ssz");
 
-    private static final int BUFFER_SIZE = 32 * 1024;
+    private static final int BUFFER_SIZE = 16 * 1024;
 
     public static Date parseDateTime(String _date) throws ParseException {
         return m_ISO8601Local.parse(_date.replaceFirst(":(\\d\\d)$", "$1"));
@@ -195,7 +197,7 @@ public class Utilities {
 
     /**
      * turn a hashmap into xml
-     *
+     * 
      * @param _h
      * @return
      */
@@ -330,13 +332,13 @@ public class Utilities {
         // System.err.println("DEBUG: " + _in + ": available " + available);
         while ((len = _in.read(buf, 0, BUFFER_SIZE)) > -1) {
             _out.write(buf, 0, len);
+            _out.flush();
             totalBytes += len;
             // System.err.println("DEBUG: " + _out + ": wrote " + len);
         }
         // System.err.println("DEBUG: " + _in + ": last read " + len);
 
         // caller MUST close the stream for us
-        _out.flush();
 
         // check to see if we copied enough data
         if (available > totalBytes)
@@ -359,31 +361,46 @@ public class Utilities {
 
     public static long copy(Reader _in, OutputStream _out) throws IOException {
         if (_in == null)
-            throw new IOException("null InputStream");
+            throw new IOException("null Reader");
         if (_out == null)
             throw new IOException("null OutputStream");
 
-        long totalBytes = 0;
-        int len = 0;
-        char[] buf = new char[BUFFER_SIZE];
-        byte[] bite = null;
-        while ((len = _in.read(buf)) > -1) {
-            bite = new String(buf).getBytes();
-            // len? different for char vs byte?
-            // code is broken if I use bite.length, though
-            _out.write(bite, 0, len);
-            totalBytes += len;
-        }
+        OutputStreamWriter writer = new OutputStreamWriter(_out, "UTF-8");
+        long len = copy(_in, writer);
 
         // caller MUST close the stream for us
         _out.flush();
+        return len;
+    }
+
+    /**
+     * @param _in
+     * @param _out
+     * @throws IOException
+     */
+    public static long copy(Reader _in, Writer _out) throws IOException {
+        if (_in == null)
+            throw new IOException("null Reader");
+        if (_out == null)
+            throw new IOException("null Writer");
+
+        long totalChars = 0;
+        int len = 0;
+        char[] cbuf = new char[BUFFER_SIZE];
+        while ((len = _in.read(cbuf, 0, BUFFER_SIZE)) > -1) {
+            _out.write(cbuf, 0, len);
+            _out.flush();
+            totalChars += len;
+        }
+
+        // caller MUST close the stream for us
 
         // check to see if we copied enough data
-        if (1 > totalBytes)
+        if (1 > totalChars)
             throw new IOException("expected at least " + 1
-                    + " Bytes, copied only " + totalBytes);
+                    + " Chars, copied only " + totalChars);
 
-        return totalBytes;
+        return totalChars;
     }
 
     /**

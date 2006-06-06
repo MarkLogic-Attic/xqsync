@@ -28,7 +28,7 @@ import com.thoughtworks.xstream.XStream;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *
+ * 
  */
 public class XQSyncDocumentMetadata {
     private int format = XDMPDocInsertStream.XDMP_DOC_FORMAT_XML;
@@ -143,17 +143,32 @@ public class XQSyncDocumentMetadata {
     }
 
     /**
-     *
+     * 
      */
     public void clearPermissions() {
         collectionsVector.clear();
     }
 
     /**
-     *
+     * 
      */
     public void clearProperties() {
         properties = null;
+    }
+
+    /**
+     * @return
+     */
+    public String getFormatName() {
+        if (format == XDMPDocInsertStream.XDMP_DOC_FORMAT_BINARY) {
+            return "binary";
+        } else if (format == XDMPDocInsertStream.XDMP_DOC_FORMAT_TEXT) {
+            return "text";
+        } else if (format == XDMPDocInsertStream.XDMP_DOC_FORMAT_XML) {
+            return "xml";
+        } else {
+            return "none";
+        }
     }
 
 }

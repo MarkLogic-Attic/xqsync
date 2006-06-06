@@ -22,7 +22,7 @@
 
 CP=$HOME/lib/java/xdbc.jar
 CP=$CP:$HOME/lib/java/xdmp.jar
-CP=$CP:$HOME/lib/java/xqsync.jar
+CP=$CP:../lib/xqsync.jar
 CP=$CP:$HOME/lib/java/xstream-1.1.2.jar
 
 java -cp $CP com.marklogic.ps.xqsync.XQSync $*

@@ -41,7 +41,7 @@ import com.marklogic.xdmp.XDMPPermission;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *
+ * 
  */
 public class XQSyncManager extends Thread implements PropertyClientInterface {
 
@@ -98,19 +98,19 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
     public void run() {
         /*
          * multiple run modes:
-         *
+         * 
          * collection mode if property XDBC_COLLECTION is not null open xdbc
          * conneciton and list collection uris sync every uri to the OUTPUT_PATH
-         *
+         * 
          * directory mode if property XDBC_ROOT_DIRECTORY is not null open xdbc
          * connection and list contents of XDBC_ROOT_DIRECTORY walk the tree,
          * synchronizing as we go sync every uri to the OUTPUT_PATH
-         *
+         * 
          * default database mode open xdbc connection and list input() uris sync
          * every uri to the OUTPUT_PATH
-         *
+         * 
          * if OUTPUT_PATH seems to be an xdbc "url", output to remote connection
-         *
+         * 
          */
         if (properties == null || !properties.keys().hasMoreElements()) {
             logger.severe("null or empty properties");
@@ -228,7 +228,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
 
     /**
      * @throws XDBCException
-     *
+     * 
      */
     private void runWorkerThreads() throws XDBCException {
         int threads = new Integer(properties.getProperty("THREADS", "1"))
@@ -252,7 +252,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
 
     /**
      * @throws IOException
-     *
+     * 
      */
     private void listPackage(String _path) throws IOException {
         // list contents of package
@@ -269,6 +269,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
         String xdbcCollection = properties.getProperty("XDBC_COLLECTION");
         String xdbcRootDirectory = properties
                 .getProperty("XDBC_ROOT_DIRECTORY");
+        String xdbcDocumentUrisString = properties.getProperty("XDBC_DOCUMENT_URIS");
         String xdbcQuery = properties.getProperty("XDBC_QUERY");
         if (xdbcCollection != null && xdbcRootDirectory != null) {
             logger
@@ -297,12 +298,15 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
                         + " on output connection");
                 outputConn.deleteCollection(xdbcCollection);
             }
-        } else if (xdbcRootDirectory != null)
+        } else if (xdbcRootDirectory != null) {
             listDirectory(xdbcRootDirectory, hasStart);
-        else if (xdbcQuery != null)
+        } else if (xdbcDocumentUrisString != null) {
+            listDocumentUris(xdbcDocumentUrisString.split("\\s+"), hasStart);
+        } else if (xdbcQuery != null) {
             listQuery(xdbcQuery);
-        else
+        } else {
             listInput(hasStart);
+        }
     }
 
     /**
@@ -334,7 +338,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties)
      */
     public void setProperties(Properties _properties) {
@@ -390,8 +394,30 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
                 + "return string(base-uri($i))\n";
         Map externs = new Hashtable(1);
         externs.put(new XDBCXName("", "uri"), xdbcCollection);
-        if (hasStart)
+        if (hasStart) {
             externs.put(new XDBCXName("", "start"), startPosition);
+        }
+        documentList = listDocuments(query, externs);
+    }
+
+    /**
+     * @param xdbcCollection
+     * @param hasStart
+     */
+    private void listDocumentUris(String[] _uris, boolean hasStart)
+            throws Exception {
+        String urisString = Utilities.join(_uris, " ");
+        logger.info("listing documents " + urisString);
+        String query = "define variable $uris-string as xs:string external\n"
+                + (hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+                + "for $i in doc(tokenize($uris-string, '\\s+'))\n"
+                + (hasStart ? START_POSITION_PREDICATE : "")
+                + "return string(base-uri($i))\n";
+        Map externs = new Hashtable(1);
+        externs.put(new XDBCXName("", "uris-string"), urisString);
+        if (hasStart) {
+            externs.put(new XDBCXName("", "start"), startPosition);
+        }
         documentList = listDocuments(query, externs);
     }
 
@@ -418,7 +444,7 @@ public class XQSyncManager extends Thread implements PropertyClientInterface {
     /**
      * @param hasStart
      * @throws XDBCException
-     *
+     * 
      */
     private void listInput(boolean hasStart) throws Exception {
         // list all the documents in the database
