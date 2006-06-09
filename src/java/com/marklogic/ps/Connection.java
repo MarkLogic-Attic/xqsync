@@ -295,38 +295,40 @@ public class Connection {
                 try {
                     if (rs != null && !rs.isClosed())
                         rs.close();
+                    // if we're going to retry, we still need the statement
+                    if (_retry && e.getRetryable()) {
+                        logger.logException("retryable exception: "
+                                + e.getLocalizedMessage(), e);
+                        logger
+                                .warning("retryable exception - will try again: "
+                                        + e.getLocalizedMessage());
+                        continue;
+                    }
                     if (_stmt != null && !_stmt.isClosed())
                         _stmt.close();
                 } catch (XDBCException xe) {
+                    // a close failed: do nothing
                 }
-                if (_retry && e.getRetryable()) {
-                    logger.logException("retryable exception: "
-                            + e.getLocalizedMessage(), e);
-                    logger.warning("retryable exception - will try again: "
-                            + e.getLocalizedMessage());
-                    continue;
-                } else {
-                    // reconnect();
-                    throw e;
-                }
+                throw e;
             } catch (XDBCXQueryException e) {
                 try {
                     if (rs != null && !rs.isClosed())
                         rs.close();
+                    // if we're going to retry, we still need the statement
+                    if (_retry && e.getRetryable()) {
+                        logger.logException("retryable exception: "
+                                + e.getLocalizedMessage(), e);
+                        logger
+                                .warning("retryable exception - will try again: "
+                                        + e.getLocalizedMessage());
+                        continue;
+                    }
                     if (_stmt != null && !_stmt.isClosed())
                         _stmt.close();
                 } catch (XDBCException xe) {
+                    // a close failed: do nothing
                 }
-                if (_retry && e.getRetryable()) {
-                    logger.logException("retryable exception: "
-                            + e.getLocalizedMessage(), e);
-                    logger.warning("retryable exception - will try again: "
-                            + e.getLocalizedMessage());
-                    continue;
-                } else {
-                    // no need to reconnect() for an xquery-level error
-                    throw e;
-                }
+                throw e;
             } catch (XDBCException e) {
                 try {
                     if (rs != null && !rs.isClosed())
@@ -334,8 +336,8 @@ public class Connection {
                     if (_stmt != null && !_stmt.isClosed())
                         _stmt.close();
                 } catch (XDBCException xe) {
+                    // a close failed: do nothing
                 }
-                // reconnect();
                 throw e;
             }
         }
@@ -367,38 +369,40 @@ public class Connection {
                 try {
                     if (rs != null && !rs.isClosed())
                         rs.close();
+                    // if we're going to retry, we still need the statement
+                    if (_retry && e.getRetryable()) {
+                        logger.logException("retryable exception: "
+                                + e.getLocalizedMessage(), e);
+                        logger
+                                .warning("retryable exception - will try again: "
+                                        + e.getLocalizedMessage());
+                        continue;
+                    }
                     if (stmt != null && !stmt.isClosed())
                         stmt.close();
                 } catch (XDBCException xe) {
+                    // a close failed: do nothing
                 }
-                if (_retry && e.getRetryable()) {
-                    logger.logException("retryable exception: "
-                            + e.getLocalizedMessage(), e);
-                    logger.warning("retryable exception - will try again: "
-                            + e.getLocalizedMessage());
-                    continue;
-                } else {
-                    // reconnect();
-                    throw e;
-                }
+                throw e;
             } catch (XDBCXQueryException e) {
                 try {
                     if (rs != null && !rs.isClosed())
                         rs.close();
+                    // if we're going to retry, we still need the statement
+                    if (_retry && e.getRetryable()) {
+                        logger.logException("retryable exception: "
+                                + e.getLocalizedMessage(), e);
+                        logger
+                                .warning("retryable exception - will try again: "
+                                        + e.getLocalizedMessage());
+                        continue;
+                    }
                     if (stmt != null && !stmt.isClosed())
                         stmt.close();
                 } catch (XDBCException xe) {
+                    // a close failed: do nothing
                 }
-                if (_retry && e.getRetryable()) {
-                    logger.logException("retryable exception: "
-                            + e.getLocalizedMessage(), e);
-                    logger.warning("retryable exception - will try again: "
-                            + e.getLocalizedMessage());
-                    continue;
-                } else {
-                    // reconnect();
-                    throw e;
-                }
+                throw e;
             } catch (XDBCException e) {
                 try {
                     if (rs != null && !rs.isClosed())
@@ -406,8 +410,8 @@ public class Connection {
                     if (stmt != null && !stmt.isClosed())
                         stmt.close();
                 } catch (XDBCException xe) {
+                    // a close failed: do nothing
                 }
-                // reconnect();
                 throw e;
             }
         }

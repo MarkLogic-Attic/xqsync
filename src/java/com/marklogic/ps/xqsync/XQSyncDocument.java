@@ -19,7 +19,6 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -216,7 +215,8 @@ public class XQSyncDocument {
             contentBytes = Utilities.cat(is);
             is.close();
         } else {
-            Reader r = new BufferedReader(rs.getReader());
+            // getReader() returns a buffered reader
+            Reader r = rs.getReader();
             contentBytes = Utilities.cat(r).getBytes();
             r.close();
         }
