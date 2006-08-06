@@ -18,35 +18,36 @@
  */
 package com.marklogic.ps.xqsync;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Collection;
-import java.util.Hashtable;
-import java.util.Locale;
-import java.util.Map;
 
-import org.w3c.dom.Node;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import com.marklogic.ps.Connection;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
-import com.marklogic.xdbc.XDBCException;
-import com.marklogic.xdbc.XDBCResultSequence;
-import com.marklogic.xdbc.XDBCXName;
-import com.marklogic.xdbc.XDBCXQueryException;
-import com.marklogic.xdmp.XDMPDocInsertStream;
-import com.marklogic.xdmp.XDMPPermission;
+import com.marklogic.xcc.Content;
+import com.marklogic.xcc.ContentCreateOptions;
+import com.marklogic.xcc.ContentFactory;
+import com.marklogic.xcc.ContentPermission;
+import com.marklogic.xcc.DocumentRepairLevel;
+import com.marklogic.xcc.Request;
+import com.marklogic.xcc.ResultItem;
+import com.marklogic.xcc.ResultSequence;
+import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
+import com.marklogic.xcc.exceptions.XccException;
+import com.marklogic.xcc.types.ValueType;
+import com.marklogic.xcc.types.XSInteger;
+import com.marklogic.xcc.types.XdmElement;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *
+ * 
  */
 public class XQSyncDocument {
 
@@ -65,17 +66,21 @@ public class XQSyncDocument {
 
     private SimpleLogger logger = null;
 
+    private int connMajorVersion = 3;
+
     /**
-     * @param uri
-     * @param _conn
-     * @throws XDBCException
+     * @param _session
+     * @param _uri
+     * @param _copyPermissions
+     * @param _copyProperties
+     * @throws XccException
      * @throws IOException
      */
-    public XQSyncDocument(String _uri, Connection _conn,
-            boolean _copyPermissions, boolean _copyProperties,
-            int _connMajorVersion) throws XDBCException, IOException {
+    public XQSyncDocument(com.marklogic.ps.Session _session, String _uri,
+            boolean _copyPermissions, boolean _copyProperties)
+            throws XccException, IOException {
         if (_uri == null)
-            throw new XDBCException("null uri");
+            throw new UnimplementedFeatureException("null uri");
 
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
@@ -94,6 +99,8 @@ public class XQSyncDocument {
         // normally I'd put this code in a module,
         // but I want this program to be self-contained
         String query = "define variable $uri as xs:string external\n"
+                + "if (xdmp:exists(doc($uri))) then ()\n"
+                + "else error(text{'document with uri', xdmp:describe($uri), 'does not exist'}),"
                 + "node-kind(doc($uri)/node()),\n"
                 + "xdmp:document-get-collections($uri),\n";
 
@@ -101,7 +108,7 @@ public class XQSyncDocument {
         if (copyPermissions)
             query += "let $list := xdmp:document-get-permissions($uri)\n"
                     + "let $query := concat(\n"
-                    + (_connMajorVersion > 2 ? "' import module ''http://marklogic.com/xdmp/security'' at ''/MarkLogic/security.xqy''',\n"
+                    + (connMajorVersion > 2 ? "' import module ''http://marklogic.com/xdmp/security'' at ''/MarkLogic/security.xqy''',\n"
                             : "' import module ''http://marklogic.com/xdmp/security'' at ''/security.xqy''',\n")
                     + "' define variable $list as element(sec:permissions) external',\n"
                     + "' for $p in $list/sec:permission',\n"
@@ -110,6 +117,8 @@ public class XQSyncDocument {
                     + "' }'\n"
                     + ")\n"
                     + "return if (empty($list)) then () else\n"
+                    // TODO change to use xdmp:eval, as eval-in is deprecated
+                    // (3.1)
                     + "xdmp:eval-in(\n"
                     + "  $query, xdmp:security-database(),\n"
                     + "  (xs:QName('list'), element sec:permissions { $list })\n"
@@ -124,122 +133,107 @@ public class XQSyncDocument {
             query += "()\n";
         }
 
-        Map externs = new Hashtable(1);
-        externs.put(new XDBCXName("", "uri"), _uri);
-        XDBCResultSequence rs = _conn.executeQuery(query, externs);
-        if (!rs.hasNext())
-            throw new XDBCException("unexpected empty document: " + _uri);
+        Request req = _session.newAdhocQuery(query);
+        req.setNewStringVariable("uri", _uri);
+        ResultSequence rs = _session.submitRequest(req);
+
+        if (!rs.hasNext()) {
+            throw new UnimplementedFeatureException(
+                    "unexpected empty document: " + _uri);
+        }
 
         metadata = new XQSyncDocumentMetadata();
+        ResultItem[] items = rs.toResultItemArray();
 
         // handle node-kind, always present
-        rs.next();
-        String value = rs.get_String();
+        metadata.setFormat(items[0].asString());
 
-        if (value.equals("binary"))
-            metadata.setFormat(Connection.DOC_FORMAT_BINARY);
-        else if (value.equals("text"))
-            metadata.setFormat(Connection.DOC_FORMAT_TEXT);
-        else
-            metadata.setFormat(Connection.DOC_FORMAT_XML);
+        int index = 1;
 
         // handle collections, optional
-        while (rs.getNextType() == XDBCResultSequence.XDBC_String) {
-            rs.next();
-            value = rs.get_String();
-            metadata.addCollection(value);
+        while (index < items.length
+                && items[index].getItemType() == ValueType.XS_STRING) {
+            metadata.addCollection(items[index].asString());
+            index++;
         }
 
         // handle permissions, optional
-        String role, localName;
-        int capability;
-        Node node, childNode;
-        while (rs.getNextType() == XDBCResultSequence.XDBC_Node) {
-            rs.next();
-
-            if (!copyPermissions)
+        Element permissionElement;
+        NodeList capabilities, roles;
+        while (index < items.length
+                && items[index].getItemType() == ValueType.ELEMENT) {
+            if (!copyPermissions) {
+                index++;
                 continue;
+            }
 
-            // permission: turn into an XDMPPermission object
-            // each permission is a sec:permission node
+            // permission: turn into a ContentPermission object
+            // each permission is a sec:permission element
             // children:
             // sec:capability ("read", "insert", "update")
             // and sec:role xs:unsignedLong (but we need string)
-            role = null;
-            capability = -1;
-            node = rs.getNode().asNode();
+            permissionElement = ((XdmElement) items[index].getItem())
+                    .asW3cElement();
 
-            while ((role == null || capability == -1) && node != null
-                    && node.hasChildNodes()) {
-                childNode = node.getFirstChild();
-
-                // skip empty text nodes
-                if (!childNode.hasChildNodes()) {
-                    node.removeChild(childNode);
-                    continue;
-                }
-
-                value = childNode.getFirstChild().toString();
-                localName = childNode.getLocalName();
-
-                if (localName.equals("capability")) {
-                    if (value.equals("" + XDMPPermission.UPDATE))
-                        capability = XDMPPermission.UPDATE;
-                    else if (value.equals("" + XDMPPermission.INSERT))
-                        capability = XDMPPermission.INSERT;
-                    else
-                        capability = capability = XDMPPermission.READ;
-                } else if (localName.equals("role-name")) {
-                    role = childNode.getFirstChild().getNodeValue();
-                } else {
-                    // do nothing: role-id is normal, for example
-                }
-                node.removeChild(childNode);
+            capabilities = permissionElement
+                    .getElementsByTagName("capability");
+            roles = permissionElement.getElementsByTagName("role-name");
+            if (roles.getLength() != 1 || capabilities.getLength() != 1) {
+                throw new UnimplementedFeatureException(
+                        "bad input permission: " + permissionElement);
             }
-            if (role == null || capability == -1) {
-                throw new XDBCException("malformed permission: " + node);
-            }
-            metadata.addPermission(new XDMPPermission(capability, role));
+            metadata.addPermission(capabilities.item(0).getNodeValue(),
+                    roles.item(0).getNodeValue());
+            index++;
         }
 
         // handle quality, always present
-        rs.next();
-        metadata.setQuality(rs.get_int());
+        metadata.setQuality((XSInteger) items[index].getItem());
+        index++;
 
         // handle document-node, always present
-        rs.next();
-
-        // copy the entire document body: must fit in memory!
         if (metadata.isBinary()) {
-            InputStream is = new BufferedInputStream(rs.getInputStream());
-            contentBytes = Utilities.cat(is);
-            is.close();
+            setContentBytes(items[index].asInputStream());
         } else {
-            // getReader() returns a buffered reader
-            Reader r = rs.getReader();
-            contentBytes = Utilities.cat(r).getBytes();
-            r.close();
+            setContentBytes(items[index].asReader());
         }
+        index++;
 
         // handle prop:properties node, optional
-        if (rs.hasNext()) {
-            rs.next();
-            String pString = rs.getNode().asString();
-            if (pString != null)
+        if (index < items.length) {
+            String pString = items[index].asString();
+            if (pString != null) {
                 metadata.setProperties(pString);
+            }
         }
 
         rs.close();
     }
 
     /**
-     * @param copyProperties2
-     * @param copyPermissions2
-     * @param path
-     * @param inputPackage
+     * @param reader
      * @throws IOException
      */
-    public XQSyncDocument(String _path, XQSyncPackage _pkg,
+    private void setContentBytes(Reader reader) throws IOException {
+        contentBytes = Utilities.cat(reader).getBytes();
+    }
+
+    /**
+     * @param stream
+     * @throws IOException
+     */
+    private void setContentBytes(InputStream stream) throws IOException {
+        contentBytes = Utilities.cat(stream);
+    }
+
+    /**
+     * @param _path
+     * @param _copyPermissions
+     * @param _copyProperties
+     * @param _inputPackage
+     * @throws IOException
+     */
+    public XQSyncDocument(XQSyncPackage _pkg, String _path,
             boolean _copyPermissions, boolean _copyProperties)
             throws IOException {
         if (_path == null)
@@ -261,64 +255,64 @@ public class XQSyncDocument {
     }
 
     /**
-     * @param _path
-     * @param _inputPath
+     * @param _file
      * @param _copyPermissions
      * @param _copyProperties
      * @throws IOException
      */
-    public XQSyncDocument(String _path, String _inputPath,
-            boolean _copyPermissions, boolean _copyProperties)
-            throws IOException {
-        if (_path == null)
-            throw new IOException("null path");
+    public XQSyncDocument(File _file, boolean _copyPermissions,
+            boolean _copyProperties) throws IOException {
+        // read the content: must work for bin or xml, so use bytes
+        contentBytes = Utilities.getBytes(_file);
 
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
 
-        // need the metadata first, so we know if it's binary or text or xml
-        File metaFile = new File(_inputPath, _path + METADATA_EXT);
-        metadata = XQSyncDocumentMetadata.fromXML(new FileReader(metaFile));
+        File metaFile = getMetadataFile(_file);
+        metadata = XQSyncDocumentMetadata
+                .fromXML(new FileReader(metaFile));
         if (!copyPermissions) {
             metadata.clearPermissions();
         }
         if (!copyProperties) {
             metadata.clearProperties();
         }
+    }
 
-        // read the content: must work for bin or xml, so use bytes
-        File contentFile = new File(_inputPath, _path);
-        contentBytes = Utilities.getBytes(contentFile);
+    static File getMetadataFile(File contentFile) throws IOException {
+        return new File(getMetadataPath(contentFile));
     }
 
     /**
-     * @param _conn
+     * @param _outputUri
+     * @param _session
      * @param _placeKeys
-     * @param readRoles
+     * @param _readRoles
      * @return
      * @throws IOException
-     * @throws XDBCException
-     * @throws XDBCException
+     * @throws XccException
      */
-    public long write(String outputPath, Connection _conn,
-            Collection _readRoles, String[] _placeKeys) throws IOException,
-            XDBCException {
-        if (outputPath == null)
+    public long write(String _outputUri,
+            com.marklogic.ps.Session _session,
+            Collection<ContentPermission> _readRoles, String[] _placeKeys)
+            throws IOException, XccException {
+        if (_outputUri == null) {
             throw new IOException("null outputPath");
+        }
+
+        logger.fine(_outputUri);
 
         // handle deletes
         if (contentBytes == null || contentBytes.length < 1) {
             // this document has been deleted
-            // no need to retry this: the connection class should handle it
-            _conn.deleteDocument(outputPath);
+            _session.deleteDocument(_outputUri);
             return 0;
         }
 
         // TODO optionally check to see if document is already up-to-date
 
         // constants
-        XDMPDocInsertStream os = null;
-        int repair = XDMPDocInsertStream.XDMP_ERROR_CORRECTION_NONE;
+        DocumentRepairLevel repair = DocumentRepairLevel.NONE;
         boolean resolveEntities = false;
         String namespace = null;
 
@@ -326,85 +320,39 @@ public class XQSyncDocument {
         // don't check copyProperties here:
         // if false, the constructor shouldn't have read any
         // and anyway we still want to handle any _readRoles
-        if (_readRoles != null) {
-            metadata.addPermissions(_readRoles);
-        }
-        XDMPPermission[] permissions = metadata.getPermissions();
+        metadata.addPermissions(_readRoles);
+        ContentPermission[] permissions = metadata.getPermissions();
         String[] collections = metadata.getCollections();
 
-        // check for and retry retryable exceptions here
-        long bytes = 0;
-        int remainingTries = 10;
-        while (remainingTries > 0) {
-            remainingTries--;
-            try {
-                // must be able to communicate with 2.2 servers, for now
-                os = _conn.getConnection().openDocInsertStream(outputPath,
-                        Locale.getDefault(), resolveEntities, permissions,
-                        collections, metadata.getQuality(), namespace, repair,
-                        _placeKeys, metadata.getFormat(), null);
+        ContentCreateOptions options = null;
+        if (metadata.isBinary()) {
+            options = ContentCreateOptions.newBinaryInstance();
+        } else if (metadata.isText()) {
+            options = ContentCreateOptions.newTextInstance();
+        } else {
+            options = ContentCreateOptions.newXmlInstance();
+        }
 
-                if (metadata.isBinary()) {
-                    logger.finer("writing " + outputPath + " as binary");
-                    InputStream is = new ByteArrayInputStream(contentBytes);
-                    bytes = Utilities.copy(is, os);
-                    os.flush();
-                    os.commit();
-                    os.close();
-                    os = null;
-                    is.close();
-                } else {
-                    logger.finer("writing " + outputPath + " as " + metadata.getFormatName());
-                    Reader r = new InputStreamReader(new ByteArrayInputStream(
-                            contentBytes));
-                    bytes = Utilities.copy(r, os);
-                    os.flush();
-                    os.commit();
-                    os.close();
-                    os = null;
-                    r.close();
-                }
-                // break out of the retry loop
-                break;
-            } catch (XDBCXQueryException e) {
-                if (e.getRetryable() && remainingTries > 0) {
-                    // ok, so retry it
-                    // log something here, but only if we have a logger
-                    if (logger != null) {
-                        logger.warning("retrying on exception: "
-                                + e.getLocalizedMessage());
-                    }
-                    if (os != null) {
-                        try {
-                            os.abort();
-                        } catch (XDBCException dummy) {
-                            // do nothing
-                        }
-                        try {
-                            os.close();
-                        } catch (IOException dummy) {
-                            // do nothing
-                        }
-                        os = null;
-                    }
-                } else {
-                    throw e;
-                }
-            }
-            if (os != null) {
-                os.close();
-                os = null;
-            }
-        } // while retries
+        options.setResolveEntities(resolveEntities);
+        options.setPermissions(permissions);
+        options.setCollections(collections);
+        options.setQuality(metadata.getQuality());
+        options.setNamespace(namespace);
+        options.setRepairLevel(repair);
+        options.setPlaceKeys(_session.forestNamesToIds(_placeKeys));
+
+        Content content = ContentFactory.newContent(_outputUri,
+                contentBytes, options);
+        _session.insertContent(content);
+        _session.commit();
 
         // handle prop:properties node, optional
-        // retries should be automatically handled by Connection
         // TODO would be nice to do this in the same transaction, drat it
         String properties = metadata.getProperties();
         if (copyProperties && properties != null) {
-            _conn.setDocumentProperties(outputPath, properties);
+            _session.setDocumentProperties(_outputUri, properties);
         }
-        return bytes;
+        return contentBytes.length;
     }
 
     /**
@@ -438,23 +386,29 @@ public class XQSyncDocument {
     }
 
     /**
-     * @param readRoles
+     * @param _path
+     * @return
      * @throws IOException
      */
-    public void write(String outputPath, Collection readRoles)
-            throws IOException {
-        if (outputPath == null)
-            throw new IOException("null outputPath");
+    static String getMetadataPath(File _file) throws IOException {
+        return _file.getCanonicalPath() + METADATA_EXT;
+    }
 
-        File parent = new File(outputPath).getParentFile();
-        if (!parent.exists())
+    /**
+     * @param outputFile
+     * @throws IOException
+     */
+    public void write(File outputFile) throws IOException {
+        File parent = outputFile.getParentFile();
+        if (!parent.exists()) {
             parent.mkdirs();
+        }
 
-        FileOutputStream fos = new FileOutputStream(outputPath);
+        FileOutputStream fos = new FileOutputStream(outputFile);
         fos.write(contentBytes);
         fos.close();
 
-        String metadataPath = getMetadataPath(outputPath);
+        String metadataPath = getMetadataPath(outputFile);
         FileOutputStream mfos = new FileOutputStream(metadataPath);
         mfos.write(metadata.toXML().getBytes());
         mfos.close();

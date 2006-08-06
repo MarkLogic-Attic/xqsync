@@ -20,10 +20,14 @@ package com.marklogic.ps.xqsync;
 
 import java.io.Reader;
 import java.util.Collection;
+import java.util.List;
 import java.util.Vector;
 
-import com.marklogic.xdmp.XDMPDocInsertStream;
-import com.marklogic.xdmp.XDMPPermission;
+import com.marklogic.xcc.ContentCapability;
+import com.marklogic.xcc.ContentPermission;
+import com.marklogic.xcc.DocumentFormat;
+import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
+import com.marklogic.xcc.types.XSInteger;
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -31,11 +35,11 @@ import com.thoughtworks.xstream.XStream;
  * 
  */
 public class XQSyncDocumentMetadata {
-    private int format = XDMPDocInsertStream.XDMP_DOC_FORMAT_XML;
+    private DocumentFormat format = DocumentFormat.XML;
 
-    Vector collectionsVector = new Vector();
+    List<String> collectionsList = new Vector<String>();
 
-    Vector permissionsVector = new Vector();
+    List<ContentPermission> permissionsList = new Vector<ContentPermission>();
 
     private int quality = 0;
 
@@ -54,13 +58,13 @@ public class XQSyncDocumentMetadata {
      * @return
      */
     public boolean isBinary() {
-        return format == XDMPDocInsertStream.XDMP_DOC_FORMAT_BINARY;
+        return format == DocumentFormat.BINARY;
     }
 
     /**
      * @param _format
      */
-    public void setFormat(int _format) {
+    public void setFormat(DocumentFormat _format) {
         format = _format;
     }
 
@@ -68,14 +72,14 @@ public class XQSyncDocumentMetadata {
      * @param _collection
      */
     public void addCollection(String _collection) {
-        collectionsVector.add(_collection);
+        collectionsList.add(_collection);
     }
 
     /**
      * @param _permission
      */
-    public void addPermission(XDMPPermission _permission) {
-        permissionsVector.add(_permission);
+    public void addPermission(ContentPermission _permission) {
+        permissionsList.add(_permission);
     }
 
     /**
@@ -96,7 +100,7 @@ public class XQSyncDocumentMetadata {
      * @return
      */
     public String[] getCollections() {
-        return (String[]) collectionsVector.toArray(new String[0]);
+        return collectionsList.toArray(new String[0]);
     }
 
     /**
@@ -107,18 +111,20 @@ public class XQSyncDocumentMetadata {
     }
 
     /**
-     * @param roles
+     * @param permissions
      */
-    public void addPermissions(Collection roles) {
-        permissionsVector.addAll(roles);
+    public void addPermissions(Collection<ContentPermission> permissions) {
+        if (permissions == null) {
+            return;
+        }
+        permissionsList.addAll(permissions);
     }
 
     /**
      * @return
      */
-    public XDMPPermission[] getPermissions() {
-        return (XDMPPermission[]) permissionsVector
-                .toArray(new XDMPPermission[0]);
+    public ContentPermission[] getPermissions() {
+        return permissionsList.toArray(new ContentPermission[0]);
     }
 
     /**
@@ -131,7 +137,7 @@ public class XQSyncDocumentMetadata {
     /**
      * @return
      */
-    public int getFormat() {
+    public DocumentFormat getFormat() {
         return format;
     }
 
@@ -139,6 +145,7 @@ public class XQSyncDocumentMetadata {
      * @return
      */
     public String toXML() {
+        // note that this will escape the properties... do we care? no.
         return xstream.toXML(this);
     }
 
@@ -146,7 +153,7 @@ public class XQSyncDocumentMetadata {
      * 
      */
     public void clearPermissions() {
-        collectionsVector.clear();
+        collectionsList.clear();
     }
 
     /**
@@ -160,15 +167,54 @@ public class XQSyncDocumentMetadata {
      * @return
      */
     public String getFormatName() {
-        if (format == XDMPDocInsertStream.XDMP_DOC_FORMAT_BINARY) {
-            return "binary";
-        } else if (format == XDMPDocInsertStream.XDMP_DOC_FORMAT_TEXT) {
-            return "text";
-        } else if (format == XDMPDocInsertStream.XDMP_DOC_FORMAT_XML) {
-            return "xml";
-        } else {
-            return "none";
-        }
+        return format.toString();
+    }
+
+    /**
+     * @param _format
+     */
+    public void setFormat(String _format) {
+        if (_format.equals("xml"))
+            setFormat(DocumentFormat.XML);
+        else if (_format.equals("text"))
+            setFormat(DocumentFormat.TEXT);
+        else
+            setFormat(DocumentFormat.BINARY);
+    }
+
+    /**
+     * @param _capability
+     * @param _role
+     */
+    public void addPermission(String _capability, String _role) {
+        ContentCapability capability;
+        if (_capability.equals(ContentPermission.UPDATE))
+            capability = ContentPermission.UPDATE;
+        else if (_capability.equals(ContentPermission.INSERT))
+            capability = ContentPermission.INSERT;
+        else if (_capability.equals(ContentPermission.EXECUTE))
+            capability = ContentPermission.EXECUTE;
+        else if (_capability.equals(ContentPermission.READ))
+            capability = capability = ContentPermission.READ;
+        else
+            throw new UnimplementedFeatureException(
+                    "unknown capability: " + _capability);
+
+        addPermission(new ContentPermission(capability, _role));
+    }
+
+    /**
+     * @param integer
+     */
+    public void setQuality(XSInteger integer) {
+        setQuality(integer.asPrimitiveInt());
+    }
+
+    /**
+     * @return
+     */
+    public boolean isText() {
+        return format == DocumentFormat.TEXT;
     }
 
 }

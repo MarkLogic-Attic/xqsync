@@ -20,10 +20,9 @@
 # affiliated with the Apache Software Foundation.
 #
 
-CP=$HOME/lib/java/xdbc.jar
-CP=$CP:$HOME/lib/java/xdmp.jar
-CP=$CP:../lib/xqsync.jar
+CP=$HOME/lib/java/xcc.jar
 CP=$CP:$HOME/lib/java/xstream-1.1.2.jar
+CP=$CP:../lib/xqsync.jar
 
 java -cp $CP com.marklogic.ps.xqsync.XQSync $*
 

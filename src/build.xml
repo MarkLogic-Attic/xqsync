@@ -29,11 +29,12 @@
 
     <path id="master-classpath">
         <fileset dir="${java.library.user}">
-            <include name="xdbc.jar"/>
-            <include name="xdmp.jar"/>
+            <include name="xcc.jar"/>
             <include name="xstream-1.1.2.jar"/>
         </fileset>
         <fileset dir="${java.library.system}">
+            <include name="xcc.jar"/>
+            <include name="xstream-1.1.2.jar"/>
         </fileset>
         <pathelement path="${build.dir}"/>
     </path>
@@ -41,7 +42,7 @@
 	<target name="build" 
 			description="Compile main source tree java files">
 	  <mkdir dir="${build.dir}"/>
-	  <javac destdir="${build.dir}" target="1.4" source="1.4">
+	  <javac destdir="${build.dir}" target="1.5" source="1.5">
 		<src path="${src.dir}"/>
 		<classpath refid="master-classpath"/>
 	  </javac>

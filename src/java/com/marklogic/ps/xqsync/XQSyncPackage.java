@@ -21,12 +21,10 @@ package com.marklogic.ps.xqsync;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-
 import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -35,7 +33,7 @@ import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *
+ * 
  */
 public class XQSyncPackage {
 
@@ -75,13 +73,16 @@ public class XQSyncPackage {
      */
     public void write(String outputPath, byte[] binaryContent,
             XQSyncDocumentMetadata metadata) throws IOException {
+        // TODO use size metrics to automatically manage multiple zip archives,
+        // to manage 32-bit limits in java.util.zip
         synchronized (outPkg) {
             ZipEntry entry = new ZipEntry(outputPath);
             outPkg.putNextEntry(entry);
             outPkg.write(binaryContent);
             outPkg.closeEntry();
 
-            String metadataPath = XQSyncDocument.getMetadataPath(outputPath);
+            String metadataPath = XQSyncDocument
+                    .getMetadataPath(outputPath);
             entry = new ZipEntry(metadataPath);
             outPkg.putNextEntry(entry);
             outPkg.write(metadata.toXML().getBytes());
@@ -91,7 +92,7 @@ public class XQSyncPackage {
 
     /**
      * @throws IOException
-     *
+     * 
      */
     public void flush() throws IOException {
         synchronized (outPkg) {
@@ -101,7 +102,7 @@ public class XQSyncPackage {
 
     /**
      * @throws IOException
-     *
+     * 
      */
     public void close() throws IOException {
         synchronized (outPkg) {
@@ -119,8 +120,8 @@ public class XQSyncPackage {
         String metadataPath = XQSyncDocument.getMetadataPath(_path);
         ZipEntry metadataEntry = getEntry(metadataPath);
 
-        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(
-                inPkg.getInputStream(metadataEntry)));
+        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(inPkg
+                .getInputStream(metadataEntry)));
     }
 
     /**
@@ -144,9 +145,9 @@ public class XQSyncPackage {
     /**
      * @return
      */
-    public List list() {
+    public List<String> list() {
         Enumeration e = inPkg.entries();
-        HashMap documentList = new HashMap();
+        HashSet<String> documentList = new HashSet<String>();
 
         String path;
         ZipEntry entry;
@@ -158,7 +159,7 @@ public class XQSyncPackage {
                 continue;
 
             path = entry.getName();
-            //logger.finest("found " + path);
+            // logger.finest("found " + path);
             // whether it's metadata or not, we add the same path
             if (path.endsWith(XQSyncDocument.METADATA_EXT)) {
                 path = path.substring(0, path.length()
@@ -166,13 +167,13 @@ public class XQSyncPackage {
             }
 
             // make sure we don't add duplicates
-            if (!documentList.containsKey(path)) {
-                //logger.finest("adding " + path);
-                documentList.put(path, null);
+            if (!documentList.contains(path)) {
+                // logger.finest("adding " + path);
+                documentList.add(path);
             }
         }
 
-        return new LinkedList(documentList.keySet());
+        return new LinkedList<String>(documentList);
     }
 
 }

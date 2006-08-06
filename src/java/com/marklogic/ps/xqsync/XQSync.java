@@ -28,11 +28,11 @@ import com.marklogic.ps.PropertyManager;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *
+ * 
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2006-06-05.1";
+    public static String VERSION = "2006-08-05.1";
 
     public static void main(String[] args) throws FileNotFoundException,
             IOException {
@@ -52,9 +52,9 @@ public class XQSync extends AbstractLoggableClass {
         AbstractLoggableClass.setLoggerProperties(props);
         AbstractLoggableClass.initialize();
 
-        logger.configureLogger(props);
         logger.info("XQSync starting: version = " + VERSION);
 
+        // TODO set and use INPUT_ENCODING and OUTPUT_ENCODING, instead
         logger.info("default encoding is "
                 + System.getProperty("file.encoding"));
         System.setProperty("file.encoding", props.getProperty(
@@ -74,8 +74,9 @@ public class XQSync extends AbstractLoggableClass {
             }
         }
 
-        logger.info("synchronized in " + (System.currentTimeMillis() - start) + " ms");
-        for (int i=0; i < pmArray.length; i++) {
+        logger.info("synchronized in "
+                + (System.currentTimeMillis() - start) + " ms");
+        for (int i = 0; i < pmArray.length; i++) {
             pmArray[i].quit();
         }
     }

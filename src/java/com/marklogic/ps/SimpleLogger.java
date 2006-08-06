@@ -34,7 +34,8 @@ import java.util.logging.SimpleFormatter;
  * 
  * wrapper for java logging
  */
-public class SimpleLogger extends Logger implements PropertyClientInterface {
+public class SimpleLogger extends Logger implements
+        PropertyClientInterface {
     /**
      * 
      */
@@ -82,7 +83,7 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
 
     static public final String LOGGER_NAME = "com.marklogic.ps";
 
-    private static Hashtable loggers = new Hashtable();
+    private static Hashtable<String, SimpleLogger> loggers = new Hashtable<String, SimpleLogger>();
 
     SimpleLogger(String name) {
         super(name, null);
@@ -101,7 +102,7 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
     }
 
     public static synchronized SimpleLogger getSimpleLogger(String name) {
-        SimpleLogger obj = (SimpleLogger) loggers.get(name);
+        SimpleLogger obj = loggers.get(name);
 
         if (obj == null)
             obj = new SimpleLogger(name);
@@ -111,7 +112,7 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
 
     public static synchronized SimpleLogger getSimpleLogger(String name,
             String resBundle) {
-        SimpleLogger obj = (SimpleLogger) loggers.get(name);
+        SimpleLogger obj = loggers.get(name);
 
         if (obj == null)
             obj = new SimpleLogger(name, resBundle);
@@ -132,8 +133,7 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
          * getParent() appears to fetch the first non-null ancestor, usually
          * root! So we take a cruder approach.
          */
-        // TODO support OS logging (via custom Handler?)
-        //
+
         // don't use the root settings
         setUseParentHandlers(false);
 
@@ -141,31 +141,66 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
         String logLevel = _prop.getProperty(LOG_LEVEL, DEFAULT_LOG_LEVEL);
 
         // support multiple handlers: comma-separated
-        String[] logHandler = _prop.getProperty(LOG_HANDLER, DEFAULT_LOG_HANDLER)
-                .split(",");
+        String[] newHandlers = _prop.getProperty(LOG_HANDLER,
+                DEFAULT_LOG_HANDLER).split(",");
         String logFilePath = _prop.getProperty(LOG_FILEHANDLER_PATH,
                 DEFAULT_FILEHANDLER_PATH);
-        boolean logFileAppend = Boolean.parseBoolean(_prop.getProperty(
-                LOG_FILEHANDLER_APPEND, "true"));
+        boolean logFileAppend = Boolean.valueOf(
+                _prop.getProperty(LOG_FILEHANDLER_APPEND, "true"))
+                .booleanValue();
         int logFileCount = Integer.parseInt(_prop.getProperty(
                 LOG_FILEHANDLER_COUNT, "1"));
         int logFileLimit = Integer.parseInt(_prop.getProperty(
                 LOG_FILEHANDLER_LIMIT, "0"));
 
         Handler h = null;
-        if (logHandler != null && logHandler.length > 0) {
+        if (newHandlers != null && newHandlers.length > 0) {
             // remove any old handlers
-            Handler[] v = getHandlers();
-            for (int i = 0; i < v.length; i++) {
-                removeHandler(v[i]);
+            Handler[] oldHandlers = getHandlers();
+            int size = oldHandlers.length;
+            if (size < newHandlers.length) {
+                size = newHandlers.length;
             }
-            // can't use the logger here: all the handlers are gone!
-            severe("this should not happen");
-            for (int i = 0; i < logHandler.length; i++) {
-                if (logHandler[i] == null)
+
+            for (int i = 0; i < size; i++) {
+                if (i > newHandlers.length) {
+                    // nothing to do except remove the old one
+                    removeHandler(oldHandlers[i]);
                     continue;
+                }
+
+//                System.err.println("new handler " + i + ": "
+//                        + newHandlers[i]);
+                if (i < oldHandlers.length && oldHandlers[i] != null) {
+//                    System.err.println("old handler " + i + ": "
+//                            + oldHandlers[i].getClass().getSimpleName());
+                    if (newHandlers[i].equals("CONSOLE")
+                            && oldHandlers[i] instanceof ConsoleHandler) {
+                        continue;
+                    } else if (newHandlers[i].equals("FILE")
+                            && oldHandlers[i] instanceof FileHandler) {
+                        /*
+                         * This is a hack: we don't know that the file pattern
+                         * is the same, but FileHandler doesn't seem to give us
+                         * any help with that. So changing the pattern won't
+                         * work.
+                         */
+                        continue;
+                    } else if (newHandlers[i].equals(oldHandlers[i]
+                            .getClass().getSimpleName())) {
+                        continue;
+                    }
+                }
+
+                // remove the old handler
+                if (i < oldHandlers.length) {
+//                    System.err.println("removing " + i + ": "
+//                            + oldHandlers[i]);
+                    removeHandler(oldHandlers[i]);
+                }
+
                 // allow the user to specify the file
-                if (logHandler[i].equals("FILE")) {
+                if (newHandlers[i].equals("FILE")) {
                     System.err.println("logging to file " + logFilePath);
                     try {
                         h = new FileHandler(logFilePath, logFileLimit,
@@ -173,32 +208,37 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
                     } catch (SecurityException e) {
                         e.printStackTrace();
                         // fatal error
-                        System.err.println("cannot configure logging: exiting");
+                        System.err
+                                .println("cannot configure logging: exiting");
                         Runtime.getRuntime().exit(-1);
                     } catch (IOException e) {
                         e.printStackTrace();
                         // fatal error
-                        System.err.println("cannot configure logging: exiting");
+                        System.err
+                                .println("cannot configure logging: exiting");
                         Runtime.getRuntime().exit(-1);
                     }
                     h.setFormatter(new SimpleFormatter());
-                } else if (logHandler[i].equals("CONSOLE")) {
-                    System.err.println("logging to " + logHandler[i]);
+                } else if (newHandlers[i].equals("CONSOLE")) {
+                    System.err.println("logging to " + newHandlers[i]);
                     h = new ConsoleHandler();
                     h.setFormatter(new SimpleFormatter());
                 } else {
                     // try to load the string as a classname
                     try {
-                        Class lhc = Class.forName(logHandler[i], true,
+                        Class lhc = Class.forName(newHandlers[i], true,
                                 ClassLoader.getSystemClassLoader());
-                        System.err.println("logging to class " + logHandler[i]);
-                        Constructor con = lhc.getConstructor(new Class[] {});
+                        System.err.println("logging to class "
+                                + newHandlers[i]);
+                        Constructor con = lhc
+                                .getConstructor(new Class[] {});
                         h = (Handler) con.newInstance(new Object[] {});
                     } catch (Exception e) {
                         System.err.println("unrecognized LOG_HANDLER: "
-                                + logHandler[i]);
+                                + newHandlers[i]);
                         e.printStackTrace();
-                        System.err.println("cannot configure logging: exiting");
+                        System.err
+                                .println("cannot configure logging: exiting");
                         Runtime.getRuntime().exit(-1);
                     }
                 }
@@ -227,7 +267,7 @@ public class SimpleLogger extends Logger implements PropertyClientInterface {
             }
             fine("logging set to " + getLevel());
         }
-        info("setting up logging for: " + getName());
+        info("setting up " + this + " for: " + getName());
     } // setLogging
 
     public void logException(String message, Throwable exception) {

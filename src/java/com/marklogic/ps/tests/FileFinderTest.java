@@ -4,7 +4,6 @@
 package com.marklogic.ps.tests;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 import junit.framework.TestCase;
@@ -21,7 +20,7 @@ public class FileFinderTest extends TestCase {
     /*
      * Test method for 'com.marklogic.ps.FileFinder.listRelativePaths(String)'
      */
-    public void testListRelativePaths() throws IOException {
+    public void testListRelativePaths() {
         String basePath = "/test/foo/bar";
         FileFinder ff = new FileFinder(basePath);
         // fake the list contents

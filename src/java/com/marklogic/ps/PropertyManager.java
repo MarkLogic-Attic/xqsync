@@ -45,21 +45,20 @@ public class PropertyManager extends Thread {
 
     /**
      * @param propertyFile
-     * @throws IOException
      * @throws XDCFException
      */
-    public PropertyManager(String _propertyFilePath) throws IOException {
+    public PropertyManager(String _propertyFilePath) {
         // set up to periodically check propertyFile for changes
         propertyFilePath = _propertyFilePath;
         propertyFile = new File(_propertyFilePath);
         lastModified = propertyFile.lastModified();
         properties = new Properties();
-        reload();
+        //reload();
     }
 
     /**
      * @param _propertyFile
-     * @throws XDCFException
+     * @throws IOException
      */
     protected void reload() throws IOException {
         properties.load(new FileInputStream(propertyFilePath));
@@ -85,8 +84,6 @@ public class PropertyManager extends Thread {
                                 clients[i].setProperties(properties);
                         }
                     }
-                    // hard-coded static classes
-                    Connection.setProperties(properties);
                 } catch (IOException e) {
                     logger.logException(propertyFilePath, e);
                 }
@@ -96,6 +93,7 @@ public class PropertyManager extends Thread {
                 // sleep a little
                 Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException e) {
+                // big deal
             }
         }
     }
