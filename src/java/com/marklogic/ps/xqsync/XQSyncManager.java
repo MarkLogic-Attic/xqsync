@@ -410,12 +410,11 @@ public class XQSyncManager extends Thread implements
      * @param completionService
      * @return
      * @throws IOException
-     * @throws XccException
      * 
      */
     @SuppressWarnings("unchecked")
     private long queueFromInputPackage(ExecutorCompletionService completionService,
-            String _path) throws IOException, XccException {
+            String _path) throws IOException {
         // list contents of package
         logger.info("listing package " + _path);
 
@@ -441,11 +440,10 @@ public class XQSyncManager extends Thread implements
     /**
      * @param completionService
      * @throws XccException
-     * @throws IOException
      */
     @SuppressWarnings("unchecked")
     private long queueFromInputConnection(ExecutorCompletionService completionService)
-            throws XccException, IOException {
+            throws XccException {
         String collectionUri = properties
                 .getProperty(INPUT_COLLECTION_URI_KEY);
         String directoryUri = properties.getProperty(INPUT_DIRECTORY_URI);
@@ -475,6 +473,10 @@ public class XQSyncManager extends Thread implements
         Request request = getRequest(collectionUri, directoryUri,
                 documentUris, userQuery, hasStart);
         RequestOptions opts = request.getEffectiveOptions();
+
+        // in order to handle really big result sequences,
+        // we have to turn off caching, and
+        // we actually have to reduce the buffer size.
         logger.fine("buffer size = " + opts.getResultBufferSize());
         logger.fine("caching = " + opts.getCacheResult());
         opts.setCacheResult(false);

@@ -19,14 +19,12 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 
 import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.ContentPermission;
-import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -96,9 +94,8 @@ public class TaskFactory {
     /**
      * @param file
      * @return
-     * @throws IOException
      */
-    public CallableSync newCallableSync(File file) throws IOException {
+    public CallableSync newCallableSync(File file) {
         CallableSync cs = new CallableSync(file, copyPermissions,
                 copyProperties);
         configure(cs);
@@ -108,18 +105,16 @@ public class TaskFactory {
     /**
      * @param uri
      * @return
-     * @throws IOException
-     * @throws XccException
      */
-    public CallableSync newCallableSync(String uri) throws IOException, XccException {
+    public CallableSync newCallableSync(String uri) {
         CallableSync cs;
         if (inputPackage != null) {
-            cs = new CallableSync(inputPackage,
-                    uri, copyPermissions, copyProperties);
+            cs = new CallableSync(inputPackage, uri, copyPermissions,
+                    copyProperties);
         } else {
-        Session session = (Session) inputConnection.newSession();
-        cs = new CallableSync(session, uri,
-                copyPermissions, copyProperties);
+            Session session = (Session) inputConnection.newSession();
+            cs = new CallableSync(session, uri, copyPermissions,
+                    copyProperties);
         }
         configure(cs);
         return cs;

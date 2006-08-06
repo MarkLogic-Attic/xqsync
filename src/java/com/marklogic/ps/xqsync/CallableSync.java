@@ -19,14 +19,13 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.ContentPermission;
-import com.marklogic.xcc.exceptions.XccException;
+import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -48,19 +47,29 @@ public class CallableSync implements Callable<Object> {
 
     private SimpleLogger logger;
 
-    private String uri;
+    private String inputUri;
+
+    private Session inputSession;
+
+    private boolean copyPermissions;
+
+    private boolean copyProperties;
+
+    private XQSyncPackage inputPackage;
+
+    private File inputFile;
 
     /**
      * @param _path
      * @param _copyPermissions
      * @param _copyProperties
-     * @throws IOException
      */
     public CallableSync(XQSyncPackage _package, String _path,
-            boolean _copyPermissions, boolean _copyProperties) throws IOException {
-        uri = _path;
-        document = new XQSyncDocument(_package, _path, _copyPermissions,
-                _copyProperties);
+            boolean _copyPermissions, boolean _copyProperties) {
+        inputPackage = _package;
+        inputUri = _path;
+        copyPermissions = _copyPermissions;
+        copyProperties = _copyProperties;
     }
 
     /**
@@ -68,28 +77,25 @@ public class CallableSync implements Callable<Object> {
      * @param _uri
      * @param _copyPermissions
      * @param _copyProperties
-     * @throws IOException
-     * @throws XccException
      */
-    public CallableSync(Session _session, String _uri, boolean _copyPermissions,
-            boolean _copyProperties)
-            throws XccException, IOException {
-        uri = _uri;
-        document = new XQSyncDocument(_session, _uri, _copyPermissions,
-                _copyProperties);
+    public CallableSync(Session _session, String _uri,
+            boolean _copyPermissions, boolean _copyProperties) {
+        inputSession = _session;
+        inputUri = _uri;
+        copyPermissions = _copyPermissions;
+        copyProperties = _copyProperties;
     }
 
     /**
      * @param _file
      * @param _copyPermissions
      * @param _copyProperties
-     * @throws IOException
      */
     public CallableSync(File _file, boolean _copyPermissions,
-            boolean _copyProperties)
-            throws IOException {
-        document = new XQSyncDocument(_file, _copyPermissions,
-                _copyProperties);
+            boolean _copyProperties) {
+        inputFile = _file;
+        copyPermissions = _copyPermissions;
+        copyProperties = _copyProperties;
     }
 
     /*
@@ -98,7 +104,22 @@ public class CallableSync implements Callable<Object> {
      * @see java.util.concurrent.Callable#call()
      */
     public String call() throws Exception {
-        logger.fine("starting sync of " + uri);
+        logger.fine("starting sync of " + inputUri);
+
+        if (inputSession != null) {
+            document = new XQSyncDocument(inputSession, inputUri,
+                    copyPermissions, copyProperties);
+        } else if (inputPackage != null) {
+            document = new XQSyncDocument(inputPackage, inputUri,
+                    copyPermissions, copyProperties);
+        } else if (inputFile != null) {
+            document = new XQSyncDocument(inputFile, copyPermissions,
+                    copyProperties);
+        } else {
+            throw new UnimplementedFeatureException("no input found");
+        }
+
+        document.setLogger(logger);
 
         // write document to output session, package, or directory
         // marshal output arguments
@@ -111,8 +132,8 @@ public class CallableSync implements Callable<Object> {
             path = "";
         }
         // ensure exactly one separator at each level
-        String outputUri = (path + uri).replaceAll("//+", "/");
-        logger.finer("copying " + uri + " to " + outputUri);
+        String outputUri = (path + inputUri).replaceAll("//+", "/");
+        logger.finer("copying " + inputUri + " to " + outputUri);
 
         if (outputSession != null) {
             document
@@ -152,7 +173,6 @@ public class CallableSync implements Callable<Object> {
      */
     public void setLogger(SimpleLogger logger) {
         this.logger = logger;
-        document.setLogger(logger);
     }
 
 }

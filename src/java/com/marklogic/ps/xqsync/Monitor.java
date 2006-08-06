@@ -30,7 +30,7 @@ import com.marklogic.ps.SimpleLogger;
  * 
  */
 public class Monitor extends Thread {
-    private static final int DISPLAY_MILLIS = 3 * 1000;
+    private static final int DISPLAY_MILLIS = 15 * 1000;
 
     private static final int SLEEP_TIME = 500;
 
@@ -88,20 +88,24 @@ public class Monitor extends Thread {
         long currentMillis;
 
         // if anything goes wrong, the futuretask knows how to stop us
+        long taskCount = pool.getTaskCount();
         logger.finest("looping every " + sleepMillis + ", core="
                 + pool.getCorePoolSize() + ", active="
                 + pool.getActiveCount() + ", tasks="
-                + pool.getTaskCount());
+                + taskCount);
         while (running && !isInterrupted()) {
             currentMillis = System.currentTimeMillis();
             if (currentMillis - lastDisplayMillis > displayMillis) {
                 lastDisplayMillis = currentMillis;
+                taskCount = pool.getTaskCount();
                 logger.finer("thread count: core="
                         + pool.getCorePoolSize() + ", active="
                         + pool.getActiveCount() + ", tasks="
-                        + pool.getTaskCount());
+                        + taskCount);
                 if (lastUri != null) {
-                    logger.info("processed item " + eventCount + " as "
+                    logger.info("processed item " + eventCount
+                            + " of " + taskCount
+                            + " as "
                             + lastUri);
                 }
             }

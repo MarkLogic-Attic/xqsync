@@ -26,8 +26,11 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.util.Collection;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
@@ -75,10 +78,12 @@ public class XQSyncDocument {
      * @param _copyProperties
      * @throws XccException
      * @throws IOException
+     * @throws SAXException 
+     * @throws ParserConfigurationException 
      */
     public XQSyncDocument(com.marklogic.ps.Session _session, String _uri,
             boolean _copyPermissions, boolean _copyProperties)
-            throws XccException, IOException {
+            throws XccException, IOException, ParserConfigurationException, SAXException {
         if (_uri == null)
             throw new UnimplementedFeatureException("null uri");
 
