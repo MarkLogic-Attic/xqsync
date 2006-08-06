@@ -20,7 +20,9 @@ package com.marklogic.ps;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
@@ -83,7 +85,8 @@ public class SimpleLogger extends Logger implements
 
     static public final String LOGGER_NAME = "com.marklogic.ps";
 
-    private static Hashtable<String, SimpleLogger> loggers = new Hashtable<String, SimpleLogger>();
+    private static Map<String, SimpleLogger> loggers = 
+        Collections.synchronizedMap(new Hashtable<String, SimpleLogger>());
 
     SimpleLogger(String name) {
         super(name, null);
@@ -101,21 +104,21 @@ public class SimpleLogger extends Logger implements
         return getSimpleLogger(LOGGER_NAME);
     }
 
-    public static synchronized SimpleLogger getSimpleLogger(String name) {
-        SimpleLogger obj = loggers.get(name);
-
-        if (obj == null)
-            obj = new SimpleLogger(name);
-
-        return obj;
+    public static SimpleLogger getSimpleLogger(String name) {
+        return getSimpleLogger(name, null);
     }
 
-    public static synchronized SimpleLogger getSimpleLogger(String name,
+    public static SimpleLogger getSimpleLogger(String name,
             String resBundle) {
         SimpleLogger obj = loggers.get(name);
 
-        if (obj == null)
-            obj = new SimpleLogger(name, resBundle);
+        if (obj == null) {
+            if (resBundle != null) {
+                obj = new SimpleLogger(name, resBundle);
+            } else {
+                obj = new SimpleLogger(name);
+            }
+        }
 
         return obj;
     }

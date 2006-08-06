@@ -45,6 +45,13 @@ public class AbstractLoggableClass {
     }
 
     /**
+     * @return
+     */
+    public SimpleLogger getLogger() {
+        return logger;
+    }
+
+    /**
      * @param _logger
      */
     public static void setLogger(SimpleLogger _logger) {

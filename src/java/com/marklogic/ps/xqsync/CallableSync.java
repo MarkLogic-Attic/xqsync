@@ -140,6 +140,7 @@ public class CallableSync implements Callable<Object> {
                     .write(outputUri, outputSession, readRoles, placeKeys);
         } else if (outputPackage != null) {
             document.write(outputUri, outputPackage, readRoles);
+            outputPackage.flush();
         } else {
             // default: filesystem
             File outputFile = new File(outputUri);

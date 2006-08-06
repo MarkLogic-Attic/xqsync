@@ -29,25 +29,31 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import com.marklogic.ps.AbstractLoggableClass;
 import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  * 
  */
-public class XQSyncPackage {
+public class XQSyncPackage extends AbstractLoggableClass {
 
     private String packagePath;
 
-    private ZipOutputStream outPkg;
+    private ZipOutputStream outputZip;
 
-    private ZipFile inPkg;
+    private ZipFile inputZip;
+    
+    private Object outputMutex = new Object();
+
+    // per-zip output byte count
+    private long outputBytes = 0;
 
     /**
      * @param _stream
      */
     public XQSyncPackage(OutputStream _stream) {
-        outPkg = new ZipOutputStream(_stream);
+        outputZip = new ZipOutputStream(_stream);
     }
 
     /**
@@ -55,7 +61,7 @@ public class XQSyncPackage {
      * @throws IOException
      */
     public XQSyncPackage(String _path) throws IOException {
-        inPkg = new ZipFile(_path);
+        inputZip = new ZipFile(_path);
     }
 
     /**
@@ -67,26 +73,40 @@ public class XQSyncPackage {
 
     /**
      * @param outputPath
-     * @param binaryContent
+     * @param bytes
      * @param metadata
      * @throws IOException
      */
-    public void write(String outputPath, byte[] binaryContent,
+    public void write(String outputPath, byte[] bytes,
             XQSyncDocumentMetadata metadata) throws IOException {
         // TODO use size metrics to automatically manage multiple zip archives,
-        // to manage 32-bit limits in java.util.zip
-        synchronized (outPkg) {
+        // to avoid 32-bit limits in java.util.zip
+        /*
+         * An exception-based mechanism would be tricky, here:
+         * we definitely want the content and the meta entries to stay
+         * in the same zipfile.
+         */
+        byte[] metaBytes = metadata.toXML().getBytes();
+        long total = bytes.length + metaBytes.length;
+        synchronized (outputMutex) {
+            if (outputBytes + total > Integer.MAX_VALUE) {
+                logger.fine("package bytes would exceed 32-bit limit");
+                flush();
+                
+            }
             ZipEntry entry = new ZipEntry(outputPath);
-            outPkg.putNextEntry(entry);
-            outPkg.write(binaryContent);
-            outPkg.closeEntry();
+            outputZip.putNextEntry(entry);
+            outputZip.write(bytes);
+            outputZip.closeEntry();
 
             String metadataPath = XQSyncDocument
                     .getMetadataPath(outputPath);
             entry = new ZipEntry(metadataPath);
-            outPkg.putNextEntry(entry);
-            outPkg.write(metadata.toXML().getBytes());
-            outPkg.closeEntry();
+            outputZip.putNextEntry(entry);
+            outputZip.write(metaBytes);
+            outputZip.closeEntry();
+            
+            outputBytes += total;
         }
     }
 
@@ -95,8 +115,8 @@ public class XQSyncPackage {
      * 
      */
     public void flush() throws IOException {
-        synchronized (outPkg) {
-            outPkg.flush();
+        synchronized (outputMutex) {
+            outputZip.flush();
         }
     }
 
@@ -105,8 +125,8 @@ public class XQSyncPackage {
      * 
      */
     public void close() throws IOException {
-        synchronized (outPkg) {
-            outPkg.close();
+        synchronized (outputMutex) {
+            outputZip.close();
         }
     }
 
@@ -120,7 +140,7 @@ public class XQSyncPackage {
         String metadataPath = XQSyncDocument.getMetadataPath(_path);
         ZipEntry metadataEntry = getEntry(metadataPath);
 
-        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(inPkg
+        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(inputZip
                 .getInputStream(metadataEntry)));
     }
 
@@ -129,7 +149,7 @@ public class XQSyncPackage {
      * @return
      */
     private ZipEntry getEntry(String _path) {
-        return inPkg.getEntry(_path);
+        return inputZip.getEntry(_path);
     }
 
     /**
@@ -138,15 +158,15 @@ public class XQSyncPackage {
      * @throws IOException
      */
     public byte[] getContent(String _path) throws IOException {
-        ZipEntry entry = inPkg.getEntry(_path);
-        return Utilities.cat(inPkg.getInputStream(entry));
+        ZipEntry entry = inputZip.getEntry(_path);
+        return Utilities.cat(inputZip.getInputStream(entry));
     }
 
     /**
      * @return
      */
     public List<String> list() {
-        Enumeration e = inPkg.entries();
+        Enumeration e = inputZip.entries();
         HashSet<String> documentList = new HashSet<String>();
 
         String path;

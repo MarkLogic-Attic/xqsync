@@ -21,10 +21,11 @@ package com.marklogic.ps.xqsync;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Properties;
 
 import com.marklogic.ps.AbstractLoggableClass;
-import com.marklogic.ps.PropertyManager;
+import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
@@ -32,25 +33,23 @@ import com.marklogic.ps.PropertyManager;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2006-08-05.2";
+    public static String VERSION = "2006-08-06.1";
 
     public static void main(String[] args) throws FileNotFoundException,
-            IOException {
+            IOException, XccException, URISyntaxException {
         // assume that any input files are properties
         Properties props = new Properties();
-        PropertyManager[] pmArray = new PropertyManager[args.length];
         for (int i = 0; i < args.length; i++) {
             props.load(new FileInputStream(args[i]));
-            pmArray[i] = new PropertyManager(args[i]);
-            pmArray[i].start();
             System.err.println("loaded properties from " + args[i]);
         }
 
         // allow system properties to override
         props.putAll(System.getProperties());
+        System.err.println("added system properties");
 
-        AbstractLoggableClass.setLoggerProperties(props);
-        AbstractLoggableClass.initialize();
+        Configuration configuration = new Configuration();
+        configuration.setProperties(props);
 
         logger.info("XQSync starting: version = " + VERSION);
 
@@ -64,20 +63,10 @@ public class XQSync extends AbstractLoggableClass {
 
         long start = System.currentTimeMillis();
 
-        XQSyncManager xqm = new XQSyncManager(logger, props);
-        xqm.start();
-        while (xqm.isAlive()) {
-            try {
-                xqm.join();
-            } catch (InterruptedException e) {
-                logger.logException("interrupted in join", e);
-            }
-        }
-
-        logger.info("synchronized in "
+        // we don't need the xqm to be a Thread, so we'll run it directly
+        XQSyncManager xqm = new XQSyncManager(configuration);
+        xqm.run();
+        logger.info("completed " + xqm.getItemsQueued() + " in "
                 + (System.currentTimeMillis() - start) + " ms");
-        for (int i = 0; i < pmArray.length; i++) {
-            pmArray[i].quit();
-        }
     }
 }

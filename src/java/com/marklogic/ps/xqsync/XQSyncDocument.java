@@ -78,12 +78,13 @@ public class XQSyncDocument {
      * @param _copyProperties
      * @throws XccException
      * @throws IOException
-     * @throws SAXException 
-     * @throws ParserConfigurationException 
+     * @throws SAXException
+     * @throws ParserConfigurationException
      */
     public XQSyncDocument(com.marklogic.ps.Session _session, String _uri,
             boolean _copyPermissions, boolean _copyProperties)
-            throws XccException, IOException, ParserConfigurationException, SAXException {
+            throws XccException, IOException,
+            ParserConfigurationException, SAXException {
         if (_uri == null)
             throw new UnimplementedFeatureException("null uri");
 
@@ -122,8 +123,7 @@ public class XQSyncDocument {
                     + "' }'\n"
                     + ")\n"
                     + "return if (empty($list)) then () else\n"
-                    // TODO change to use xdmp:eval, as eval-in is deprecated
-                    // (3.1)
+                    // TODO deprecated use of eval-in (3.1)
                     + "xdmp:eval-in(\n"
                     + "  $query, xdmp:security-database(),\n"
                     + "  (xs:QName('list'), element sec:permissions { $list })\n"
@@ -370,9 +370,8 @@ public class XQSyncDocument {
         if (outputPath == null)
             throw new IOException("null outputPath");
 
-        synchronized (_pkg) {
-            _pkg.write(outputPath, contentBytes, metadata);
-        }
+        _pkg.write(outputPath, contentBytes, metadata);
+        // the caller has to flush() the pkg
     }
 
     /**
@@ -409,13 +408,25 @@ public class XQSyncDocument {
             parent.mkdirs();
         }
 
+        if (!parent.isDirectory()) {
+            throw new IOException("parent is not a directory: "
+                    + parent.getCanonicalPath());
+        }
+
+        if (!parent.canWrite()) {
+            throw new IOException("cannot write to parent directory: "
+                    + parent.getCanonicalPath());
+        }
+
         FileOutputStream fos = new FileOutputStream(outputFile);
         fos.write(contentBytes);
+        fos.flush();
         fos.close();
 
         String metadataPath = getMetadataPath(outputFile);
         FileOutputStream mfos = new FileOutputStream(metadataPath);
         mfos.write(metadata.toXML().getBytes());
+        mfos.flush();
         mfos.close();
     }
 

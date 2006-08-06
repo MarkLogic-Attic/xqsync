@@ -94,6 +94,9 @@ public class Monitor extends Thread {
                 + pool.getActiveCount() + ", tasks="
                 + taskCount);
         while (running && !isInterrupted()) {
+            // yield to avoid thread starvation, with luck
+            yield();
+
             currentMillis = System.currentTimeMillis();
             if (currentMillis - lastDisplayMillis > displayMillis) {
                 lastDisplayMillis = currentMillis;

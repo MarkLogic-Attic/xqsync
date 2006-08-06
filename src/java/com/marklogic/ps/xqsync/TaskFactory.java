@@ -19,9 +19,10 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.Collection;
 
-import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.ContentPermission;
@@ -38,8 +39,6 @@ public class TaskFactory {
 
     private XQSyncPackage inputPackage;
 
-    private Connection inputConnection;
-
     private String[] placeKeys;
 
     private Collection<ContentPermission> readRoles;
@@ -52,22 +51,29 @@ public class TaskFactory {
 
     private SimpleLogger logger;
 
+    private Configuration configuration;
+
     /**
-     * @param manager
+     * @param configuration
+     * @throws FileNotFoundException
      */
-    public TaskFactory(XQSyncManager manager) {
-        logger = manager.getLogger();
-        copyPermissions = manager.getCopyPermissions();
-        copyProperties = manager.getCopyProperties();
+    public TaskFactory(Configuration configuration)
+            throws FileNotFoundException {
+        this.configuration = configuration;
+        logger = configuration.getLogger();
+        copyPermissions = configuration.isCopyPermissions();
+        copyProperties = configuration.isCopyProperties();
 
-        outputSession = manager.getOutputConnection();
-        outputPath = manager.getOutputPath();
-        outputPackage = manager.getOutputPackage();
+        readRoles = configuration.getReadRoles();
+        placeKeys = configuration.getPlaceKeys();
 
-        readRoles = manager.getReadRoles();
-        copyPermissions = manager.getCopyPermissions();
-        copyProperties = manager.getCopyProperties();
-        placeKeys = manager.getPlaceKeys();
+        outputSession = configuration.newOutputSession();
+        outputPath = configuration.getOutputPath();
+        String outputPackagePath = configuration.getOutputPackagePath();
+        if (outputPackagePath != null) {
+            outputPackage = new XQSyncPackage(new FileOutputStream(
+                outputPackagePath));
+        }
     }
 
     /**
@@ -112,7 +118,7 @@ public class TaskFactory {
             cs = new CallableSync(inputPackage, uri, copyPermissions,
                     copyProperties);
         } else {
-            Session session = (Session) inputConnection.newSession();
+            Session session = configuration.newInputSession();
             cs = new CallableSync(session, uri, copyPermissions,
                     copyProperties);
         }
@@ -125,10 +131,7 @@ public class TaskFactory {
      */
     public void setInputPackage(XQSyncPackage inputPackage) {
         this.inputPackage = inputPackage;
-    }
-
-    public void setInputConnection(Connection inputConnection) {
-        this.inputConnection = inputConnection;
+        XQSyncPackage.setLogger(logger);
     }
 
 }
