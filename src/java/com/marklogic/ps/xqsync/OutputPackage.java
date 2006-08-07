@@ -91,7 +91,6 @@ public class OutputPackage extends AbstractLoggableClass {
             if (outputStream == null) {
                 // lazily construct a new zipfile outputstream
                 newZipOutputStream(constructorFile);
-                fileCount = 1;
             }
 
             // by checking outputBytes first, we should avoid infinite loops -
@@ -107,7 +106,7 @@ public class OutputPackage extends AbstractLoggableClass {
                 } else {
                     path = path + "." + fileCount;
                 }
-                newZipOutputStream(new File(path + (fileCount++)));
+                newZipOutputStream(new File(path));
             }
 
             ZipEntry entry = new ZipEntry(outputPath);
