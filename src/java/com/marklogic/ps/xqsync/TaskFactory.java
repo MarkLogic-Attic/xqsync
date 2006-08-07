@@ -19,8 +19,7 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Collection;
 
 import com.marklogic.ps.Session;
@@ -37,7 +36,7 @@ public class TaskFactory {
 
     private boolean copyProperties;
 
-    private XQSyncPackage inputPackage;
+    private InputPackage inputPackage;
 
     private String[] placeKeys;
 
@@ -47,7 +46,7 @@ public class TaskFactory {
 
     private String outputPath;
 
-    private XQSyncPackage outputPackage;
+    private OutputPackage outputPackage;
 
     private SimpleLogger logger;
 
@@ -55,10 +54,8 @@ public class TaskFactory {
 
     /**
      * @param configuration
-     * @throws FileNotFoundException
      */
-    public TaskFactory(Configuration configuration)
-            throws FileNotFoundException {
+    public TaskFactory(Configuration configuration) {
         this.configuration = configuration;
         logger = configuration.getLogger();
         copyPermissions = configuration.isCopyPermissions();
@@ -71,8 +68,7 @@ public class TaskFactory {
         outputPath = configuration.getOutputPath();
         String outputPackagePath = configuration.getOutputPackagePath();
         if (outputPackagePath != null) {
-            outputPackage = new XQSyncPackage(new FileOutputStream(
-                outputPackagePath));
+            outputPackage = new OutputPackage(new File(outputPackagePath));
         }
     }
 
@@ -129,9 +125,25 @@ public class TaskFactory {
     /**
      * @param inputPackage
      */
-    public void setInputPackage(XQSyncPackage inputPackage) {
+    public void setInputPackage(InputPackage inputPackage) {
         this.inputPackage = inputPackage;
-        XQSyncPackage.setLogger(logger);
+        InputPackage.setLogger(logger);
+    }
+
+    /**
+     * 
+     */
+    public void close() {
+        if (outputPackage != null) {
+            try {
+                outputPackage.close();
+            } catch (IOException e) {
+                logger.logException("cleanup", e);
+            }
+        }
+        if (outputSession != null) {
+            outputSession.close();
+        }
     }
 
 }

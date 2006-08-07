@@ -115,6 +115,9 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
                     logger.logException("interrupted", e);
                 }
             }
+            
+            factory.close();
+            
         } catch (Exception e) {
             logger.logException("fatal exception", e);
             if (monitor != null) {
@@ -138,7 +141,7 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
         // list contents of package
         logger.info("listing package " + _path);
 
-        XQSyncPackage inputPackage = new XQSyncPackage(_path);
+        InputPackage inputPackage = new InputPackage(_path);
         factory.setInputPackage(inputPackage);
 
         Iterator<String> iter = inputPackage.list().iterator();

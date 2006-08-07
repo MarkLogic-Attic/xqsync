@@ -37,7 +37,7 @@ public class CallableSync implements Callable<Object> {
 
     private Session outputSession;
 
-    private XQSyncPackage outputPackage;
+    private OutputPackage outputPackage;
 
     private Collection<ContentPermission> readRoles;
 
@@ -55,7 +55,7 @@ public class CallableSync implements Callable<Object> {
 
     private boolean copyProperties;
 
-    private XQSyncPackage inputPackage;
+    private InputPackage inputPackage;
 
     private File inputFile;
 
@@ -64,7 +64,7 @@ public class CallableSync implements Callable<Object> {
      * @param _copyPermissions
      * @param _copyProperties
      */
-    public CallableSync(XQSyncPackage _package, String _path,
+    public CallableSync(InputPackage _package, String _path,
             boolean _copyPermissions, boolean _copyProperties) {
         inputPackage = _package;
         inputUri = _path;
@@ -153,7 +153,7 @@ public class CallableSync implements Callable<Object> {
         this.outputPath = _path;
     }
 
-    public void setOutputPackage(XQSyncPackage outputPackage) {
+    public void setOutputPackage(OutputPackage outputPackage) {
         this.outputPackage = outputPackage;
     }
 

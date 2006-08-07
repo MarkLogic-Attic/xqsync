@@ -238,7 +238,7 @@ public class XQSyncDocument {
      * @param _inputPackage
      * @throws IOException
      */
-    public XQSyncDocument(XQSyncPackage _pkg, String _path,
+    public XQSyncDocument(InputPackage _pkg, String _path,
             boolean _copyPermissions, boolean _copyProperties)
             throws IOException {
         if (_path == null)
@@ -365,7 +365,7 @@ public class XQSyncDocument {
      * @param readRoles
      * @throws IOException
      */
-    public void write(String outputPath, XQSyncPackage _pkg,
+    public void write(String outputPath, OutputPackage _pkg,
             Collection _readRoles) throws IOException {
         if (outputPath == null)
             throw new IOException("null outputPath");
