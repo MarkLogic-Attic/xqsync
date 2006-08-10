@@ -87,6 +87,13 @@ public class OutputPackage extends AbstractLoggableClass {
          */
         byte[] metaBytes = metadata.toXML().getBytes();
         long total = bytes.length + metaBytes.length;
+        ZipEntry entry = new ZipEntry(outputPath);
+
+        String metadataPath = XQSyncDocument
+        .getMetadataPath(outputPath);
+        ZipEntry metaEntry = new ZipEntry(metadataPath);
+        
+        // TODO change to java.concurrent reentrantlock?
         synchronized (outputMutex) {
             if (outputStream == null) {
                 // lazily construct a new zipfile outputstream
@@ -109,20 +116,15 @@ public class OutputPackage extends AbstractLoggableClass {
                 newZipOutputStream(new File(path));
             }
 
-            ZipEntry entry = new ZipEntry(outputPath);
             outputStream.putNextEntry(entry);
             outputStream.write(bytes);
             outputStream.closeEntry();
 
-            String metadataPath = XQSyncDocument
-                    .getMetadataPath(outputPath);
-            entry = new ZipEntry(metadataPath);
-            outputStream.putNextEntry(entry);
+            outputStream.putNextEntry(metaEntry);
             outputStream.write(metaBytes);
             outputStream.closeEntry();
-
-            currentFileBytes += total;
         }
+        currentFileBytes += total;
     }
 
     /**

@@ -39,7 +39,7 @@ See src/xqsync.sh for a sample shell script.
 <h2>Required libraries:</h2>
 <ul>
   <li>Codehaus <a href="http://xstream.codehaus.org/">XStream</a></li>
-  <li>MarkLogic <a href="http://developer.marklogic.com/">XDBC</a></li>
+  <li>MarkLogic <a href="http://developer.marklogic.com/">XCC</a></li>
 </ul>
 
 <h2>Required properties:</h2>
@@ -52,19 +52,39 @@ See src/xqsync.sh for a sample shell script.
 <table>
 <tr><th>Property</th><th>default value</th><th>notes</th></tr>
 <tr>
-  <td>DELETE_COLLECTION</td>
-  <td>null</td>
-  <td>In combination with XDBC_COLLECTION and OUTPUT_CONNECTION_STRING,
-  delete the XDBC_COLLECTION on the OUTPUT_CONNECTION_STRING
-  before beginning synchronization.</td>
-</tr>
-<tr>
   <td>FATAL_ERRORS</td><td>true</td><td>All exceptions are fatal.</td>
 </tr>
 <tr>
   <td>INPUT_CONNECTION_STRING</td>
   <td>null</td>
-  <td>Input documents will come from this XDBC connection.</td>
+  <td>Input documents will come from this XCC connection.</td>
+</tr>
+<tr>
+  <td>INPUT_COLLECTION_URI</td>
+  <td>null</td>
+  <td>In combination with INPUT_CONNECTION_STRING,
+  all documents in the named collection will be transferred.</td>
+</tr>
+<tr>
+  <td>INPUT_DOCUMENT_URIS</td>
+  <td>null</td>
+  <td>In combination with INPUT_CONNECTION_STRING,
+  all documents named by the (whitespace-delimited) uris will be transferred.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_QUERY</td>
+  <td>null</td>
+  <td>In combination with INPUT_CONNECTION_STRING,
+  all uris returned by the query will be transferred.
+  This sample query would transfer the first 100 documents:
+  <code>for $i in doc()[1 to 100] return base-uri($i)</code></td>
+</tr>
+<tr>
+  <td>INPUT_DIRECTORY_URI</td>
+  <td>null</td>
+  <td>In combination with INPUT_CONNECTION_STRING,
+  all documents in the named directory will be transferred.</td>
 </tr>
 <tr>
   <td>INPUT_PACKAGE</td>
@@ -93,7 +113,14 @@ See src/xqsync.sh for a sample shell script.
 <tr>
   <td>OUTPUT_CONNECTION_STRING</td>
   <td>null</td>
-  <td>Documents will be written to this XDBC connection.</td>
+  <td>Documents will be written to this XCC connection.</td>
+</tr>
+<tr>
+  <td>OUTPUT_DELETE_COLLECTION</td>
+  <td>null</td>
+  <td>In combination with INPUT_COLLECTION_URI and OUTPUT_CONNECTION_STRING,
+  delete the INPUT_COLLECTION_URI on the OUTPUT_CONNECTION_STRING,
+  before beginning synchronization.</td>
 </tr>
 <tr>
   <td>OUTPUT_FORESTS</td><td>null</td><td>Permitted output forest names.</td>
@@ -120,33 +147,6 @@ See src/xqsync.sh for a sample shell script.
 <tr>
   <td>URI_SUFFIX</td><td>null</td>
   <td>String to append to all output uris.</td>
-</tr>
-<tr>
-  <td>XDBC_COLLECTION</td>
-  <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
-  all documents in the named collection will be transferred.</td>
-</tr>
-<tr>
-  <td>XDBC_DOCUMENT_URIS</td>
-  <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
-  all documents named by the (whitespace-delimited) uris will be transferred.
-  </td>
-</tr>
-<tr>
-  <td>XDBC_QUERY</td>
-  <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
-  all uris returned by the query will be transferred.
-  This sample query would transfer the first 100 documents:
-  <code>for $i in doc()[1 to 100] return base-uri($i)</code></td>
-</tr>
-<tr>
-  <td>XDBC_ROOT_DIRECTORY</td>
-  <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
-  all documents in the named directory will be transferred.</td>
 </tr>
 </table>
 </body>

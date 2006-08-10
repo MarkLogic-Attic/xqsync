@@ -215,7 +215,7 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
             logger.fine("buffer size = " + opts.getResultBufferSize());
             logger.fine("caching = " + opts.getCacheResult());
             opts.setCacheResult(false);
-            opts.setResultBufferSize(8 * 1024);
+            opts.setResultBufferSize(4 * 1024);
             request.setOptions(opts);
             logger.fine("buffer size = " + opts.getResultBufferSize());
             logger.fine("caching = " + opts.getCacheResult());
