@@ -378,6 +378,10 @@ public class Session implements com.marklogic.xcc.Session {
     @SuppressWarnings("unchecked")
     public BigInteger[] forestNamesToIds(String[] _names)
             throws XccException {
+        if (_names == null) {
+            return null;
+        }
+        
         Map<String, BigInteger> map = session.getContentbaseMetaData()
                 .getForestMap();
         List<BigInteger> list = new ArrayList<BigInteger>();
