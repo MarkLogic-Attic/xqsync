@@ -67,7 +67,7 @@ public class XQSyncDocument {
 
     private boolean copyProperties = true;
 
-    private SimpleLogger logger = null;
+    private static SimpleLogger logger = null;
 
     private int connMajorVersion = 3;
 
@@ -107,7 +107,7 @@ public class XQSyncDocument {
         String query = "define variable $uri as xs:string external\n"
                 + "if (xdmp:exists(doc($uri))) then ()\n"
                 + "else error(text{'document with uri', xdmp:describe($uri), 'does not exist'}),"
-                + "node-kind(doc($uri)/node()),\n"
+                + "node-kind(doc($uri)/(element()|text()|binary())),\n"
                 + "xdmp:document-get-collections($uri),\n";
 
         // use node for permissions, since we walk the tree
@@ -151,7 +151,9 @@ public class XQSyncDocument {
         ResultItem[] items = rs.toResultItemArray();
 
         // handle node-kind, always present
-        metadata.setFormat(items[0].asString());
+        String format = items[0].asString();
+        logger.finer("format = " + format);
+        metadata.setFormat(format);
 
         int index = 1;
 
@@ -433,7 +435,7 @@ public class XQSyncDocument {
     /**
      * @param _logger
      */
-    public void setLogger(SimpleLogger _logger) {
+    public static void setLogger(SimpleLogger _logger) {
         logger = _logger;
     }
 

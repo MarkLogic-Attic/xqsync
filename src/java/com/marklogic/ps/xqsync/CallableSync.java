@@ -119,8 +119,6 @@ public class CallableSync implements Callable<Object> {
             throw new UnimplementedFeatureException("no input found");
         }
 
-        document.setLogger(logger);
-
         // write document to output session, package, or directory
         // marshal output arguments
         // build remote URI from outputPath and uri

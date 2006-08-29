@@ -360,10 +360,11 @@ public class Session implements com.marklogic.xcc.Session {
         // if an empty string is passed in,
         // properties will be set to empty sequence
         // this doesn't affect last-modified, though, if it's active
+        // note that we go down two levels, to get the prop:properties children
         String query = "define variable $URI as xs:string external\n"
                 + "define variable $XML-STRING as xs:string external\n"
                 + "xdmp:document-set-properties($URI,\n"
-                + "  xdmp:unquote($XML-STRING)/node() )\n";
+                + "  xdmp:unquote($XML-STRING)/prop:properties/node() )\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
         req.setNewStringVariable("XML-STRING", _xmlString);

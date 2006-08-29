@@ -174,12 +174,15 @@ public class XQSyncDocumentMetadata {
      * @param _format
      */
     public void setFormat(String _format) {
-        if (_format.equals("xml"))
+        if (_format.equals(DocumentFormat.XML)
+                || _format.equals("element")) {
             setFormat(DocumentFormat.XML);
-        else if (_format.equals("text"))
+        } else if (_format.equals(DocumentFormat.TEXT)
+                || _format.equals(("text"))) {
             setFormat(DocumentFormat.TEXT);
-        else
+        } else {
             setFormat(DocumentFormat.BINARY);
+        }
     }
 
     /**

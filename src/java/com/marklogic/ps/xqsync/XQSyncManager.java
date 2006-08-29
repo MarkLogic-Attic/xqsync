@@ -61,6 +61,7 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
     public XQSyncManager(Configuration _config) {
         configuration = _config;
         logger = configuration.getLogger();
+        XQSyncDocument.setLogger(logger);
     }
 
     public void run() {
