@@ -33,7 +33,7 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2006-09-11.1";
+    public static String VERSION = "2006-09-12.1";
 
     public static void main(String[] args) throws FileNotFoundException,
             IOException, XccException, URISyntaxException {

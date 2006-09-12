@@ -307,9 +307,9 @@ public class Session implements com.marklogic.xcc.Session {
         return session.getUserObject();
     }
 
-    public boolean checkFile(String _uri) throws XccException {
+    public boolean existsDocument(String _uri) throws XccException {
         String query = "define variable $URI as xs:string external\n"
-                + "xdmp:exists(doc($URI)\n";
+                + "xdmp:exists(doc($URI))\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
         ResultSequence result = session.submitRequest(req);

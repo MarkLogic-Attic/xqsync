@@ -36,6 +36,8 @@ public class TaskFactory {
 
     private boolean copyProperties;
 
+    private boolean skipExisting;
+
     private InputPackage inputPackage;
 
     private String[] placeKeys;
@@ -60,6 +62,7 @@ public class TaskFactory {
         logger = configuration.getLogger();
         copyPermissions = configuration.isCopyPermissions();
         copyProperties = configuration.isCopyProperties();
+        skipExisting = configuration.isSkipExisting();
 
         readRoles = configuration.getReadRoles();
         placeKeys = configuration.getPlaceKeys();
@@ -80,6 +83,7 @@ public class TaskFactory {
 
         if (outputSession != null) {
             cs.setOutputSession(outputSession);
+            cs.setSkipExisting(skipExisting);
         } else if (outputPackage != null) {
             cs.setOutputPackage(outputPackage);
         } else if (outputPath != null) {

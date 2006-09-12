@@ -59,6 +59,8 @@ public class CallableSync implements Callable<Object> {
 
     private File inputFile;
 
+    private boolean skipExisting;
+
     /**
      * @param _path
      * @param _copyPermissions
@@ -134,8 +136,8 @@ public class CallableSync implements Callable<Object> {
         logger.finer("copying " + inputUri + " to " + outputUri);
 
         if (outputSession != null) {
-            document
-                    .write(outputUri, outputSession, readRoles, placeKeys);
+            document.write(outputUri, outputSession, readRoles,
+                    placeKeys, skipExisting);
         } else if (outputPackage != null) {
             document.write(outputUri, outputPackage, readRoles);
             outputPackage.flush();
@@ -172,6 +174,10 @@ public class CallableSync implements Callable<Object> {
      */
     public void setLogger(SimpleLogger logger) {
         this.logger = logger;
+    }
+
+    public void setSkipExisting(boolean skipExisting) {
+        this.skipExisting = skipExisting;
     }
 
 }

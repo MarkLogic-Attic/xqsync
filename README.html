@@ -22,6 +22,11 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <title>XQSync README</title>
+<style>
+tr {
+  vertical-align: top;
+}
+</style>
 </head>
 <body>
 <h1>XQSync</h1>
@@ -54,10 +59,19 @@ See src/xqsync.sh for a sample shell script.
 </ul>
 
 <h2>Available properties:</h2>
-<table>
+<table border>
 <tr><th>Property</th><th>default value</th><th>notes</th></tr>
 <tr>
-  <td>FATAL_ERRORS</td><td>true</td><td>All exceptions are fatal.</td>
+  <td>COPY_PERMISSIONS</td><td>true</td>
+  <td>If true, all document permissions are copied.</td>
+</tr>
+<tr>
+  <td>COPY_PROPERTIES</td><td>true</td>
+  <td>If true, all document properties are copied.</td>
+</tr>
+<tr>
+  <td>FATAL_ERRORS</td><td>true</td>
+  <td>If true, all exceptions are fatal.</td>
 </tr>
 <tr>
   <td>INPUT_CONNECTION_STRING</td>
@@ -144,7 +158,19 @@ See src/xqsync.sh for a sample shell script.
   <td>READ_PERMISSION_ROLES</td><td>null</td>
   <td>Names of any roles to attach to output documents.</td>
 </tr>
-<tr><td>THREADS</td><td>1</td><td>Number of worker threads to spawn.</td></tr>
+<tr>
+  <td>SKIP_EXISTING</td><td>false</td>
+  <td>If true, documents that already exist in OUTPUT_CONNECTION
+    are not overwritten. This only affects operations when
+    OUTPUT_CONNECTION is defined. If false,
+    or if targeting an OUTPUT_PACKAGE or an OUTPUT_PATH,
+    then all documents will be overwritten.
+  </td>
+</tr>
+<tr>
+  <td>THREADS</td><td>1</td>
+  <td>Number of worker threads to spawn.</td>
+</tr>
 <tr>
   <td>URI_PREFIX</td><td>null</td>
   <td>String to prepend to all output uris.</td>

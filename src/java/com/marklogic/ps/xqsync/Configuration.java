@@ -42,22 +42,27 @@ public class Configuration extends AbstractLoggableClass {
     /**
      * 
      */
-    private static final String COPY_PROPERTIES_KEY = "COPY_PROPERTIES";
+    public static final String COPY_PROPERTIES_KEY = "COPY_PROPERTIES";
 
     /**
      * 
      */
-    private static final String COPY_PERMISSIONS_KEY = "COPY_PERMISSIONS";
+    public static final String COPY_PERMISSIONS_KEY = "COPY_PERMISSIONS";
 
     /**
      * 
      */
-    private static final String FATAL_ERRORS_KEY = "FATAL_ERRORS";
+    public static final String SKIP_EXISTING_KEY = "SKIP_EXISTING";
 
     /**
      * 
      */
-    static final String DELETE_COLLECTION_KEY = "DELETE_COLLECTION";
+    public static final String FATAL_ERRORS_KEY = "FATAL_ERRORS";
+
+    /**
+     * 
+     */
+    public final String DELETE_COLLECTION_KEY = "DELETE_COLLECTION";
 
     /**
      * 
@@ -166,6 +171,8 @@ public class Configuration extends AbstractLoggableClass {
 
     private Long startPosition;
 
+    private boolean skipExisting = false;
+
     public Configuration() {
         super();
     }
@@ -213,8 +220,12 @@ public class Configuration extends AbstractLoggableClass {
                 .getProperty(COPY_PERMISSIONS_KEY, "true"));
 
         // copyProperties is hot
-        copyPermissions = Utilities.stringToBoolean(properties
+        copyProperties = Utilities.stringToBoolean(properties
                 .getProperty(COPY_PROPERTIES_KEY, "true"));
+
+        // skipExisting is hot
+        skipExisting = Utilities.stringToBoolean(properties
+                .getProperty(SKIP_EXISTING_KEY, "false"));
 
         // placeKeys are hot
         String placeKeysString = properties
@@ -488,6 +499,13 @@ public class Configuration extends AbstractLoggableClass {
      */
     public String getInputQuery() {
         return properties.getProperty(INPUT_QUERY_KEY);
+    }
+
+    /**
+     * @return
+     */
+    public boolean isSkipExisting() {
+        return skipExisting;
     }
 
 }

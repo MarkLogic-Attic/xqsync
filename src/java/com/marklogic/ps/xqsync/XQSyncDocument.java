@@ -295,13 +295,14 @@ public class XQSyncDocument {
      * @param _session
      * @param _placeKeys
      * @param _readRoles
+     * @param _skipExisting 
      * @return
      * @throws IOException
      * @throws XccException
      */
     public long write(String _outputUri,
             com.marklogic.ps.Session _session,
-            Collection<ContentPermission> _readRoles, String[] _placeKeys)
+            Collection<ContentPermission> _readRoles, String[] _placeKeys, boolean _skipExisting)
             throws IOException, XccException {
         if (_outputUri == null) {
             throw new IOException("null outputPath");
@@ -316,7 +317,11 @@ public class XQSyncDocument {
             return 0;
         }
 
-        // TODO optionally check to see if document is already up-to-date
+        // optionally, check to see if document is already up-to-date
+        if (_skipExisting && _session.existsDocument(_outputUri)) {
+            logger.fine("skipping existing document: " + _outputUri);
+            return 0;
+        }
 
         // constants
         DocumentRepairLevel repair = DocumentRepairLevel.NONE;

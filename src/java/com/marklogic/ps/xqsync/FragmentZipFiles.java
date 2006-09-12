@@ -217,7 +217,8 @@ public class FragmentZipFiles {
 
         logger.configureLogger(System.getProperties());
 
-        int threads = Runtime.getRuntime().availableProcessors();
+        int threads = Integer.parseInt(System.getProperty("THREADS", ""
+                + Runtime.getRuntime().availableProcessors()));
         int capacity = 1000 * threads;
 
         // given input zip files, start a thread to fragment each one
@@ -237,10 +238,9 @@ public class FragmentZipFiles {
 
         threadPoolExecutor.shutdown();
 
-        while (! threadPoolExecutor.isTerminated()) {
+        while (!threadPoolExecutor.isTerminated()) {
             threadPoolExecutor.awaitTermination(5, TimeUnit.SECONDS);
         }
         logger.info("all files completed");
     }
-
 }
