@@ -18,7 +18,10 @@
  */
 package com.marklogic.ps.xqsync;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -26,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 import com.marklogic.ps.AbstractLoggableClass;
 import com.marklogic.ps.Utilities;
@@ -35,17 +39,24 @@ import com.marklogic.ps.Utilities;
  * 
  */
 public class InputPackage extends AbstractLoggableClass {
+    // 34464 entries max
+    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4418997
+    // (supposed to be closed, but isn't)
+    private static final int MAX_ENTRIES = 34464;
 
     private String packagePath;
 
     private ZipFile inputZip;
-    
+
+    private File inputFile;
+
     /**
      * @param _path
      * @throws IOException
      */
     public InputPackage(String _path) throws IOException {
-        inputZip = new ZipFile(_path);
+        inputFile = new File(_path);
+        inputZip = new ZipFile(inputFile);
     }
 
     /**
@@ -62,19 +73,37 @@ public class InputPackage extends AbstractLoggableClass {
      */
     public XQSyncDocumentMetadata getMetadataEntry(String _path)
             throws IOException {
-        String metadataPath = XQSyncDocument.getMetadataPath(_path);
-        ZipEntry metadataEntry = getEntry(metadataPath);
-
-        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(inputZip
-                .getInputStream(metadataEntry)));
+        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(
+                getEntryStream(XQSyncDocument.getMetadataPath(_path))));
     }
 
     /**
      * @param _path
      * @return
      */
-    private ZipEntry getEntry(String _path) {
-        return inputZip.getEntry(_path);
+    private InputStream getEntryStream(String _path) throws IOException {
+        ZipEntry entry = inputZip.getEntry(_path);
+        if (entry != null) {
+            return inputZip.getInputStream(entry);
+        }
+
+        int size = inputZip.size();
+        if (size >= MAX_ENTRIES) {
+            logger.warning("too many entries in input-package: " + size
+                    + " >= " + MAX_ENTRIES + " (" + _path + ")");
+            // *slow* work around for the dumb bug
+            ZipInputStream zis = new ZipInputStream(new FileInputStream(
+                    inputFile));
+
+            while ((entry = zis.getNextEntry()) != null
+                    && !entry.getName().equals(_path)) {
+                // loop until the path matches, or we hit the end
+            }
+            return zis;
+        }
+
+        // otherwise there's no hope: something went very wrong
+        throw new IOException("entry " + _path + " not found");
     }
 
     /**
@@ -83,42 +112,68 @@ public class InputPackage extends AbstractLoggableClass {
      * @throws IOException
      */
     public byte[] getContent(String _path) throws IOException {
-        ZipEntry entry = inputZip.getEntry(_path);
-        return Utilities.cat(inputZip.getInputStream(entry));
+        return Utilities.cat(getEntryStream(_path));
     }
 
     /**
      * @return
      */
-    public List<String> list() {
-        Enumeration e = inputZip.entries();
+    public List<String> list() throws IOException {
+        int size = inputZip.size();
+        logger.fine("expecting " + size + " entries");
+
+        ZipEntry entry;
+        long entries = 0;
         HashSet<String> documentList = new HashSet<String>();
 
-        String path;
-        ZipEntry entry;
-        while (e.hasMoreElements()) {
-            entry = (ZipEntry) e.nextElement();
+        // there doesn't seem to be anything we can do about this
+        if (size < MAX_ENTRIES) {
+            Enumeration e = inputZip.entries();
 
-            // ignore directories
-            if (entry.isDirectory())
-                continue;
-
-            path = entry.getName();
-            // logger.finest("found " + path);
-            // whether it's metadata or not, we add the same path
-            if (path.endsWith(XQSyncDocument.METADATA_EXT)) {
-                path = path.substring(0, path.length()
-                        - XQSyncDocument.METADATA_EXT.length());
+            while (e.hasMoreElements()) {
+                entry = (ZipEntry) e.nextElement();
+                entries += addEntry(entry, documentList);
             }
+        } else {
+            logger.warning("too many entries in input-package: " + size
+                    + " >= " + MAX_ENTRIES);
 
-            // make sure we don't add duplicates
-            if (!documentList.contains(path)) {
-                // logger.finest("adding " + path);
-                documentList.add(path);
+            ZipInputStream zis = new ZipInputStream(new FileInputStream(
+                    inputFile));
+
+            while ((entry = zis.getNextEntry()) != null) {
+                entries += addEntry(entry, documentList);
             }
         }
+        logger.fine("listed " + documentList.size() + " documents from "
+                + entries + " entries");
 
         return new LinkedList<String>(documentList);
+    }
+
+    private int addEntry(ZipEntry entry, HashSet<String> documentList) {
+        // ignore directories
+        if (entry.isDirectory()) {
+            return 0;
+        }
+
+        String path = entry.getName();
+        logger.finest("found " + path);
+
+        // whether it's metadata or not, we add the same path
+        if (path.endsWith(XQSyncDocument.METADATA_EXT)) {
+            path = path.substring(0, path.length()
+                    - XQSyncDocument.METADATA_EXT.length());
+        }
+
+        // make sure we don't add duplicates
+        if (documentList.contains(path)) {
+            return 0;
+        }
+
+        // logger.finest("adding " + path);
+        documentList.add(path);
+        return 1;
     }
 
 }

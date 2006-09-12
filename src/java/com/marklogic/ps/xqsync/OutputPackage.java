@@ -32,6 +32,11 @@ import com.marklogic.ps.AbstractLoggableClass;
  */
 public class OutputPackage extends AbstractLoggableClass {
 
+    // 34464 entries max
+    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4418997
+    // (supposed to be closed, but isn't)
+    private static final int MAX_ENTRIES = 34464;
+
     private long currentFileBytes = 0;
 
     private Object outputMutex = new Object();
@@ -43,6 +48,8 @@ public class OutputPackage extends AbstractLoggableClass {
     private File currentFile;
 
     private int fileCount = 0;
+
+    private int currentEntries;
 
     /**
      * @throws IOException
@@ -105,15 +112,14 @@ public class OutputPackage extends AbstractLoggableClass {
             if (currentFileBytes > 0
                     && currentFileBytes + total > Integer.MAX_VALUE) {
                 logger.fine("package bytes would exceed 32-bit limit");
-                String path = constructorFile.getCanonicalPath();
-                fileCount++;
-                if (path.endsWith(".zip")) {
-                    path = path.replaceFirst("(.+)\\.zip$", "$1."
-                            + fileCount + ".zip");
-                } else {
-                    path = path + "." + fileCount;
-                }
-                newZipOutputStream(new File(path));
+                newZipOutputStream();
+            }
+
+            // don't create zips that Java can't read back in
+            if (currentEntries > 0
+                    && (currentEntries + 2) >= MAX_ENTRIES) {
+                logger.fine("package bytes would exceed entry limit");
+                newZipOutputStream();
             }
 
             outputStream.putNextEntry(entry);
@@ -125,6 +131,19 @@ public class OutputPackage extends AbstractLoggableClass {
             outputStream.closeEntry();
         }
         currentFileBytes += total;
+        currentEntries += 2;
+    }
+
+    private void newZipOutputStream() throws IOException {
+        String path = constructorFile.getCanonicalPath();
+        fileCount++;
+        if (path.endsWith(".zip")) {
+            path = path.replaceFirst("(.+)\\.zip$", "$1."
+                    + fileCount + ".zip");
+        } else {
+            path = path + "." + fileCount;
+        }
+        newZipOutputStream(new File(path));
     }
 
     /**
