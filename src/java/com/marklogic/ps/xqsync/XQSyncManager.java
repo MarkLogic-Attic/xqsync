@@ -65,14 +65,12 @@ public class XQSyncManager extends AbstractLoggableClass {
             if (null == queue) {
                 queue = executor.getQueue();
             }
-            while (true) {
-                try {
-                    // block until space becomes available
-                    queue.put(r);
-                } catch (InterruptedException e) {
-                    // someone is trying to interrupt us
-                    throw new RejectedExecutionException(e);
-                }
+            try {
+                // block until space becomes available
+                queue.put(r);
+            } catch (InterruptedException e) {
+                // someone is trying to interrupt us
+                throw new RejectedExecutionException(e);
             }
         }
 
