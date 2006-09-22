@@ -224,8 +224,8 @@ public class Configuration extends AbstractLoggableClass {
                 .getProperty(COPY_PROPERTIES_KEY, "true"));
 
         // skipExisting is hot
-        skipExisting = Utilities.stringToBoolean(properties
-                .getProperty(SKIP_EXISTING_KEY, "false"));
+        skipExisting = Utilities.stringToBoolean(properties.getProperty(
+                SKIP_EXISTING_KEY, "false"));
 
         // placeKeys are hot
         String placeKeysString = properties
@@ -276,31 +276,33 @@ public class Configuration extends AbstractLoggableClass {
             XccException {
         inputPackagePath = properties.getProperty(INPUT_PACKAGE_KEY);
 
-        if (inputPackagePath == null) {
-            inputPath = properties.getProperty(INPUT_PATH_KEY);
-            if (inputPath != null) {
-                logger.info("input from path: " + inputPath);
-            } else {
-                String inputConnectionString = properties
-                        .getProperty(INPUT_CONNECTION_STRING_KEY);
-                if (inputConnectionString == null) {
-                    throw new IOException("missing required property: "
-                            + INPUT_CONNECTION_STRING_KEY);
-                }
-                if (!(inputConnectionString.startsWith(XCC_PREFIX) || inputConnectionString
-                        .startsWith(XCC_PREFIX_OLD))) {
-                    logger.fine("fixing connection string "
-                            + inputConnectionString);
-                    inputConnectionString = XCC_PREFIX
-                            + inputConnectionString;
-                }
-                logger.info("input from connection: "
-                        + inputConnectionString);
-                URI inputUri = new URI(inputConnectionString);
-                inputConnection = new Connection(inputUri);
-            }
-        } else {
+        if (null != inputPackagePath) {
             logger.info("input from package: " + inputPackagePath);
+            return;
+        }
+
+        inputPath = properties.getProperty(INPUT_PATH_KEY);
+        if (inputPath != null) {
+            logger.info("input from path: " + inputPath);
+        } else {
+            String inputConnectionString = properties
+                    .getProperty(INPUT_CONNECTION_STRING_KEY);
+            if (inputConnectionString == null) {
+                throw new IOException("missing required property: "
+                        + INPUT_CONNECTION_STRING_KEY);
+            }
+            if (!(inputConnectionString.startsWith(XCC_PREFIX) || inputConnectionString
+                    .startsWith(XCC_PREFIX_OLD))) {
+                logger.fine("fixing connection string "
+                        + inputConnectionString);
+                inputConnectionString = XCC_PREFIX
+                        + inputConnectionString;
+            }
+            logger
+                    .info("input from connection: "
+                            + inputConnectionString);
+            URI inputUri = new URI(inputConnectionString);
+            inputConnection = new Connection(inputUri);
         }
     }
 
@@ -506,6 +508,13 @@ public class Configuration extends AbstractLoggableClass {
      */
     public boolean isSkipExisting() {
         return skipExisting;
+    }
+
+    /**
+     * @return
+     */
+    public static String getPackageFileExtension() {
+        return OutputPackage.extension;
     }
 
 }

@@ -19,11 +19,18 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.marklogic.ps.AbstractLoggableClass;
 import com.marklogic.ps.FileFinder;
@@ -37,7 +44,39 @@ import com.marklogic.xcc.exceptions.XccException;
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  * 
  */
-public class XQSyncManager extends AbstractLoggableClass implements Runnable {
+public class XQSyncManager extends AbstractLoggableClass {
+
+    /**
+     * @author Michael Blakeley, michael.blakeley@marklogic.com
+     * 
+     */
+    public class CallerBlocksPolicy implements RejectedExecutionHandler {
+
+        private BlockingQueue<Runnable> queue;
+
+        /*
+         * (non-Javadoc)
+         * 
+         * @see java.util.concurrent.RejectedExecutionHandler#rejectedExecution(java.lang.Runnable,
+         *      java.util.concurrent.ThreadPoolExecutor)
+         */
+        public void rejectedExecution(Runnable r,
+                ThreadPoolExecutor executor) {
+            if (null == queue) {
+                queue = executor.getQueue();
+            }
+            while (true) {
+                try {
+                    // block until space becomes available
+                    queue.put(r);
+                } catch (InterruptedException e) {
+                    // someone is trying to interrupt us
+                    throw new RejectedExecutionException(e);
+                }
+            }
+        }
+
+    }
 
     public static final String NAME = XQSyncManager.class.getName();
 
@@ -65,25 +104,25 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
     }
 
     public void run() {
-        Monitor monitor = new Monitor();
+        Monitor monitor = null;
 
         try {
             // start your engines...
             int threads = configuration.getThreadCount();
             logger.info("starting pool of " + threads + " threads");
-            ThreadPoolExecutor pool = (ThreadPoolExecutor) Executors
-                    .newFixedThreadPool(threads);
-            pool.prestartAllCoreThreads();
-
-            ExecutorCompletionService completionService = new ExecutorCompletionService(
+            BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(
+                    threads * 100 * 1000);
+            // by using CallerBlocksPolicy, we automatically throttle the queue
+            RejectedExecutionHandler policy = new CallerBlocksPolicy();
+            ThreadPoolExecutor pool = new ThreadPoolExecutor(threads,
+                    threads, 16, TimeUnit.SECONDS, workQueue, policy);
+            CompletionService completionService = new ExecutorCompletionService(
                     pool);
 
             // to attempt to avoid starvation, run the monitor with higher
             // priority than the thread pool will have.
+            monitor = new Monitor(logger, pool, completionService);
             monitor.setPriority(Thread.NORM_PRIORITY + 1);
-            monitor.setLogger(logger);
-            monitor.setPool(pool);
-            monitor.setTasks(completionService);
             monitor.start();
 
             // TODO move into a task-producer thread
@@ -107,22 +146,20 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
             }
             logger.info("queued " + itemsQueued + " items");
             pool.shutdown();
-            monitor.setNumberOfTasks(itemsQueued);
 
-            while (monitor.isAlive()) {
+            while (null != monitor && monitor.isAlive()) {
                 try {
                     monitor.join();
                 } catch (InterruptedException e) {
                     logger.logException("interrupted", e);
                 }
             }
-            
+
             factory.close();
-            
-        } catch (Exception e) {
-            logger.logException("fatal exception", e);
+
+        } catch (Throwable t) {
             if (monitor != null) {
-                monitor.halt();
+                monitor.halt(t);
             }
         }
 
@@ -135,14 +172,55 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
      * @throws IOException
      * 
      */
+    private long queueFromInputPackage(
+            CompletionService completionService, String _path)
+            throws IOException {
+        File file = new File(_path);
+
+        if (file.isFile()) {
+            return queueFromInputPackage(completionService, file);
+        }
+
+        if (!file.isDirectory()) {
+            throw new IOException("unexpected file type: "
+                    + file.getCanonicalPath());
+        }
+
+        long total = 0;
+        final String extension = Configuration.getPackageFileExtension();
+        FileFilter filter = new FileFilter() {
+            public boolean accept(File pathname) {
+                return (pathname.isFile() && pathname.getName().endsWith(
+                        extension));
+            }
+        };
+
+        File[] children = file.listFiles(filter);
+        Arrays.sort(children);
+
+        String childPath;
+        for (int i = 0; i < children.length; i++) {
+            childPath = children[i].getCanonicalPath();
+            total += queueFromInputPackage(completionService, childPath);
+        }
+        return total;
+    }
+
+    /**
+     * @param completionService
+     * @return
+     * @throws IOException
+     * 
+     */
     @SuppressWarnings("unchecked")
     private long queueFromInputPackage(
-            ExecutorCompletionService completionService, String _path)
+            CompletionService completionService, File _path)
             throws IOException {
         // list contents of package
         logger.info("listing package " + _path);
 
-        InputPackage inputPackage = new InputPackage(_path);
+        InputPackage inputPackage = new InputPackage(_path
+                .getCanonicalPath());
         factory.setInputPackage(inputPackage);
 
         Iterator<String> iter = inputPackage.list().iterator();
@@ -165,8 +243,7 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
      */
     @SuppressWarnings("unchecked")
     private long queueFromInputConnection(
-            ExecutorCompletionService completionService)
-            throws XccException {
+            CompletionService completionService) throws XccException {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
@@ -330,15 +407,14 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
     }
 
     /**
-     * @param completionService
+     * @param _cs
      * @param _inputPath
      * @return
      * @throws IOException
      */
     @SuppressWarnings("unchecked")
-    private long queueFromInputPath(
-            ExecutorCompletionService completionService, String _inputPath)
-            throws IOException {
+    private long queueFromInputPath(CompletionService _cs,
+            String _inputPath) throws IOException {
         // build documentList from a filesystem path
         // exclude stuff that ends with '.metadata'
         logger.info("listing from " + _inputPath + ", excluding "
@@ -355,7 +431,7 @@ public class XQSyncManager extends AbstractLoggableClass implements Runnable {
             file = iter.next();
             logger.finer("queuing " + count + ": "
                     + file.getCanonicalPath());
-            completionService.submit(factory.newCallableSync(file));
+            _cs.submit(factory.newCallableSync(file));
         }
 
         return count;

@@ -26,11 +26,13 @@ import com.marklogic.ps.Utilities;
  * 
  */
 public class FragmentZipFiles {
-    // 34464 entries max
-    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4418997
-    // (supposed to be closed, but isn't)
+    // number of entries overflows at 2^16 = 65536
+    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
+    // (supposed to be fixed, but isn't)
+    private static final int MAX_ENTRIES = 65536 - 1;
+
     // we use a lower limit, to allow for extra metadata crossovers
-    private static final int MAX_ENTRIES = 32768;
+    private static final int MAX_ENTRIES_SOFT = MAX_ENTRIES - 3;
 
     private static SimpleLogger logger = SimpleLogger.getSimpleLogger();
 
@@ -66,14 +68,17 @@ public class FragmentZipFiles {
 
                 ZipFile zf = new ZipFile(file);
                 int size = zf.size();
-                if (size < MAX_ENTRIES) {
-                    logger.info("skipping already-fragmented file "
-                            + path);
-                    return;
-                }
-                logger.info("fragmenting path" + path + ": " + size
-                        + " entries");
+
+                // the problem is actually an overflow problem,
+                // so we can't realistically check for it.
+                // if (size < MAX_ENTRIES_REAL) {
+                // logger.info("skipping already-fragmented file "
+                // + path + " (" + size + " entries)");
+                // return;
+                // }
                 zf.close();
+                logger.info("fragmenting path" + path
+                        + ": claims to have " + size + " entries");
 
                 fragment(path);
                 logger.info("fragmented " + path);
@@ -109,7 +114,7 @@ public class FragmentZipFiles {
                 entries++;
 
                 logger.finer("output " + output + ", entries=" + entries);
-                if (null == output || entries >= MAX_ENTRIES) {
+                if (null == output || entries >= MAX_ENTRIES_SOFT) {
                     logger.fine("new output needed");
                     // ensure that we keep metadata and content together
                     if (areRelated(lastEntryName, thisEntryName)) {

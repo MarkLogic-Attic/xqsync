@@ -19,7 +19,6 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Properties;
@@ -33,10 +32,10 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2006-09-12.1";
+    public static String VERSION = "2006-09-21.1";
 
-    public static void main(String[] args) throws FileNotFoundException,
-            IOException, XccException, URISyntaxException {
+    public static void main(String[] args) throws IOException,
+            XccException, URISyntaxException {
         // assume that any input files are properties
         Properties props = new Properties();
         for (int i = 0; i < args.length; i++) {
@@ -54,12 +53,12 @@ public class XQSync extends AbstractLoggableClass {
         logger.info("XQSync starting: version = " + VERSION);
 
         // TODO set and use INPUT_ENCODING and OUTPUT_ENCODING, instead
-        logger.info("default encoding is "
-                + System.getProperty("file.encoding"));
-        System.setProperty("file.encoding", props.getProperty(
-                "DEFAULT_CHARSET", "UTF-8"));
-        logger.info("default encoding is now "
-                + System.getProperty("file.encoding"));
+        String encoding = System.getProperty("file.encoding");
+        if (!encoding.equals("UTF-8")) {
+            throw new IOException(
+                    "UTF-8 encoding is required: default encoding "
+                            + encoding + " is not UTF-8");
+        }
 
         long start = System.currentTimeMillis();
 

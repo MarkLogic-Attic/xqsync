@@ -39,10 +39,11 @@ import com.marklogic.ps.Utilities;
  * 
  */
 public class InputPackage extends AbstractLoggableClass {
-    // 34464 entries max
-    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4418997
-    // (supposed to be closed, but isn't)
-    private static final int MAX_ENTRIES = 34464;
+
+    // number of entries overflows at 2^16 = 65536
+    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
+    // (supposed to be fixed, but isn't)
+    private static final int MAX_ENTRIES = 65536 - 1;
 
     private String packagePath;
 

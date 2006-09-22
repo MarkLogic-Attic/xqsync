@@ -18,10 +18,11 @@
  */
 package com.marklogic.ps.xqsync;
 
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.marklogic.ps.SimpleLogger;
 
@@ -30,9 +31,10 @@ import com.marklogic.ps.SimpleLogger;
  * 
  */
 public class Monitor extends Thread {
+
     private static final int DISPLAY_MILLIS = 15 * 1000;
 
-    private static final int SLEEP_TIME = 500;
+    private static final int SLEEP_MILLIS = 500;
 
     private static SimpleLogger logger;
 
@@ -46,9 +48,19 @@ public class Monitor extends Thread {
 
     private long eventCount = 0;
 
-    private ExecutorCompletionService completionService;
+    private CompletionService completionService;
 
-    private long numberOfTasks = -1;
+    /**
+     * @param _logger
+     * @param _pool
+     * @param _cs
+     */
+    public Monitor(SimpleLogger _logger, ThreadPoolExecutor _pool,
+            CompletionService _cs) {
+        completionService = _cs;
+        pool = _pool;
+        logger = _logger;
+    }
 
     public void run() {
         try {
@@ -59,7 +71,13 @@ public class Monitor extends Thread {
             monitor();
             logger.info("loaded " + eventCount + " records ok");
         } catch (Exception e) {
-            logger.logException("fatal error", e);
+            if (e instanceof ExecutionException) {
+                logger.logException("fatal execution error", e);
+            } else {
+                logger.logException("fatal error", e);
+            }
+            // stop the world
+            System.exit(-1);
         } finally {
             pool.shutdownNow();
         }
@@ -69,32 +87,32 @@ public class Monitor extends Thread {
     /**
      * 
      */
-    public void halt() {
-        logger.info("halting");
+    public void halt(Throwable t) {
+        logger.logException("halting", t);
         running = false;
         pool.shutdownNow();
-        interrupt();
     }
 
     /**
-     * @throws ExecutionException 
-     * @throws InterruptedException 
+     * @throws ExecutionException
+     * @throws InterruptedException
      * 
      */
-    private void monitor() throws InterruptedException, ExecutionException {
+    private void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
-        int sleepMillis = SLEEP_TIME;
-        Future future;
+        int sleepMillis = SLEEP_MILLIS;
+        Future future = null;
         long currentMillis;
 
         // if anything goes wrong, the futuretask knows how to stop us
         long taskCount = pool.getTaskCount();
         logger.finest("looping every " + sleepMillis + ", core="
                 + pool.getCorePoolSize() + ", active="
-                + pool.getActiveCount() + ", tasks="
-                + taskCount);
-        while (running && !isInterrupted()) {
-            // yield to avoid thread starvation, with luck
+                + pool.getActiveCount() + ", tasks=" + taskCount);
+
+        // run until all futures have been checked
+        while (running && !pool.isTerminated()) {
+            // try to avoid thread starvation
             yield();
 
             currentMillis = System.currentTimeMillis();
@@ -103,35 +121,34 @@ public class Monitor extends Thread {
                 taskCount = pool.getTaskCount();
                 logger.finer("thread count: core="
                         + pool.getCorePoolSize() + ", active="
-                        + pool.getActiveCount() + ", tasks="
-                        + taskCount);
+                        + pool.getActiveCount() + ", tasks=" + taskCount);
                 if (lastUri != null) {
-                    logger.info("processed item " + eventCount
-                            + " of " + taskCount
-                            + " as "
-                            + lastUri);
+                    logger.info("processed item " + eventCount + " of "
+                            + taskCount + " as " + lastUri);
                 }
             }
-            try {
-                Thread.sleep(sleepMillis);
-            } catch (InterruptedException e) {
-                logger.logException("sleep was interrupted: continuing",
-                        e);
-            }
-            
-            // check completed tasks
-            if (pool.getCompletedTaskCount() > 0) {
-                future = completionService.take();
-                // check for exceptions and log result (or throw exception)
-                lastUri = (String) future.get();
-                eventCount = pool.getCompletedTaskCount();
-            }
 
-            if (numberOfTasks > -1 && pool.getCompletedTaskCount() >= numberOfTasks) {
-                logger
-                        .fine("stopping because there are no active threads");
-                break;
-            }
+            // check completed tasks
+            do {
+                // try to avoid thread starvation
+                yield();
+
+                try {
+                    future = completionService.poll(SLEEP_MILLIS,
+                            TimeUnit.MILLISECONDS);
+                    if (null != future) {
+                        // check for exceptions and log result (or throw
+                        // exception)
+                        lastUri = (String) future.get();
+                        eventCount++;
+                    }
+                } catch (InterruptedException e) {
+                    logger.logException("interrupted in poll() or get()",
+                            e);
+                    continue;
+                }
+            } while (null != future);
+
         }
     }
 
@@ -147,20 +164,6 @@ public class Monitor extends Thread {
      */
     public void setPool(ThreadPoolExecutor _pool) {
         pool = _pool;
-    }
-
-    /**
-     * @param completionService
-     */
-    public void setTasks(ExecutorCompletionService completionService) {
-        this.completionService = completionService;
-    }
-
-    /**
-     * @param numberOfTasks
-     */
-    public void setNumberOfTasks(long numberOfTasks) {
-        this.numberOfTasks = numberOfTasks;
     }
 
 }

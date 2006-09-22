@@ -32,10 +32,10 @@ import com.marklogic.ps.AbstractLoggableClass;
  */
 public class OutputPackage extends AbstractLoggableClass {
 
-    // 34464 entries max
-    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4418997
-    // (supposed to be closed, but isn't)
-    private static final int MAX_ENTRIES = 34464;
+    // number of entries overflows at 2^16 = 65536
+    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
+    // (supposed to be fixed, but isn't)
+    private static final int MAX_ENTRIES = 65536 - 1;
 
     private long currentFileBytes = 0;
 
@@ -50,6 +50,8 @@ public class OutputPackage extends AbstractLoggableClass {
     private int fileCount = 0;
 
     private int currentEntries;
+
+    public static String extension = ".zip";
 
     /**
      * @throws IOException
@@ -96,10 +98,9 @@ public class OutputPackage extends AbstractLoggableClass {
         long total = bytes.length + metaBytes.length;
         ZipEntry entry = new ZipEntry(outputPath);
 
-        String metadataPath = XQSyncDocument
-        .getMetadataPath(outputPath);
+        String metadataPath = XQSyncDocument.getMetadataPath(outputPath);
         ZipEntry metaEntry = new ZipEntry(metadataPath);
-        
+
         // TODO change to java.concurrent reentrantlock?
         synchronized (outputMutex) {
             if (outputStream == null) {
@@ -116,8 +117,7 @@ public class OutputPackage extends AbstractLoggableClass {
             }
 
             // don't create zips that Java can't read back in
-            if (currentEntries > 0
-                    && (currentEntries + 2) >= MAX_ENTRIES) {
+            if (currentEntries > 0 && (currentEntries + 2) >= MAX_ENTRIES) {
                 logger.fine("package bytes would exceed entry limit");
                 newZipOutputStream();
             }
@@ -137,9 +137,12 @@ public class OutputPackage extends AbstractLoggableClass {
     private void newZipOutputStream() throws IOException {
         String path = constructorFile.getCanonicalPath();
         fileCount++;
-        if (path.endsWith(".zip")) {
-            path = path.replaceFirst("(.+)\\.zip$", "$1."
-                    + fileCount + ".zip");
+        if (path.endsWith(extension)) {
+            String pathPattern = "(.+)\\." + extension + "$";
+            // one MILLION zip files...
+            String replacementPattern = "$1." + String.format("%06d", fileCount)
+                    + extension;
+            path = path.replaceFirst(pathPattern, replacementPattern);
         } else {
             path = path + "." + fileCount;
         }
