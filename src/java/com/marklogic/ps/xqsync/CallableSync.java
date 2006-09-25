@@ -135,18 +135,24 @@ public class CallableSync implements Callable<Object> {
         String outputUri = (path + inputUri).replaceAll("//+", "/");
         logger.finer("copying " + inputUri + " to " + outputUri);
 
-        if (outputSession != null) {
-            document.write(outputUri, outputSession, readRoles,
-                    placeKeys, skipExisting);
-        } else if (outputPackage != null) {
-            document.write(outputUri, outputPackage, readRoles);
-            outputPackage.flush();
-        } else {
-            // default: filesystem
-            File outputFile = new File(outputUri);
-            document.write(outputFile);
+        try {
+            if (outputSession != null) {
+                document.write(outputUri, outputSession, readRoles,
+                        placeKeys, skipExisting);
+            } else if (outputPackage != null) {
+                document.write(outputUri, outputPackage, readRoles);
+                outputPackage.flush();
+            } else {
+                // default: filesystem
+                File outputFile = new File(outputUri);
+                document.write(outputFile);
+            }
+            return outputUri;
+        } finally {
+            if (outputSession != null) {
+                outputSession.close();
+            }
         }
-        return outputUri;
     }
 
     public void setOutputPath(String _path) {

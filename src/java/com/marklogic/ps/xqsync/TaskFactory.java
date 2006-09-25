@@ -44,8 +44,6 @@ public class TaskFactory {
 
     private Collection<ContentPermission> readRoles;
 
-    private Session outputSession;
-
     private String outputPath;
 
     private OutputPackage outputPackage;
@@ -55,21 +53,20 @@ public class TaskFactory {
     private Configuration configuration;
 
     /**
-     * @param configuration
+     * @param _config
      */
-    public TaskFactory(Configuration configuration) {
-        this.configuration = configuration;
-        logger = configuration.getLogger();
-        copyPermissions = configuration.isCopyPermissions();
-        copyProperties = configuration.isCopyProperties();
-        skipExisting = configuration.isSkipExisting();
+    public TaskFactory(Configuration _config) {
+        configuration = _config;
+        logger = _config.getLogger();
+        copyPermissions = _config.isCopyPermissions();
+        copyProperties = _config.isCopyProperties();
+        skipExisting = _config.isSkipExisting();
 
-        readRoles = configuration.getReadRoles();
-        placeKeys = configuration.getPlaceKeys();
+        readRoles = _config.getReadRoles();
+        placeKeys = _config.getPlaceKeys();
 
-        outputSession = configuration.newOutputSession();
-        outputPath = configuration.getOutputPath();
-        String outputPackagePath = configuration.getOutputPackagePath();
+        outputPath = _config.getOutputPath();
+        String outputPackagePath = _config.getOutputPackagePath();
         if (outputPackagePath != null) {
             outputPackage = new OutputPackage(new File(outputPackagePath));
         }
@@ -81,6 +78,7 @@ public class TaskFactory {
     private void configure(CallableSync cs) {
         cs.setLogger(logger);
 
+        Session outputSession = configuration.newOutputSession();
         if (outputSession != null) {
             cs.setOutputSession(outputSession);
             cs.setSkipExisting(skipExisting);
@@ -90,11 +88,13 @@ public class TaskFactory {
             cs.setOutputPath(outputPath);
         }
 
-        if (readRoles != null)
+        if (readRoles != null) {
             cs.setReadRoles(readRoles);
+        }
 
-        if (placeKeys != null)
+        if (placeKeys != null) {
             cs.setPlaceKeys(placeKeys);
+        }
     }
 
     /**
@@ -144,9 +144,6 @@ public class TaskFactory {
             } catch (IOException e) {
                 logger.logException("cleanup", e);
             }
-        }
-        if (outputSession != null) {
-            outputSession.close();
         }
     }
 

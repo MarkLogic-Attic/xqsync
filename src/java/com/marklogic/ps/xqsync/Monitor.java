@@ -72,7 +72,7 @@ public class Monitor extends Thread {
             logger.info("loaded " + eventCount + " records ok");
         } catch (Exception e) {
             if (e instanceof ExecutionException) {
-                logger.logException("fatal execution error", e);
+                logger.logException("fatal execution error", e.getCause());
             } else {
                 logger.logException("fatal error", e);
             }
