@@ -19,6 +19,7 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
@@ -92,10 +93,12 @@ public class CallableSync implements Callable<Object> {
      * @param _file
      * @param _copyPermissions
      * @param _copyProperties
+     * @throws IOException
      */
     public CallableSync(File _file, boolean _copyPermissions,
             boolean _copyProperties) {
         inputFile = _file;
+        // note: don't set inputUri, since we can always get it from the file
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
     }
@@ -106,6 +109,14 @@ public class CallableSync implements Callable<Object> {
      * @see java.util.concurrent.Callable#call()
      */
     public String call() throws Exception {
+        // note: if there's an input file, then inputUri may be null
+        if (null == inputUri) {
+            if (null == inputFile) {
+                throw new UnimplementedFeatureException(
+                        "missing required field: inputUri or inputFile");
+            }
+            inputUri = inputFile.getCanonicalPath();
+        }
         logger.fine("starting sync of " + inputUri);
 
         if (inputSession != null) {
@@ -123,31 +134,20 @@ public class CallableSync implements Callable<Object> {
 
         // write document to output session, package, or directory
         // marshal output arguments
-        // build remote URI from outputPath and uri
-        String path = outputPath;
-        // path may be empty: if not, it should end with separator
-        if (path != null && !path.equals("")) {
-            path += "/";
-        } else {
-            path = "";
-        }
-        // ensure exactly one separator at each level
-        String outputUri = (path + inputUri).replaceAll("//+", "/");
-        logger.finer("copying " + inputUri + " to " + outputUri);
+        document.setOutputUriPrefix(outputPath);
 
         try {
             if (outputSession != null) {
-                document.write(outputUri, outputSession, readRoles,
-                        placeKeys, skipExisting);
+                document.write(outputSession, readRoles, placeKeys,
+                        skipExisting);
             } else if (outputPackage != null) {
-                document.write(outputUri, outputPackage, readRoles);
+                document.write(outputPackage, readRoles);
                 outputPackage.flush();
             } else {
                 // default: filesystem
-                File outputFile = new File(outputUri);
-                document.write(outputFile);
+                document.write();
             }
-            return outputUri;
+            return document.getOutputUri();
         } finally {
             if (outputSession != null) {
                 outputSession.close();

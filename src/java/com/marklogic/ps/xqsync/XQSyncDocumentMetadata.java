@@ -29,6 +29,7 @@ import com.marklogic.xcc.DocumentFormat;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.types.XSInteger;
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.DomDriver;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
@@ -45,7 +46,7 @@ public class XQSyncDocumentMetadata {
 
     private String properties = null;
 
-    private static XStream xstream = new XStream();
+    private static XStream xstream = new XStream(new DomDriver());
 
     /**
      * @param reader

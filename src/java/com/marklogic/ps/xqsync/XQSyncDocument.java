@@ -24,6 +24,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.Collection;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -54,6 +56,11 @@ import com.marklogic.xcc.types.XdmElement;
  */
 public class XQSyncDocument {
 
+    /**
+     * 
+     */
+    private static final String ENCODING = "UTF-8";
+
     public static final String METADATA_EXT = ".metadata";
 
     public static final String METADATA_REGEX = "^.+\\"
@@ -71,6 +78,10 @@ public class XQSyncDocument {
 
     private int connMajorVersion = 3;
 
+    private String outputPathPrefix;
+
+    private String inputUri;
+
     /**
      * @param _session
      * @param _uri
@@ -85,9 +96,11 @@ public class XQSyncDocument {
             boolean _copyPermissions, boolean _copyProperties)
             throws XccException, IOException,
             ParserConfigurationException, SAXException {
-        if (_uri == null)
+        if (_uri == null) {
             throw new UnimplementedFeatureException("null uri");
+        }
 
+        inputUri = _uri;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
 
@@ -243,9 +256,12 @@ public class XQSyncDocument {
     public XQSyncDocument(InputPackage _pkg, String _path,
             boolean _copyPermissions, boolean _copyProperties)
             throws IOException {
-        if (_path == null)
+        if (_path == null) {
             throw new IOException("null path");
+        }
 
+        //inputUri = URLDecoder.decode(_path, ENCODING);
+        inputUri = _path;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
 
@@ -272,6 +288,8 @@ public class XQSyncDocument {
         // read the content: must work for bin or xml, so use bytes
         contentBytes = Utilities.getBytes(_file);
 
+        //inputUri = URLDecoder.decode(_file.getCanonicalPath(), ENCODING);
+        inputUri = _file.getCanonicalPath();
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
 
@@ -286,40 +304,46 @@ public class XQSyncDocument {
         }
     }
 
+    /**
+     * @param _uri
+     * @param _isEncoded
+     * @throws UnsupportedEncodingException
+     */
+    public XQSyncDocument(String _uri, boolean _isEncoded)
+            throws UnsupportedEncodingException {
+        // for testing only
+        inputUri = _isEncoded ? URLDecoder.decode(_uri, ENCODING) : _uri;
+    }
+
     static File getMetadataFile(File contentFile) throws IOException {
         return new File(getMetadataPath(contentFile));
     }
 
     /**
-     * @param _outputUri
      * @param _session
      * @param _placeKeys
      * @param _readRoles
-     * @param _skipExisting 
+     * @param _skipExisting
      * @return
-     * @throws IOException
      * @throws XccException
+     * @throws UnsupportedEncodingException
      */
-    public long write(String _outputUri,
-            com.marklogic.ps.Session _session,
-            Collection<ContentPermission> _readRoles, String[] _placeKeys, boolean _skipExisting)
-            throws IOException, XccException {
-        if (_outputUri == null) {
-            throw new IOException("null outputPath");
-        }
-
-        logger.fine(_outputUri);
+    public long write(com.marklogic.ps.Session _session,
+            Collection<ContentPermission> _readRoles,
+            String[] _placeKeys, boolean _skipExisting)
+            throws XccException, UnsupportedEncodingException {
+        String outputUri = composeOutputUri(false);
 
         // handle deletes
         if (contentBytes == null || contentBytes.length < 1) {
             // this document has been deleted
-            _session.deleteDocument(_outputUri);
+            _session.deleteDocument(outputUri);
             return 0;
         }
 
         // optionally, check to see if document is already up-to-date
-        if (_skipExisting && _session.existsDocument(_outputUri)) {
-            logger.fine("skipping existing document: " + _outputUri);
+        if (_skipExisting && _session.existsDocument(outputUri)) {
+            logger.fine("skipping existing document: " + outputUri);
             return 0;
         }
 
@@ -353,7 +377,7 @@ public class XQSyncDocument {
         options.setRepairLevel(repair);
         options.setPlaceKeys(_session.forestNamesToIds(_placeKeys));
 
-        Content content = ContentFactory.newContent(_outputUri,
+        Content content = ContentFactory.newContent(outputUri,
                 contentBytes, options);
         _session.insertContent(content);
         _session.commit();
@@ -362,7 +386,7 @@ public class XQSyncDocument {
         // TODO would be nice to do this in the same transaction, drat it
         String properties = metadata.getProperties();
         if (copyProperties && properties != null) {
-            _session.setDocumentProperties(_outputUri, properties);
+            _session.setDocumentProperties(outputUri, properties);
         }
         return contentBytes.length;
     }
@@ -372,12 +396,10 @@ public class XQSyncDocument {
      * @param readRoles
      * @throws IOException
      */
-    public void write(String outputPath, OutputPackage _pkg,
-            Collection _readRoles) throws IOException {
-        if (outputPath == null)
-            throw new IOException("null outputPath");
-
-        _pkg.write(outputPath, contentBytes, metadata);
+    public void write(OutputPackage _pkg, Collection _readRoles)
+            throws IOException {
+        String outputUri = composeOutputUri(true);
+        _pkg.write(outputUri, contentBytes, metadata);
         // the caller has to flush() the pkg
     }
 
@@ -406,10 +428,11 @@ public class XQSyncDocument {
     }
 
     /**
-     * @param outputFile
      * @throws IOException
      */
-    public void write(File outputFile) throws IOException {
+    public void write() throws IOException {
+        String outputUri = composeOutputUri(true);
+        File outputFile = new File(outputUri);
         File parent = outputFile.getParentFile();
         if (!parent.exists()) {
             parent.mkdirs();
@@ -442,6 +465,46 @@ public class XQSyncDocument {
      */
     public static void setLogger(SimpleLogger _logger) {
         logger = _logger;
+    }
+
+    /**
+     * @param _path
+     */
+    public void setOutputUriPrefix(String _path) {
+        // build remote URI from outputPath and uri
+        // path may be empty: if not, it should end with separator
+        outputPathPrefix = _path;
+    }
+
+    public String composeOutputUri(boolean isEscaped)
+            throws UnsupportedEncodingException {
+        if (null != outputPathPrefix && !outputPathPrefix.equals("")
+                && ! outputPathPrefix.endsWith("/")) {
+            outputPathPrefix += "/";
+        }
+
+        String outputUri = (null == outputPathPrefix ? ""
+                : outputPathPrefix)
+                + inputUri;
+        // TODO optionally escape outputUri
+        // note that some constructors will need to unescape the inputUri
+        if (isEscaped) {
+            // NTFS: The period (.) cannot be the first character
+            // NTFS: Illegal Characters: / \ : * ? " < > |
+            // TODO note that this is a dummy at present.
+            // it's unclear when and what needs to be escaped.
+            //outputUri = URLEncoder.encode(outputUri, ENCODING);
+        }
+        logger.finer("copying " + inputUri + " to " + outputUri);
+        return outputUri;
+    }
+
+    /**
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    public String getOutputUri() throws UnsupportedEncodingException {
+        return composeOutputUri(false);
     }
 
 }

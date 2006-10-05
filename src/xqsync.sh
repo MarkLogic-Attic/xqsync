@@ -24,6 +24,17 @@ CP=$HOME/lib/java/xcc.jar
 CP=$CP:$HOME/lib/java/xstream-1.1.2.jar
 CP=$CP:../lib/xqsync.jar
 
-java -cp $CP com.marklogic.ps.xqsync.XQSync $*
+FILES=
+VMARGS=
+
+for a in $*; do
+    if [ -e "$a" ]; then
+        FILES="$FILES $a"
+    else
+        VMARGS="$VMARGS $a"
+    fi
+done
+
+java -cp $CP $VMARGS com.marklogic.ps.xqsync.XQSync $FILES
 
 # end xqsync.sh
