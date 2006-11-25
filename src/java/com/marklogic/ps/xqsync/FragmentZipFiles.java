@@ -14,7 +14,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -66,22 +65,10 @@ public class FragmentZipFiles {
                     return;
                 }
 
-                ZipFile zf = new ZipFile(file);
-                int size = zf.size();
-
                 // the problem is actually an overflow problem,
                 // so we can't realistically check for it.
-                // if (size < MAX_ENTRIES_REAL) {
-                // logger.info("skipping already-fragmented file "
-                // + path + " (" + size + " entries)");
-                // return;
-                // }
-                zf.close();
-                logger.info("fragmenting path" + path
-                        + ": claims to have " + size + " entries");
 
                 fragment(path);
-                logger.info("fragmented " + path);
             } catch (Throwable t) {
                 logger.logException("fatal error", t);
             }
@@ -89,6 +76,7 @@ public class FragmentZipFiles {
 
         private void fragment(String path) throws FileNotFoundException,
                 IOException {
+            logger.info("fragmenting path" + path);
             File parent = file.getParentFile();
             String basename = path.substring(0, path.length()
                     - ZIP_EXTENSION.length());
@@ -98,7 +86,7 @@ public class FragmentZipFiles {
             // fragment the archive
             ZipInputStream zis = new ZipInputStream(new FileInputStream(
                     file));
-            ZipEntry entry;
+            ZipEntry srcEntry, dstEntry;
             ZipOutputStream output = null;
             long entries = 0;
             String lastEntryName = null;
@@ -107,8 +95,8 @@ public class FragmentZipFiles {
             // iterate over all available entries,
             // copying to the current archive file.
             logger.fine("looking for entries in " + path);
-            while ((entry = zis.getNextEntry()) != null) {
-                thisEntryName = entry.getName();
+            while ((srcEntry = zis.getNextEntry()) != null) {
+                thisEntryName = srcEntry.getName();
                 logger.finer("looking at entry " + thisEntryName + " in "
                         + path);
                 entries++;
@@ -135,14 +123,19 @@ public class FragmentZipFiles {
                 }
 
                 // this helps us keep metadata with its content
-                logger.finest("remembering entry" + thisEntryName);
+                logger.finest("remembering entry " + thisEntryName);
                 lastEntryName = thisEntryName;
 
                 // duplicate the entry
                 logger.finer("duplicating entry " + thisEntryName
                         + " in " + path);
-                output.putNextEntry(entry);
-                Utilities.copy(zis, output);
+                // we must force recalc of the compressed size
+                dstEntry = new ZipEntry(srcEntry);
+                dstEntry.setCompressedSize(-1);
+                output.putNextEntry(dstEntry);
+                if (! srcEntry.isDirectory() && srcEntry.getCompressedSize() > 0) {
+                    Utilities.copy(zis, output);
+                }
                 output.closeEntry();
                 output.flush();
 
@@ -156,6 +149,7 @@ public class FragmentZipFiles {
             }
 
             zis.close();
+            logger.info("fragmented " + path);
         }
 
         /**

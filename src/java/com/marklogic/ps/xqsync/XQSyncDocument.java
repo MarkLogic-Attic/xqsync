@@ -132,12 +132,12 @@ public class XQSyncDocument {
                     + "' define variable $list as element(sec:permissions) external',\n"
                     + "' for $p in $list/sec:permission',\n"
                     + "' return element sec:permission {',\n"
-                    + "'  $p/node(), sec:get-role-names($p/sec:role-id)',\n"
+                    + "'  $p/@*, $p/node(), sec:get-role-names($p/sec:role-id)',\n"
                     + "' }'\n"
                     + ")\n"
-                    + "return if (empty($list)) then () else\n"
                     // TODO deprecated use of eval-in (3.1)
-                    + "xdmp:eval-in(\n"
+                    + "where exists($list))\n"
+                    + "return xdmp:eval-in(\n"
                     + "  $query, xdmp:security-database(),\n"
                     + "  (xs:QName('list'), element sec:permissions { $list })\n"
                     + "),\n";
@@ -188,7 +188,7 @@ public class XQSyncDocument {
             }
 
             // permission: turn into a ContentPermission object
-            // each permission is a sec:permission element
+            // each permission is a sec:permission element.
             // children:
             // sec:capability ("read", "insert", "update")
             // and sec:role xs:unsignedLong (but we need string)
@@ -198,12 +198,30 @@ public class XQSyncDocument {
             capabilities = permissionElement
                     .getElementsByTagName("capability");
             roles = permissionElement.getElementsByTagName("role-name");
-            if (roles.getLength() != 1 || capabilities.getLength() != 1) {
-                throw new UnimplementedFeatureException(
-                        "bad input permission: " + permissionElement);
+            if (0 < roles.getLength() && 0 < capabilities.getLength()) {
+                metadata.addPermission(capabilities.item(0)
+                        .getNodeValue(), roles.item(0).getNodeValue());
+                if (roles.getLength() > 1) {
+                    logger.warning("input permission: "
+                            + permissionElement + ": "
+                            + roles.getLength() + " roles, using only 1");
+                }
+                if (capabilities.getLength() > 1) {
+                    logger.warning("input permission: "
+                            + permissionElement + ": "
+                            + capabilities.getLength() + " capabilities, using only 1");
+                }
+            } else {
+                // warn and skip
+                if (roles.getLength() < 1) {
+                    logger.warning("skipping input permission: "
+                            + permissionElement + ": no roles");
+                }
+                if (capabilities.getLength() < 1) {
+                    logger.warning("skipping input permission: "
+                            + permissionElement + ": no capabilities");
+                }
             }
-            metadata.addPermission(capabilities.item(0).getNodeValue(),
-                    roles.item(0).getNodeValue());
             index++;
         }
 
@@ -260,7 +278,7 @@ public class XQSyncDocument {
             throw new IOException("null path");
         }
 
-        //inputUri = URLDecoder.decode(_path, ENCODING);
+        // inputUri = URLDecoder.decode(_path, ENCODING);
         inputUri = _path;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
@@ -288,11 +306,12 @@ public class XQSyncDocument {
         // read the content: must work for bin or xml, so use bytes
         contentBytes = Utilities.getBytes(_file);
 
-        //inputUri = URLDecoder.decode(_file.getCanonicalPath(), ENCODING);
+        // inputUri = URLDecoder.decode(_file.getCanonicalPath(), ENCODING);
         inputUri = _file.getCanonicalPath();
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
 
+        // TODO optionally allow empty metadata
         File metaFile = getMetadataFile(_file);
         metadata = XQSyncDocumentMetadata
                 .fromXML(new FileReader(metaFile));
@@ -326,12 +345,11 @@ public class XQSyncDocument {
      * @param _skipExisting
      * @return
      * @throws XccException
-     * @throws UnsupportedEncodingException
      */
     public long write(com.marklogic.ps.Session _session,
             Collection<ContentPermission> _readRoles,
             String[] _placeKeys, boolean _skipExisting)
-            throws XccException, UnsupportedEncodingException {
+            throws XccException {
         String outputUri = composeOutputUri(false);
 
         // handle deletes
@@ -476,10 +494,9 @@ public class XQSyncDocument {
         outputPathPrefix = _path;
     }
 
-    public String composeOutputUri(boolean isEscaped)
-            throws UnsupportedEncodingException {
+    public String composeOutputUri(boolean isEscaped) {
         if (null != outputPathPrefix && !outputPathPrefix.equals("")
-                && ! outputPathPrefix.endsWith("/")) {
+                && !outputPathPrefix.endsWith("/")) {
             outputPathPrefix += "/";
         }
 
@@ -493,7 +510,7 @@ public class XQSyncDocument {
             // NTFS: Illegal Characters: / \ : * ? " < > |
             // TODO note that this is a dummy at present.
             // it's unclear when and what needs to be escaped.
-            //outputUri = URLEncoder.encode(outputUri, ENCODING);
+            // outputUri = URLEncoder.encode(outputUri, ENCODING);
         }
         logger.finer("copying " + inputUri + " to " + outputUri);
         return outputUri;
@@ -501,9 +518,8 @@ public class XQSyncDocument {
 
     /**
      * @return
-     * @throws UnsupportedEncodingException
      */
-    public String getOutputUri() throws UnsupportedEncodingException {
+    public String getOutputUri() {
         return composeOutputUri(false);
     }
 
