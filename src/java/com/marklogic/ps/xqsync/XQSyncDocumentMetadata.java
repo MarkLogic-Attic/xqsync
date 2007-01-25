@@ -36,7 +36,7 @@ import com.thoughtworks.xstream.io.xml.DomDriver;
  * 
  */
 public class XQSyncDocumentMetadata {
-    private DocumentFormat format = DocumentFormat.XML;
+    private DocumentFormat format = null;
 
     List<String> collectionsList = new Vector<String>();
 
@@ -59,7 +59,7 @@ public class XQSyncDocumentMetadata {
      * @return
      */
     public boolean isBinary() {
-        return format == DocumentFormat.BINARY;
+        return DocumentFormat.BINARY.toString().equals(format.toString());
     }
 
     /**
@@ -178,12 +178,17 @@ public class XQSyncDocumentMetadata {
         if (_format.equals(DocumentFormat.XML)
                 || _format.equals("element")) {
             setFormat(DocumentFormat.XML);
-        } else if (_format.equals(DocumentFormat.TEXT)
+            return;
+        }
+
+        if (_format.equals(DocumentFormat.TEXT)
                 || _format.equals(("text"))) {
             setFormat(DocumentFormat.TEXT);
-        } else {
-            setFormat(DocumentFormat.BINARY);
+            return;
         }
+
+        // default
+        setFormat(DocumentFormat.BINARY);
     }
 
     /**
@@ -218,7 +223,13 @@ public class XQSyncDocumentMetadata {
      * @return
      */
     public boolean isText() {
-        return format == DocumentFormat.TEXT;
+        return DocumentFormat.TEXT.toString().equals(format.toString());
     }
 
+    /**
+     * @return
+     */
+    public boolean isXml() {
+        return DocumentFormat.XML.toString().equals(format.toString());
+    }
 }

@@ -44,6 +44,7 @@ import com.marklogic.xcc.DocumentRepairLevel;
 import com.marklogic.xcc.Request;
 import com.marklogic.xcc.ResultItem;
 import com.marklogic.xcc.ResultSequence;
+import com.marklogic.xcc.exceptions.RequestException;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
@@ -391,10 +392,13 @@ public class XQSyncDocument {
 
         ContentCreateOptions options = null;
         if (metadata.isBinary()) {
+            logger.fine(inputUri + " is binary");
             options = ContentCreateOptions.newBinaryInstance();
         } else if (metadata.isText()) {
+            logger.fine(inputUri + " is text");
             options = ContentCreateOptions.newTextInstance();
         } else {
+            logger.fine(inputUri + " is xml");
             options = ContentCreateOptions.newXmlInstance();
         }
 
@@ -408,8 +412,13 @@ public class XQSyncDocument {
 
         Content content = ContentFactory.newContent(outputUri,
                 contentBytes, options);
-        _session.insertContent(content);
-        _session.commit();
+        try {
+            _session.insertContent(content);
+            _session.commit();
+        } catch (XQueryException e) {
+            logger.warning("throwing exception for " + inputUri);
+            throw e;
+        }
 
         // handle prop:properties node, optional
         // TODO would be nice to do this in the same transaction, drat it
