@@ -199,7 +199,7 @@ public class XQSyncDocumentMetadata {
         else if (_capability.equals(ContentPermission.EXECUTE))
             capability = ContentPermission.EXECUTE;
         else if (_capability.equals(ContentPermission.READ))
-            capability = capability = ContentPermission.READ;
+            capability = ContentPermission.READ;
         else
             throw new UnimplementedFeatureException(
                     "unknown capability: " + _capability);

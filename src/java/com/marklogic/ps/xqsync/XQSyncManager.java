@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             RejectedExecutionHandler policy = new CallerBlocksPolicy();
             ThreadPoolExecutor pool = new ThreadPoolExecutor(threads,
                     threads, 16, TimeUnit.SECONDS, workQueue, policy);
-            CompletionService completionService = new ExecutorCompletionService(
+            CompletionService<String> completionService = new ExecutorCompletionService<String>(
                     pool);
 
             // to attempt to avoid starvation, run the monitor with higher
@@ -165,18 +165,17 @@ public class XQSyncManager extends AbstractLoggableClass {
     }
 
     /**
-     * @param completionService
+     * @param _cs
      * @return
      * @throws IOException
      * 
      */
-    private long queueFromInputPackage(
-            CompletionService completionService, String _path)
-            throws IOException {
+    private long queueFromInputPackage(CompletionService<String> _cs,
+            String _path) throws IOException {
         File file = new File(_path);
 
         if (file.isFile()) {
-            return queueFromInputPackage(completionService, file);
+            return queueFromInputPackage(_cs, file);
         }
 
         if (!file.isDirectory()) {
@@ -199,21 +198,19 @@ public class XQSyncManager extends AbstractLoggableClass {
         String childPath;
         for (int i = 0; i < children.length; i++) {
             childPath = children[i].getCanonicalPath();
-            total += queueFromInputPackage(completionService, childPath);
+            total += queueFromInputPackage(_cs, childPath);
         }
         return total;
     }
 
     /**
-     * @param completionService
+     * @param _cs
      * @return
      * @throws IOException
      * 
      */
-    @SuppressWarnings("unchecked")
-    private long queueFromInputPackage(
-            CompletionService completionService, File _path)
-            throws IOException {
+    private long queueFromInputPackage(CompletionService<String> _cs,
+            File _path) throws IOException {
         // list contents of package
         logger.info("listing package " + _path);
 
@@ -229,19 +226,18 @@ public class XQSyncManager extends AbstractLoggableClass {
             count++;
             path = iter.next();
             logger.finer("queuing " + count + ": " + path);
-            completionService.submit(factory.newCallableSync(path));
+            _cs.submit(factory.newCallableSync(path));
         }
 
         return count;
     }
 
     /**
-     * @param completionService
+     * @param _cs
      * @throws XccException
      */
-    @SuppressWarnings("unchecked")
-    private long queueFromInputConnection(
-            CompletionService completionService) throws XccException {
+    private long queueFromInputConnection(CompletionService<String> _cs)
+            throws XccException {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
@@ -265,8 +261,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             // we don't need to touch the database
             for (int i = 0; i < documentUris.length; i++) {
                 count++;
-                completionService.submit(factory
-                        .newCallableSync(documentUris[i]));
+                _cs.submit(factory.newCallableSync(documentUris[i]));
             }
             return count;
         }
@@ -303,7 +298,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             while (rs.hasNext()) {
                 uri = rs.next().asString();
                 logger.fine("queuing " + count + ": " + uri);
-                completionService.submit(factory.newCallableSync(uri));
+                _cs.submit(factory.newCallableSync(uri));
                 count++;
             }
             rs.close();
@@ -356,7 +351,7 @@ public class XQSyncManager extends AbstractLoggableClass {
                     : "")
                     + "for $i in doc()\n"
                     + (hasStart ? START_POSITION_PREDICATE : "")
-                    + "return string(base-uri($i))";
+                    + "return string(xdmp:node-uri($i))";
             request = inputSession.newAdhocQuery(query);
         }
 
@@ -377,7 +372,7 @@ public class XQSyncManager extends AbstractLoggableClass {
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
                 + "for $i in collection($uri)\n"
                 + (_hasStart ? START_POSITION_PREDICATE : "")
-                + "return string(base-uri($i))\n";
+                + "return string(xdmp:node-uri($i))\n";
         Request request = inputSession.newAdhocQuery(query);
         request.setNewStringVariable("uri", _uri);
         return request;
@@ -394,7 +389,7 @@ public class XQSyncManager extends AbstractLoggableClass {
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
                 + "for $i in xdmp:directory($uri, 'infinity')\n"
                 + (_hasStart ? START_POSITION_PREDICATE : "")
-                + "return string(base-uri($i))\n";
+                + "return string(xdmp:node-uri($i))\n";
         Request request = inputSession.newAdhocQuery(query);
         String uri = _uri;
         if (!uri.endsWith("/")) {
@@ -410,8 +405,7 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @return
      * @throws IOException
      */
-    @SuppressWarnings("unchecked")
-    private long queueFromInputPath(CompletionService _cs,
+    private long queueFromInputPath(CompletionService<String> _cs,
             String _inputPath) throws IOException {
         // build documentList from a filesystem path
         // exclude stuff that ends with '.metadata'

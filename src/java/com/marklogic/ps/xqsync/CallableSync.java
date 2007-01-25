@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
  */
-public class CallableSync implements Callable<Object> {
+public class CallableSync implements Callable<String> {
 
     private XQSyncDocument document;
 

@@ -102,7 +102,7 @@ See src/xqsync.sh for a sample shell script.
   <td>In combination with INPUT_CONNECTION_STRING,
   all uris returned by the query will be transferred.
   This sample query would transfer the first 100 documents:
-  <code>for $i in doc()[1 to 100] return base-uri($i)</code></td>
+  <code>for $i in doc()[1 to 100] return xdmp:node-uri($i)</code></td>
 </tr>
 <tr>
   <td>INPUT_DIRECTORY_URI</td>

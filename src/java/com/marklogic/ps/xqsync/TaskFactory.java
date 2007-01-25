@@ -21,6 +21,7 @@ package com.marklogic.ps.xqsync;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.concurrent.Callable;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
@@ -101,7 +102,7 @@ public class TaskFactory {
      * @param file
      * @return
      */
-    public CallableSync newCallableSync(File file) {
+    public Callable<String> newCallableSync(File file) {
         CallableSync cs = new CallableSync(file, copyPermissions,
                 copyProperties);
         configure(cs);
@@ -112,7 +113,7 @@ public class TaskFactory {
      * @param uri
      * @return
      */
-    public CallableSync newCallableSync(String uri) {
+    public Callable<String> newCallableSync(String uri) {
         CallableSync cs;
         if (inputPackage != null) {
             cs = new CallableSync(inputPackage, uri, copyPermissions,

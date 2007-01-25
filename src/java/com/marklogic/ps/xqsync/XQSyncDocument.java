@@ -45,6 +45,7 @@ import com.marklogic.xcc.Request;
 import com.marklogic.xcc.ResultItem;
 import com.marklogic.xcc.ResultSequence;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
+import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
 import com.marklogic.xcc.types.ValueType;
 import com.marklogic.xcc.types.XSInteger;
@@ -119,12 +120,13 @@ public class XQSyncDocument {
         // but I want this program to be self-contained
         String query = "define variable $uri as xs:string external\n"
                 + "if (xdmp:exists(doc($uri))) then ()\n"
-                + "else error(text{'document with uri', xdmp:describe($uri), 'does not exist'}),"
+                + "else error(text{'document with uri', xdmp:describe($uri),\n"
+                + " 'does not exist'}),\n"
                 + "node-kind(doc($uri)/(element()|text()|binary())),\n"
                 + "xdmp:document-get-collections($uri),\n";
 
         // use node for permissions, since we walk the tree
-        if (copyPermissions)
+        if (copyPermissions) {
             query += "let $list := xdmp:document-get-permissions($uri)\n"
                     + "let $query := concat(\n"
                     + (connMajorVersion > 2 ? "' import module ''http://marklogic.com/xdmp/security'' at ''/MarkLogic/security.xqy''',\n"
@@ -136,11 +138,12 @@ public class XQSyncDocument {
                     + "' }'\n"
                     + ")\n"
                     // TODO deprecated use of eval-in (3.1)
-                    + "where exists($list))\n"
+                    + "where exists($list)\n"
                     + "return xdmp:eval-in(\n"
                     + "  $query, xdmp:security-database(),\n"
                     + "  (xs:QName('list'), element sec:permissions { $list })\n"
                     + "),\n";
+        }
 
         query += "xdmp:document-get-quality($uri),\n";
         query += "doc($uri),\n";
@@ -153,7 +156,14 @@ public class XQSyncDocument {
 
         Request req = _session.newAdhocQuery(query);
         req.setNewStringVariable("uri", _uri);
-        ResultSequence rs = _session.submitRequest(req);
+        ResultSequence rs = null;
+        try {
+            rs = _session.submitRequest(req);
+        } catch (XQueryException e) {
+            // we want to know what the query was
+            logger.logException(query, e);
+            throw e;
+        }
 
         if (!rs.hasNext()) {
             throw new UnimplementedFeatureException(
@@ -209,7 +219,8 @@ public class XQSyncDocument {
                 if (capabilities.getLength() > 1) {
                     logger.warning("input permission: "
                             + permissionElement + ": "
-                            + capabilities.getLength() + " capabilities, using only 1");
+                            + capabilities.getLength()
+                            + " capabilities, using only 1");
                 }
             } else {
                 // warn and skip

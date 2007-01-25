@@ -44,16 +44,16 @@ import java.util.Set;
  */
 public class Utilities {
 
-    private static DateFormat m_ISO8601Local = new SimpleDateFormat(
+    private static final DateFormat ISO8601_LOCAL = new SimpleDateFormat(
             "yyyy-MM-dd'T'HH:mm:ssZ");
-
-    // private static DateFormat m_ISO8601plusRFC822 = new SimpleDateFormat(
-    // "yyyy-MM-dd'T'HH:mm:ssz");
 
     private static final int BUFFER_SIZE = 16 * 1024;
 
     public static Date parseDateTime(String _date) throws ParseException {
-        return m_ISO8601Local.parse(_date.replaceFirst(":(\\d\\d)$", "$1"));
+        synchronized (ISO8601_LOCAL) {
+            return ISO8601_LOCAL.parse(_date.replaceFirst(":(\\d\\d)$",
+                    "$1"));
+        }
     }
 
     public static String formatDateTime() {
@@ -65,7 +65,10 @@ public class Utilities {
             return formatDateTime(new Date());
 
         // format in (almost) ISO8601 format
-        String dateStr = m_ISO8601Local.format(date);
+        String dateStr = null;
+        synchronized (ISO8601_LOCAL) {
+            dateStr = ISO8601_LOCAL.format(date);
+        }
 
         // remap the timezone from 0000 to 00:00 (starts at char 22)
         return dateStr.substring(0, 22) + ":" + dateStr.substring(22);
@@ -79,17 +82,18 @@ public class Utilities {
         return _path.replaceFirst(".*\\.([^\\.]+)$", "$1");
     }
 
-    public static String listToXml(List _list, String _root, String _element) {
+    public static String listToXml(List _list, String _root,
+            String _element) {
         return listToXml(_list, _root, _element, null, false);
     }
 
-    public static String listToXml(List _list, String _root, String _namespace,
-            String _element) {
+    public static String listToXml(List _list, String _root,
+            String _namespace, String _element) {
         return listToXml(_list, _root, _element, _namespace, false);
     }
 
-    public static String listToXml(List _list, String _root, String _element,
-            String _namespace, boolean _preserveSpace) {
+    public static String listToXml(List _list, String _root,
+            String _element, String _namespace, boolean _preserveSpace) {
         // preserve xml whitespace everywhere,
         // or strings will be whitespace-normalized
         String rootName = escapeXml(_root);
@@ -112,8 +116,9 @@ public class Utilities {
                 rv += mapToXml((Map) v, elementName, null, _preserveSpace);
             } else {
                 // escape illegal characters in values
-                rv += "<" + elementName + attrs + ">" + escapeXml(v.toString())
-                        + "</" + elementName + ">";
+                rv += "<" + elementName + attrs + ">"
+                        + escapeXml(v.toString()) + "</" + elementName
+                        + ">";
             }
         }
 
@@ -133,8 +138,8 @@ public class Utilities {
 
     public static String arrayToXml(Object[] _list, String _root,
             String _element, String _namespace, String _rootAttributes) {
-        return arrayToXml(_list, _root, _element, _namespace, _rootAttributes,
-                false);
+        return arrayToXml(_list, _root, _element, _namespace,
+                _rootAttributes, false);
     }
 
     public static String arrayToXml(Object[] _list, String _root,
@@ -223,7 +228,8 @@ public class Utilities {
         return mapToXml(_h, _root, _nameSpace, false);
     }
 
-    public static String mapToXml(Map _h, String _root, boolean _preserveSpace) {
+    public static String mapToXml(Map _h, String _root,
+            boolean _preserveSpace) {
         return mapToXml(_h, _root, null, _preserveSpace);
     }
 
@@ -234,8 +240,8 @@ public class Utilities {
      * @param
      * @return
      */
-    public static String mapToXml(Map _h, String _root, String _nameSpace,
-            boolean _preserveSpace) {
+    public static String mapToXml(Map _h, String _root,
+            String _nameSpace, boolean _preserveSpace) {
         // preserve xml whitespace everywhere,
         // or strings will be whitespace-normalized
         String topElementName = escapeXml(_root);
@@ -267,8 +273,8 @@ public class Utilities {
                 listToXml((List) v, k, null, elementName, _preserveSpace);
             } else {
                 // escape illegal characters in values
-                rv += "<" + k + attrs + ">" + escapeXml(v.toString()) + "</"
-                        + k + ">";
+                rv += "<" + k + attrs + ">" + escapeXml(v.toString())
+                        + "</" + k + ">";
             }
         }
 
@@ -308,8 +314,8 @@ public class Utilities {
     public static String escapeXml(String _in) {
         if (_in == null)
             return "";
-        return _in.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(
-                ">", "&gt;");
+        return _in.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;");
     }
 
     public static void main(String[] args) throws Exception {
@@ -359,7 +365,8 @@ public class Utilities {
         copy(in, out);
     }
 
-    public static long copy(Reader _in, OutputStream _out) throws IOException {
+    public static long copy(Reader _in, OutputStream _out)
+            throws IOException {
         if (_in == null)
             throw new IOException("null Reader");
         if (_out == null)
@@ -411,7 +418,8 @@ public class Utilities {
      */
     public static void copy(String inFilePath, String outFilePath)
             throws FileNotFoundException, IOException {
-        copy(new FileInputStream(inFilePath), new FileOutputStream(outFilePath));
+        copy(new FileInputStream(inFilePath), new FileOutputStream(
+                outFilePath));
     }
 
     public static void deleteFile(File _file) throws IOException {
@@ -449,7 +457,8 @@ public class Utilities {
         return stringToBoolean(str, false);
     }
 
-    public static final boolean stringToBoolean(String str, boolean defaultValue) {
+    public static final boolean stringToBoolean(String str,
+            boolean defaultValue) {
         if (str == null)
             return defaultValue;
 
