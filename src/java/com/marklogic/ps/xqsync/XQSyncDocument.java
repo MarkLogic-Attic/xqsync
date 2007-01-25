@@ -44,7 +44,6 @@ import com.marklogic.xcc.DocumentRepairLevel;
 import com.marklogic.xcc.Request;
 import com.marklogic.xcc.ResultItem;
 import com.marklogic.xcc.ResultSequence;
-import com.marklogic.xcc.exceptions.RequestException;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
@@ -119,21 +118,23 @@ public class XQSyncDocument {
         //
         // normally I'd put this code in a module,
         // but I want this program to be self-contained
-        String query = "define variable $uri as xs:string external\n"
-                + "if (xdmp:exists(doc($uri))) then ()\n"
-                + "else error(text{'document with uri', xdmp:describe($uri),\n"
-                + " 'does not exist'}),\n"
-                + "node-kind(doc($uri)/(element()|text()|binary())),\n"
-                + "xdmp:document-get-collections($uri),\n";
+        String query = "define variable $URI as xs:string external\n"
+                + "define variable $DOC as document-node() { doc($URI) }\n"
+                // cf bug 3575 - document allows multiple roots
+                // we will prefer the element(), if present
+                + "define variable $ROOT as node()+ {\n"
+                + " ($DOC/element(), $DOC/binary(), $DOC/text())[1] }\n"
+                + "node-kind($ROOT),\n"
+                + "xdmp:document-get-collections($URI),\n";
 
         // use node for permissions, since we walk the tree
         if (copyPermissions) {
-            query += "let $list := xdmp:document-get-permissions($uri)\n"
+            query += "let $list := xdmp:document-get-permissions($URI)\n"
                     + "let $query := concat(\n"
                     + (connMajorVersion > 2 ? "' import module ''http://marklogic.com/xdmp/security'' at ''/MarkLogic/security.xqy''',\n"
                             : "' import module ''http://marklogic.com/xdmp/security'' at ''/security.xqy''',\n")
-                    + "' define variable $list as element(sec:permissions) external',\n"
-                    + "' for $p in $list/sec:permission',\n"
+                    + "' define variable $LIST as element(sec:permissions) external',\n"
+                    + "' for $p in $LIST/sec:permission',\n"
                     + "' return element sec:permission {',\n"
                     + "'  $p/@*, $p/node(), sec:get-role-names($p/sec:role-id)',\n"
                     + "' }'\n"
@@ -142,21 +143,21 @@ public class XQSyncDocument {
                     + "where exists($list)\n"
                     + "return xdmp:eval-in(\n"
                     + "  $query, xdmp:security-database(),\n"
-                    + "  (xs:QName('list'), element sec:permissions { $list })\n"
+                    + "  (xs:QName('LIST'), element sec:permissions { $list })\n"
                     + "),\n";
         }
 
-        query += "xdmp:document-get-quality($uri),\n";
-        query += "doc($uri),\n";
+        query += "xdmp:document-get-quality($URI),\n";
+        query += "$DOC,\n";
 
         if (copyProperties) {
-            query += "xdmp:document-properties($uri)\n";
+            query += "xdmp:document-properties($URI)\n";
         } else {
             query += "()\n";
         }
 
         Request req = _session.newAdhocQuery(query);
-        req.setNewStringVariable("uri", _uri);
+        req.setNewStringVariable("URI", _uri);
         ResultSequence rs = null;
         try {
             rs = _session.submitRequest(req);
@@ -412,13 +413,9 @@ public class XQSyncDocument {
 
         Content content = ContentFactory.newContent(outputUri,
                 contentBytes, options);
-        try {
-            _session.insertContent(content);
-            _session.commit();
-        } catch (XQueryException e) {
-            logger.warning("throwing exception for " + inputUri);
-            throw e;
-        }
+
+        _session.insertContent(content);
+        _session.commit();
 
         // handle prop:properties node, optional
         // TODO would be nice to do this in the same transaction, drat it
