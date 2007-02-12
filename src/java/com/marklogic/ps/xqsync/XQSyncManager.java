@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import com.marklogic.ps.AbstractLoggableClass;
 import com.marklogic.ps.FileFinder;
 import com.marklogic.ps.Session;
+import com.marklogic.xcc.ContentbaseMetaData;
 import com.marklogic.xcc.Request;
 import com.marklogic.xcc.RequestOptions;
 import com.marklogic.xcc.ResultSequence;
@@ -128,6 +129,11 @@ public class XQSyncManager extends AbstractLoggableClass {
             factory = new TaskFactory(configuration);
 
             inputSession = configuration.newInputSession();
+            ContentbaseMetaData meta = inputSession
+                    .getContentbaseMetaData();
+            logger.info("version info: client "
+                    + meta.getDriverVersionString() + ", server "
+                    + meta.getServerVersionString());
             if (inputSession != null) {
                 itemsQueued = queueFromInputConnection(completionService);
             } else if (configuration.getInputPackagePath() != null) {

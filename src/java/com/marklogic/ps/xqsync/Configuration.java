@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -384,7 +384,9 @@ public class Configuration extends AbstractLoggableClass {
         if (outputConnection == null) {
             return null;
         }
-        return (Session) outputConnection.newSession();
+        synchronized (outputConnection) {
+            return (Session) outputConnection.newSession();
+        }
     }
 
     /**
@@ -438,7 +440,10 @@ public class Configuration extends AbstractLoggableClass {
         if (inputConnection == null) {
             return null;
         }
-        return (com.marklogic.ps.Session) inputConnection.newSession();
+        synchronized (inputConnection) {
+            return (com.marklogic.ps.Session) inputConnection
+                    .newSession();
+        }
     }
 
     /**
@@ -514,7 +519,7 @@ public class Configuration extends AbstractLoggableClass {
      * @return
      */
     public static String getPackageFileExtension() {
-        return OutputPackage.extension;
+        return OutputPackage.EXTENSION;
     }
 
 }

@@ -2,7 +2,7 @@
 #
 # sample bash script for running XQSync
 #
-# Copyright (c)2005-2006 Mark Logic Corporation
+# Copyright (c)2005-2007 Mark Logic Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,6 +35,12 @@ for a in $*; do
     fi
 done
 
-java -cp $CP $VMARGS com.marklogic.ps.xqsync.XQSync $FILES
+if [ -d "$JAVA_HOME" ]; then
+  JAVA=$JAVA_HOME/bin/java
+else
+  JAVA=java
+fi
+
+$JAVA -cp $CP $VMARGS com.marklogic.ps.xqsync.XQSync $FILES
 
 # end xqsync.sh

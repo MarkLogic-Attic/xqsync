@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,8 @@ public class OutputPackage extends AbstractLoggableClass {
     // (supposed to be fixed, but isn't)
     private static final int MAX_ENTRIES = 65536 - 1;
 
+    public static String EXTENSION = ".zip";
+
     private long currentFileBytes = 0;
 
     private Object outputMutex = new Object();
@@ -51,7 +53,12 @@ public class OutputPackage extends AbstractLoggableClass {
 
     private int currentEntries;
 
-    public static String extension = ".zip";
+    /**
+     * @param _file
+     */
+    public OutputPackage(File _file) {
+        constructorFile = _file;
+    }
 
     /**
      * @throws IOException
@@ -105,21 +112,22 @@ public class OutputPackage extends AbstractLoggableClass {
         synchronized (outputMutex) {
             if (outputStream == null) {
                 // lazily construct a new zipfile outputstream
-                newZipOutputStream(constructorFile);
+                logger.fine("no existing package");
+                newOutputStream();
             }
 
             // by checking outputBytes first, we should avoid infinite loops -
             // at the cost of fatal exceptions.
             if (currentFileBytes > 0
                     && currentFileBytes + total > Integer.MAX_VALUE) {
-                logger.fine("package bytes would exceed 32-bit limit");
-                newZipOutputStream();
+                logger.fine("too many bytes in current package");
+                newOutputStream();
             }
 
             // don't create zips that Java can't read back in
             if (currentEntries > 0 && (currentEntries + 2) >= MAX_ENTRIES) {
-                logger.fine("package bytes would exceed entry limit");
-                newZipOutputStream();
+                logger.fine("too many entries in current package");
+                newOutputStream();
             }
 
             outputStream.putNextEntry(entry);
@@ -134,45 +142,40 @@ public class OutputPackage extends AbstractLoggableClass {
         currentEntries += 2;
     }
 
-    private void newZipOutputStream() throws IOException {
-        String path = constructorFile.getCanonicalPath();
-        fileCount++;
-        if (path.endsWith(extension)) {
-            String pathPattern = "(.+)\\." + extension + "$";
-            // one MILLION zip files...
-            String replacementPattern = "$1." + String.format("%06d", fileCount)
-                    + extension;
-            path = path.replaceFirst(pathPattern, replacementPattern);
-        } else {
-            path = path + "." + fileCount;
-        }
-        newZipOutputStream(new File(path));
-    }
-
-    /**
-     * @param _file
-     */
-    public OutputPackage(File _file) {
-        constructorFile = _file;
-    }
-
-    /**
-     * @param _file
-     * @return
-     * @throws IOException
-     */
-    private void newZipOutputStream(File _file) throws IOException {
-        logger.info("package output going to new zipfile "
-                + _file.getCanonicalPath());
+    private void newOutputStream() throws IOException {
+        String canonicalPath = constructorFile.getCanonicalPath();
+        String path = canonicalPath;
         synchronized (outputMutex) {
+            // use the constructor filename for the first zip,
+            // then add filecount to subsequent archives, if any.
+            if (fileCount > 0) {
+                if (path.endsWith(EXTENSION)) {
+                    String pathPattern = "(.+)" + EXTENSION + "$";
+                    // one MILLION zip files...
+                    String replacementPattern = "$1-"
+                            + String.format("%06d", fileCount)
+                            + EXTENSION;
+                    path = path.replaceFirst(pathPattern,
+                            replacementPattern);
+                } else {
+                    path = path + "." + fileCount;
+                }
+                logger.fine("built " + path + " from " + canonicalPath);
+                assert path.equals(canonicalPath);
+            }
+            logger.info("new output package " + path);
+            // TODO this flush can take several seconds
             if (outputStream != null) {
                 flush();
                 close();
             }
             currentFileBytes = 0;
-            currentFile = _file;
+            currentEntries = 0;
+            currentFile = new File(path);
+            outputStream = new ZipOutputStream(new FileOutputStream(
+                    currentFile));
+            fileCount++;
         }
-        outputStream = new ZipOutputStream(new FileOutputStream(_file));
     }
 
     public File getCurrentFile() {
