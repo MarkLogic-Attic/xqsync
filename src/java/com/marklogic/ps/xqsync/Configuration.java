@@ -89,6 +89,8 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static final String INPUT_PATH_KEY = "INPUT_PATH";
 
+    public static final String URI_PREFIX_KEY = "URI_PREFIX";
+
     /**
      * 
      */
@@ -173,6 +175,8 @@ public class Configuration extends AbstractLoggableClass {
 
     private boolean skipExisting = false;
 
+    private String uriPrefix = null;
+
     public Configuration() {
         super();
     }
@@ -182,10 +186,10 @@ public class Configuration extends AbstractLoggableClass {
      * 
      * @see com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties)
      */
-    public void setProperties(Properties _properties)
+    public synchronized void setProperties(Properties _properties)
             throws XccException, IOException, URISyntaxException {
         properties = _properties;
-
+        
         // we need a logger as soon as possible: keep this first
         // logger config is hot
         logger.setProperties(_properties);
@@ -194,6 +198,8 @@ public class Configuration extends AbstractLoggableClass {
             logger.info("first-time setup");
             configure();
         }
+
+        uriPrefix = properties.getProperty(URI_PREFIX_KEY);
 
         // fatalErrors is hot
         fatalErrors = Utilities.stringToBoolean(properties.getProperty(
@@ -520,6 +526,15 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static String getPackageFileExtension() {
         return OutputPackage.EXTENSION;
+    }
+
+    // TODO uriSuffix impl
+    
+    /**
+     * @return
+     */
+    public String getUriPrefix() {
+        return uriPrefix;
     }
 
 }

@@ -45,13 +45,13 @@ public class TaskFactory {
 
     private Collection<ContentPermission> readRoles;
 
-    private String outputPath;
-
     private OutputPackage outputPackage;
 
     private SimpleLogger logger;
 
     private Configuration configuration;
+
+    private String prefix;
 
     /**
      * @param _config
@@ -66,11 +66,14 @@ public class TaskFactory {
         readRoles = _config.getReadRoles();
         placeKeys = _config.getPlaceKeys();
 
-        outputPath = _config.getOutputPath();
+        // TODO filesystem output broken?
+        //outputPath = _config.getOutputPath();
         String outputPackagePath = _config.getOutputPackagePath();
         if (outputPackagePath != null) {
             outputPackage = new OutputPackage(new File(outputPackagePath));
         }
+        
+        prefix = _config.getUriPrefix();
     }
 
     /**
@@ -80,13 +83,12 @@ public class TaskFactory {
         cs.setLogger(logger);
 
         Session outputSession = configuration.newOutputSession();
+        cs.setOutputPrefix(prefix);
         if (outputSession != null) {
             cs.setOutputSession(outputSession);
             cs.setSkipExisting(skipExisting);
         } else if (outputPackage != null) {
             cs.setOutputPackage(outputPackage);
-        } else if (outputPath != null) {
-            cs.setOutputPath(outputPath);
         }
 
         if (readRoles != null) {

@@ -44,8 +44,6 @@ public class CallableSync implements Callable<String> {
 
     private String[] placeKeys;
 
-    private String outputPath;
-
     private SimpleLogger logger;
 
     private String inputUri;
@@ -61,6 +59,8 @@ public class CallableSync implements Callable<String> {
     private File inputFile;
 
     private boolean skipExisting;
+
+    private String outputPrefix;
 
     /**
      * @param _path
@@ -134,7 +134,7 @@ public class CallableSync implements Callable<String> {
 
         // write document to output session, package, or directory
         // marshal output arguments
-        document.setOutputUriPrefix(outputPath);
+        document.setOutputUriPrefix(outputPrefix);
 
         try {
             if (outputSession != null) {
@@ -153,10 +153,6 @@ public class CallableSync implements Callable<String> {
                 outputSession.close();
             }
         }
-    }
-
-    public void setOutputPath(String _path) {
-        this.outputPath = _path;
     }
 
     public void setOutputPackage(OutputPackage outputPackage) {
@@ -184,6 +180,13 @@ public class CallableSync implements Callable<String> {
 
     public void setSkipExisting(boolean skipExisting) {
         this.skipExisting = skipExisting;
+    }
+
+    /**
+     * @param prefix
+     */
+    public void setOutputPrefix(String prefix) {
+        outputPrefix = prefix;
     }
 
 }

@@ -129,12 +129,12 @@ public class XQSyncManager extends AbstractLoggableClass {
             factory = new TaskFactory(configuration);
 
             inputSession = configuration.newInputSession();
-            ContentbaseMetaData meta = inputSession
-                    .getContentbaseMetaData();
-            logger.info("version info: client "
-                    + meta.getDriverVersionString() + ", server "
-                    + meta.getServerVersionString());
             if (inputSession != null) {
+                ContentbaseMetaData meta = inputSession
+                        .getContentbaseMetaData();
+                logger.info("version info: client "
+                        + meta.getDriverVersionString() + ", server "
+                        + meta.getServerVersionString());
                 itemsQueued = queueFromInputConnection(completionService);
             } else if (configuration.getInputPackagePath() != null) {
                 itemsQueued = queueFromInputPackage(completionService,
