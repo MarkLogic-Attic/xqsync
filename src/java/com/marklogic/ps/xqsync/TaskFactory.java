@@ -53,6 +53,8 @@ public class TaskFactory {
 
     private String prefix;
 
+    private String[] outputCollections;
+
     /**
      * @param _config
      */
@@ -74,6 +76,10 @@ public class TaskFactory {
         }
         
         prefix = _config.getUriPrefix();
+        
+        if (_config.hasOutputCollections()) {
+            outputCollections = _config.getOutputCollections();
+        }
     }
 
     /**
@@ -84,19 +90,23 @@ public class TaskFactory {
 
         Session outputSession = configuration.newOutputSession();
         cs.setOutputPrefix(prefix);
-        if (outputSession != null) {
+        if (null != outputSession) {
             cs.setOutputSession(outputSession);
             cs.setSkipExisting(skipExisting);
-        } else if (outputPackage != null) {
+        } else if (null != outputPackage) {
             cs.setOutputPackage(outputPackage);
         }
 
-        if (readRoles != null) {
+        if (null != readRoles) {
             cs.setReadRoles(readRoles);
         }
 
-        if (placeKeys != null) {
+        if (null != placeKeys) {
             cs.setPlaceKeys(placeKeys);
+        }
+        
+        if (null != outputCollections) {
+            cs.setOutputCollections(outputCollections);
         }
     }
 

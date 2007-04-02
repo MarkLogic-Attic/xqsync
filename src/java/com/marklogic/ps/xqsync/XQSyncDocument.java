@@ -540,4 +540,11 @@ public class XQSyncDocument {
         return composeOutputUri(false);
     }
 
+    /**
+     * @param _collections
+     */
+    public void setOutputCollections(String[] _collections) {
+        metadata.addCollections(_collections);
+    }
+
 }

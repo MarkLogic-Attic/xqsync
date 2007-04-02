@@ -154,7 +154,7 @@ public class XQSyncDocumentMetadata {
      * 
      */
     public void clearPermissions() {
-        collectionsList.clear();
+        permissionsList.clear();
     }
 
     /**
@@ -231,5 +231,17 @@ public class XQSyncDocumentMetadata {
      */
     public boolean isXml() {
         return DocumentFormat.XML.toString().equals(format.toString());
+    }
+
+    /**
+     * @param _collections
+     */
+    public void addCollections(String[] _collections) {
+        if (null == _collections) {
+            return;
+        }
+        for (int i = 0; i < _collections.length; i++) {
+            addCollection(_collections[i]);
+        }
     }
 }

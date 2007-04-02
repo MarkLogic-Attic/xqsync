@@ -62,6 +62,8 @@ public class CallableSync implements Callable<String> {
 
     private String outputPrefix;
 
+    private String[] outputCollections;
+
     /**
      * @param _path
      * @param _copyPermissions
@@ -135,6 +137,9 @@ public class CallableSync implements Callable<String> {
         // write document to output session, package, or directory
         // marshal output arguments
         document.setOutputUriPrefix(outputPrefix);
+        
+        // handle output collections
+        document.setOutputCollections(outputCollections);
 
         try {
             if (outputSession != null) {
@@ -187,6 +192,13 @@ public class CallableSync implements Callable<String> {
      */
     public void setOutputPrefix(String prefix) {
         outputPrefix = prefix;
+    }
+
+    /**
+     * @param _outputCollections
+     */
+    public void setOutputCollections(String[] _outputCollections) {
+        outputCollections = _outputCollections;
     }
 
 }

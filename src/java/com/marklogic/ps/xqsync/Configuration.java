@@ -42,6 +42,11 @@ public class Configuration extends AbstractLoggableClass {
     /**
      * 
      */
+    private static final String CSV_SSV_REGEX = "[,;\\s]+";
+
+    /**
+     * 
+     */
     public static final String COPY_PROPERTIES_KEY = "COPY_PROPERTIES";
 
     /**
@@ -62,7 +67,7 @@ public class Configuration extends AbstractLoggableClass {
     /**
      * 
      */
-    public final String DELETE_COLLECTION_KEY = "DELETE_COLLECTION";
+    public static final String DELETE_COLLECTION_KEY = "DELETE_COLLECTION";
 
     /**
      * 
@@ -164,6 +169,9 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static final String OUTPUT_CONNECTION_STRING_KEY = "OUTPUT_CONNECTION_STRING";
 
+    public static final String OUTPUT_COLLECTIONS_KEY = "OUTPUT_COLLECTIONS";
+    public static final String OUTPUT_COLLECTIONS_DEFAULT = null;
+
     /**
      * 
      */
@@ -176,6 +184,8 @@ public class Configuration extends AbstractLoggableClass {
     private boolean skipExisting = false;
 
     private String uriPrefix = null;
+
+    private String[] outputCollections = null;
 
     public Configuration() {
         super();
@@ -210,7 +220,7 @@ public class Configuration extends AbstractLoggableClass {
                 .getProperty(READ_PERMISSION_ROLES_KEY);
         if (readRolesString != null) {
             logger.fine("read roles are: " + readRolesString);
-            String[] roleNames = readRolesString.split("[,;\\s]+");
+            String[] roleNames = readRolesString.split(CSV_SSV_REGEX);
             if (roleNames.length > 0) {
                 readRoles = new Vector<ContentPermission>();
                 for (int i = 0; i < roleNames.length; i++) {
@@ -236,8 +246,17 @@ public class Configuration extends AbstractLoggableClass {
         // placeKeys are hot
         String placeKeysString = properties
                 .getProperty(OUTPUT_FORESTS_KEY);
-        if (placeKeysString != null)
-            placeKeys = placeKeysString.split(",");
+        if (placeKeysString != null) {
+            placeKeys = placeKeysString.split(CSV_SSV_REGEX);
+        }
+        
+        String outputCollectionsString = properties.getProperty(OUTPUT_COLLECTIONS_KEY, OUTPUT_COLLECTIONS_DEFAULT);
+        if (null != outputCollectionsString) {
+            outputCollectionsString = outputCollectionsString.trim();
+            if (null != outputCollectionsString && outputCollectionsString.length() > 1) {
+                outputCollections = outputCollectionsString.split(CSV_SSV_REGEX);
+            }
+        }        
 
     }
 
@@ -314,6 +333,7 @@ public class Configuration extends AbstractLoggableClass {
 
     private void configureOutput() throws IOException,
             URISyntaxException, XccException {
+        
         outputPackagePath = properties.getProperty(OUTPUT_PACKAGE_KEY);
 
         if (outputPackagePath == null) {
@@ -535,6 +555,17 @@ public class Configuration extends AbstractLoggableClass {
      */
     public String getUriPrefix() {
         return uriPrefix;
+    }
+
+    public String[] getOutputCollections() {
+        return outputCollections;
+    }
+
+    /**
+     * @return
+     */
+    public boolean hasOutputCollections() {
+        return null != outputCollections && outputCollections.length > 1;
     }
 
 }
