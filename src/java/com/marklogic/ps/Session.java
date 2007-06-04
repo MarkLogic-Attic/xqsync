@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2006-2007 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -332,7 +332,7 @@ public class Session implements com.marklogic.xcc.Session {
         // ignore documents that do not exist
         String query = "define variable $URI as xs:string external\n"
                 + "if (xdmp:exists(doc($URI)))\n"
-                + "then xdmp:document-delete($uri) else ()\n";
+                + "then xdmp:document-delete($URI) else ()\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
         session.submitRequest(req);
@@ -382,7 +382,7 @@ public class Session implements com.marklogic.xcc.Session {
         if (_names == null) {
             return null;
         }
-        
+
         Map<String, BigInteger> map = session.getContentbaseMetaData()
                 .getForestMap();
         List<BigInteger> list = new ArrayList<BigInteger>();
