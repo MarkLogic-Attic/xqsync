@@ -64,17 +64,21 @@ public class CallableSync implements Callable<String> {
 
     private String[] outputCollections;
 
+    private boolean repairInputXml;
+
     /**
      * @param _path
      * @param _copyPermissions
      * @param _copyProperties
+     * @param _repairInputXml 
      */
     public CallableSync(InputPackage _package, String _path,
-            boolean _copyPermissions, boolean _copyProperties) {
+            boolean _copyPermissions, boolean _copyProperties, boolean _repairInputXml) {
         inputPackage = _package;
         inputUri = _path;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
+        repairInputXml = _repairInputXml;
     }
 
     /**
@@ -82,27 +86,31 @@ public class CallableSync implements Callable<String> {
      * @param _uri
      * @param _copyPermissions
      * @param _copyProperties
+     * @param _repairInputXml 
      */
     public CallableSync(Session _session, String _uri,
-            boolean _copyPermissions, boolean _copyProperties) {
+            boolean _copyPermissions, boolean _copyProperties, boolean _repairInputXml) {
         inputSession = _session;
         inputUri = _uri;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
+        repairInputXml = _repairInputXml;
     }
 
     /**
      * @param _file
      * @param _copyPermissions
      * @param _copyProperties
+     * @param _repairInputXml 
      * @throws IOException
      */
     public CallableSync(File _file, boolean _copyPermissions,
-            boolean _copyProperties) {
+            boolean _copyProperties, boolean _repairInputXml) {
         inputFile = _file;
         // note: don't set inputUri, since we can always get it from the file
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
+        repairInputXml = _repairInputXml;
     }
 
     /*
@@ -123,13 +131,13 @@ public class CallableSync implements Callable<String> {
 
         if (inputSession != null) {
             document = new XQSyncDocument(inputSession, inputUri,
-                    copyPermissions, copyProperties);
+                    copyPermissions, copyProperties, repairInputXml);
         } else if (inputPackage != null) {
             document = new XQSyncDocument(inputPackage, inputUri,
-                    copyPermissions, copyProperties);
+                    copyPermissions, copyProperties, repairInputXml);
         } else if (inputFile != null) {
             document = new XQSyncDocument(inputFile, copyPermissions,
-                    copyProperties);
+                    copyProperties, repairInputXml);
         } else {
             throw new UnimplementedFeatureException("no input found");
         }

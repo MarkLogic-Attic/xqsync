@@ -114,6 +114,8 @@ public class Configuration extends AbstractLoggableClass {
     private boolean fatalErrors = true;
 
     private Collection<ContentPermission> readRoles;
+    
+    private boolean repairInputXml = false;
 
     private String[] placeKeys = null;
 
@@ -158,6 +160,16 @@ public class Configuration extends AbstractLoggableClass {
      * 
      */
     private static final String READ_PERMISSION_ROLES_KEY = "READ_PERMISSION_ROLES";
+
+    /**
+     * 
+     */
+    private static final String REPAIR_INPUT_XML_KEY = "REPAIR_INPUT_XML";
+
+    /**
+     * 
+     */
+    private static final String REPAIR_INPUT_XML_DEFAULT = "false";
 
     /**
      * 
@@ -239,7 +251,10 @@ public class Configuration extends AbstractLoggableClass {
         copyProperties = Utilities.stringToBoolean(properties
                 .getProperty(COPY_PROPERTIES_KEY, "true"));
 
-        // skipExisting is hot
+        repairInputXml = Utilities.stringToBoolean(properties
+                .getProperty(REPAIR_INPUT_XML_KEY, REPAIR_INPUT_XML_DEFAULT));
+
+       // skipExisting is hot
         skipExisting = Utilities.stringToBoolean(properties.getProperty(
                 SKIP_EXISTING_KEY, "false"));
 
@@ -378,6 +393,10 @@ public class Configuration extends AbstractLoggableClass {
 
     public boolean isFatalErrors() {
         return fatalErrors;
+    }
+
+    public boolean isRepairInputXml() {
+        return repairInputXml;
     }
 
     public String[] getPlaceKeys() {

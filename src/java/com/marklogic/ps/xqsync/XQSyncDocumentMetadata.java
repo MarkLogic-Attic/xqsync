@@ -197,13 +197,13 @@ public class XQSyncDocumentMetadata {
      */
     public void addPermission(String _capability, String _role) {
         ContentCapability capability;
-        if (_capability.equals(ContentPermission.UPDATE))
+        if (ContentPermission.UPDATE.toString().equals(_capability))
             capability = ContentPermission.UPDATE;
-        else if (_capability.equals(ContentPermission.INSERT))
+        else if (ContentPermission.INSERT.toString().equals(_capability))
             capability = ContentPermission.INSERT;
-        else if (_capability.equals(ContentPermission.EXECUTE))
+        else if (ContentPermission.EXECUTE.toString().equals(_capability))
             capability = ContentPermission.EXECUTE;
-        else if (_capability.equals(ContentPermission.READ))
+        else if (ContentPermission.READ.toString().equals(_capability))
             capability = ContentPermission.READ;
         else
             throw new UnimplementedFeatureException(

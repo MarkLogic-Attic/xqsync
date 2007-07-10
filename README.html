@@ -87,7 +87,9 @@ See src/xqsync.sh for a sample shell script.
   <td>INPUT_COLLECTION_URI</td>
   <td>null</td>
   <td>In combination with INPUT_CONNECTION_STRING,
-  all documents in the named collection will be transferred.</td>
+  all documents in the named collection(s) will be transferred.
+    The value of this property will be tokenized on whitespace.
+  </td>
 </tr>
 <tr>
   <td>INPUT_DOCUMENT_URIS</td>
@@ -169,6 +171,10 @@ See src/xqsync.sh for a sample shell script.
 <tr>
   <td>READ_PERMISSION_ROLES</td><td>null</td>
   <td>Names of any roles to attach to output documents.</td>
+</tr>
+<tr>
+  <td>REPAIR_INPUT_XML</td><td>false</td>
+  <td>Should MarkLogic Server try to repair malformed input XML?</td>
 </tr>
 <tr>
   <td>SKIP_EXISTING</td><td>false</td>

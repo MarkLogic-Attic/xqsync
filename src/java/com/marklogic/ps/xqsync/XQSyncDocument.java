@@ -31,6 +31,7 @@ import java.util.Collection;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -83,19 +84,23 @@ public class XQSyncDocument {
 
     private String inputUri;
 
+    private boolean repairInputXml = false;
+
     /**
      * @param _session
      * @param _uri
      * @param _copyPermissions
      * @param _copyProperties
+     * @param _repairInputXml
+     * 
      * @throws XccException
      * @throws IOException
      * @throws SAXException
      * @throws ParserConfigurationException
      */
     public XQSyncDocument(com.marklogic.ps.Session _session, String _uri,
-            boolean _copyPermissions, boolean _copyProperties)
-            throws XccException, IOException,
+            boolean _copyPermissions, boolean _copyProperties,
+            boolean _repairInputXml) throws XccException, IOException,
             ParserConfigurationException, SAXException {
         if (_uri == null) {
             throw new UnimplementedFeatureException("null uri");
@@ -104,6 +109,7 @@ public class XQSyncDocument {
         inputUri = _uri;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
+        repairInputXml = _repairInputXml;
 
         // easy to distinguish the result-sets: metadata, data, properties
         // first is node-kind
@@ -190,10 +196,13 @@ public class XQSyncDocument {
         }
 
         // handle permissions, optional
-        Element permissionElement;
+        Element permissionW3cElement;
+        XdmElement permissionElement;
         NodeList capabilities, roles;
+        Node capability, role;
         while (index < items.length
                 && items[index].getItemType() == ValueType.ELEMENT) {
+            logger.fine("copyPermissions = " + copyPermissions);
             if (!copyPermissions) {
                 index++;
                 continue;
@@ -204,23 +213,30 @@ public class XQSyncDocument {
             // children:
             // sec:capability ("read", "insert", "update")
             // and sec:role xs:unsignedLong (but we need string)
-            permissionElement = ((XdmElement) items[index].getItem())
-                    .asW3cElement();
+            permissionElement = (XdmElement) items[index].getItem();
+            logger.fine("permissionElement = "
+                    + permissionElement.asString());
+            permissionW3cElement = permissionElement.asW3cElement();
+            logger.fine("permissionElement = "
+                    + permissionW3cElement.toString());
 
-            capabilities = permissionElement
-                    .getElementsByTagName("capability");
-            roles = permissionElement.getElementsByTagName("role-name");
+            capabilities = permissionW3cElement
+                    .getElementsByTagName("sec:capability");
+            roles = permissionW3cElement
+                    .getElementsByTagName("sec:role-name");
             if (0 < roles.getLength() && 0 < capabilities.getLength()) {
-                metadata.addPermission(capabilities.item(0)
-                        .getNodeValue(), roles.item(0).getNodeValue());
+                role = roles.item(0);
+                capability = capabilities.item(0);
+                metadata.addPermission(capability.getTextContent(), role
+                        .getTextContent());
                 if (roles.getLength() > 1) {
                     logger.warning("input permission: "
-                            + permissionElement + ": "
+                            + permissionW3cElement + ": "
                             + roles.getLength() + " roles, using only 1");
                 }
                 if (capabilities.getLength() > 1) {
                     logger.warning("input permission: "
-                            + permissionElement + ": "
+                            + permissionW3cElement + ": "
                             + capabilities.getLength()
                             + " capabilities, using only 1");
                 }
@@ -228,11 +244,11 @@ public class XQSyncDocument {
                 // warn and skip
                 if (roles.getLength() < 1) {
                     logger.warning("skipping input permission: "
-                            + permissionElement + ": no roles");
+                            + permissionW3cElement + ": no roles");
                 }
                 if (capabilities.getLength() < 1) {
                     logger.warning("skipping input permission: "
-                            + permissionElement + ": no capabilities");
+                            + permissionW3cElement + ": no capabilities");
                 }
             }
             index++;
@@ -278,15 +294,16 @@ public class XQSyncDocument {
     }
 
     /**
+     * @param _pkg
      * @param _path
      * @param _copyPermissions
      * @param _copyProperties
-     * @param _inputPackage
+     * @param _repairInputXml
      * @throws IOException
      */
     public XQSyncDocument(InputPackage _pkg, String _path,
-            boolean _copyPermissions, boolean _copyProperties)
-            throws IOException {
+            boolean _copyPermissions, boolean _copyProperties,
+            boolean _repairInputXml) throws IOException {
         if (_path == null) {
             throw new IOException("null path");
         }
@@ -295,6 +312,7 @@ public class XQSyncDocument {
         inputUri = _path;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
+        repairInputXml = _repairInputXml;
 
         // need the metadata first, so we know if it's binary or text or xml
         metadata = _pkg.getMetadataEntry(_path);
@@ -312,10 +330,12 @@ public class XQSyncDocument {
      * @param _file
      * @param _copyPermissions
      * @param _copyProperties
+     * @param _repairInputXml
      * @throws IOException
      */
     public XQSyncDocument(File _file, boolean _copyPermissions,
-            boolean _copyProperties) throws IOException {
+            boolean _copyProperties, boolean _repairInputXml)
+            throws IOException {
         // read the content: must work for bin or xml, so use bytes
         contentBytes = Utilities.getBytes(_file);
 
@@ -323,6 +343,7 @@ public class XQSyncDocument {
         inputUri = _file.getCanonicalPath();
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
+        repairInputXml = _repairInputXml;
 
         // TODO optionally allow empty metadata
         File metaFile = getMetadataFile(_file);
@@ -340,10 +361,12 @@ public class XQSyncDocument {
      * @param _uri
      * @param _isEncoded
      * @throws UnsupportedEncodingException
+     * 
+     * for unit-tests only
+     * 
      */
     public XQSyncDocument(String _uri, boolean _isEncoded)
             throws UnsupportedEncodingException {
-        // for testing only
         inputUri = _isEncoded ? URLDecoder.decode(_uri, ENCODING) : _uri;
     }
 
@@ -379,9 +402,12 @@ public class XQSyncDocument {
         }
 
         // constants
-        DocumentRepairLevel repair = DocumentRepairLevel.NONE;
         boolean resolveEntities = false;
         String namespace = null;
+
+        DocumentRepairLevel repair = (!repairInputXml) ? DocumentRepairLevel.NONE
+                : DocumentRepairLevel.FULL;
+        logger.fine("repair = " + repairInputXml + ", " + repair);
 
         // marshal the permissions as an array
         // don't check copyProperties here:
@@ -500,6 +526,7 @@ public class XQSyncDocument {
      */
     public static void setLogger(SimpleLogger _logger) {
         logger = _logger;
+        logger.fine("new logger");
     }
 
     /**
@@ -545,6 +572,25 @@ public class XQSyncDocument {
      */
     public void setOutputCollections(String[] _collections) {
         metadata.addCollections(_collections);
+    }
+
+    public void setRepairInputXml(boolean repairInputXml) {
+        this.repairInputXml = repairInputXml;
+    }
+
+    public byte[] getContentBytes() {
+        return contentBytes;
+    }
+
+    public void setContentBytes(byte[] contentBytes) {
+        this.contentBytes = contentBytes;
+    }
+
+    /**
+     * @return
+     */
+    public XQSyncDocumentMetadata getMetadata() {
+        return metadata;
     }
 
 }

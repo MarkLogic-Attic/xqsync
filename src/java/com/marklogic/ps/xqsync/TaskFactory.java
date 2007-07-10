@@ -55,6 +55,8 @@ public class TaskFactory {
 
     private String[] outputCollections;
 
+    private boolean repairInputXml;
+
     /**
      * @param _config
      */
@@ -63,20 +65,21 @@ public class TaskFactory {
         logger = _config.getLogger();
         copyPermissions = _config.isCopyPermissions();
         copyProperties = _config.isCopyProperties();
+        repairInputXml = _config.isRepairInputXml();
         skipExisting = _config.isSkipExisting();
 
         readRoles = _config.getReadRoles();
         placeKeys = _config.getPlaceKeys();
 
         // TODO filesystem output broken?
-        //outputPath = _config.getOutputPath();
+        // outputPath = _config.getOutputPath();
         String outputPackagePath = _config.getOutputPackagePath();
         if (outputPackagePath != null) {
             outputPackage = new OutputPackage(new File(outputPackagePath));
         }
-        
+
         prefix = _config.getUriPrefix();
-        
+
         if (_config.hasOutputCollections()) {
             outputCollections = _config.getOutputCollections();
         }
@@ -104,7 +107,7 @@ public class TaskFactory {
         if (null != placeKeys) {
             cs.setPlaceKeys(placeKeys);
         }
-        
+
         if (null != outputCollections) {
             cs.setOutputCollections(outputCollections);
         }
@@ -116,7 +119,7 @@ public class TaskFactory {
      */
     public Callable<String> newCallableSync(File file) {
         CallableSync cs = new CallableSync(file, copyPermissions,
-                copyProperties);
+                copyProperties, repairInputXml);
         configure(cs);
         return cs;
     }
@@ -129,11 +132,11 @@ public class TaskFactory {
         CallableSync cs;
         if (inputPackage != null) {
             cs = new CallableSync(inputPackage, uri, copyPermissions,
-                    copyProperties);
+                    copyProperties, repairInputXml);
         } else {
             Session session = configuration.newInputSession();
             cs = new CallableSync(session, uri, copyPermissions,
-                    copyProperties);
+                    copyProperties, repairInputXml);
         }
         configure(cs);
         return cs;

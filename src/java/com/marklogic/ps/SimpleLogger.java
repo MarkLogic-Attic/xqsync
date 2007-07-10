@@ -85,8 +85,8 @@ public class SimpleLogger extends Logger implements
 
     static public final String LOGGER_NAME = "com.marklogic.ps";
 
-    private static Map<String, SimpleLogger> loggers = 
-        Collections.synchronizedMap(new Hashtable<String, SimpleLogger>());
+    private static Map<String, SimpleLogger> loggers = Collections
+            .synchronizedMap(new Hashtable<String, SimpleLogger>());
 
     SimpleLogger(String name) {
         super(name, null);
@@ -172,11 +172,11 @@ public class SimpleLogger extends Logger implements
                     continue;
                 }
 
-//                System.err.println("new handler " + i + ": "
-//                        + newHandlers[i]);
+                // System.err.println("new handler " + i + ": "
+                // + newHandlers[i]);
                 if (i < oldHandlers.length && oldHandlers[i] != null) {
-//                    System.err.println("old handler " + i + ": "
-//                            + oldHandlers[i].getClass().getSimpleName());
+                    // System.err.println("old handler " + i + ": "
+                    // + oldHandlers[i].getClass().getSimpleName());
                     if (newHandlers[i].equals("CONSOLE")
                             && oldHandlers[i] instanceof ConsoleHandler) {
                         continue;
@@ -197,8 +197,8 @@ public class SimpleLogger extends Logger implements
 
                 // remove the old handler
                 if (i < oldHandlers.length) {
-//                    System.err.println("removing " + i + ": "
-//                            + oldHandlers[i]);
+                    // System.err.println("removing " + i + ": "
+                    // + oldHandlers[i]);
                     removeHandler(oldHandlers[i]);
                 }
 
@@ -229,8 +229,10 @@ public class SimpleLogger extends Logger implements
                 } else {
                     // try to load the string as a classname
                     try {
-                        Class lhc = Class.forName(newHandlers[i], true,
-                                ClassLoader.getSystemClassLoader());
+                        Class<? extends Handler> lhc = Class.forName(
+                                newHandlers[i], true,
+                                ClassLoader.getSystemClassLoader())
+                                .asSubclass(Handler.class);
                         System.err.println("logging to class "
                                 + newHandlers[i]);
                         Constructor con = lhc

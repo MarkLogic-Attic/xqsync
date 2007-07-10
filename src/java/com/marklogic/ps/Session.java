@@ -19,6 +19,7 @@
 package com.marklogic.ps;
 
 import java.math.BigInteger;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -390,5 +391,12 @@ public class Session implements com.marklogic.xcc.Session {
             list.add(map.get(_names[i]));
         }
         return list.toArray(new BigInteger[0]);
+    }
+
+    /* (non-Javadoc)
+     * @see com.marklogic.xcc.Session#getConnectionUri()
+     */
+    public URI getConnectionUri() {
+        return session.getConnectionUri();
     }
 }

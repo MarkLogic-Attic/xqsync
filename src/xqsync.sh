@@ -20,9 +20,13 @@
 # affiliated with the Apache Software Foundation.
 #
 
+BASE=`readlink -f $0`
+BASE=`dirname $BASE`
+echo BASE=$BASE
+
 CP=$HOME/lib/java/xcc.jar
 CP=$CP:$HOME/lib/java/xstream-1.1.2.jar
-CP=$CP:../lib/xqsync.jar
+CP=$CP:$BASE/../lib/xqsync.jar
 
 FILES=
 VMARGS=
