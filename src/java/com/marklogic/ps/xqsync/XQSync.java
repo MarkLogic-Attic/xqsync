@@ -24,6 +24,7 @@ import java.net.URISyntaxException;
 import java.util.Properties;
 
 import com.marklogic.ps.AbstractLoggableClass;
+import com.marklogic.xcc.Version;
 import com.marklogic.xcc.exceptions.XccException;
 
 /**
@@ -32,7 +33,7 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2007-07-10.1";
+    public static String VERSION = "2007-07-24.1";
 
     public static void main(String[] args) throws IOException,
             XccException, URISyntaxException {
@@ -48,9 +49,9 @@ public class XQSync extends AbstractLoggableClass {
         System.err.println("added system properties");
 
         Configuration configuration = new Configuration();
-        configuration.setProperties(props);
-
         logger.info("XQSync starting: version = " + VERSION);
+        logger.info("XCC version = " + Version.getVersionString());
+        configuration.setProperties(props);
 
         // TODO set and use INPUT_ENCODING and OUTPUT_ENCODING, instead
         String encoding = System.getProperty("file.encoding");
