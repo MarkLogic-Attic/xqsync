@@ -182,7 +182,6 @@ public class Configuration extends AbstractLoggableClass {
     public static final String OUTPUT_CONNECTION_STRING_KEY = "OUTPUT_CONNECTION_STRING";
 
     public static final String OUTPUT_COLLECTIONS_KEY = "OUTPUT_COLLECTIONS";
-    public static final String OUTPUT_COLLECTIONS_DEFAULT = null;
 
     /**
      * 
@@ -265,11 +264,12 @@ public class Configuration extends AbstractLoggableClass {
             placeKeys = placeKeysString.split(CSV_SSV_REGEX);
         }
         
-        String outputCollectionsString = properties.getProperty(OUTPUT_COLLECTIONS_KEY, OUTPUT_COLLECTIONS_DEFAULT);
+        String outputCollectionsString = properties.getProperty(OUTPUT_COLLECTIONS_KEY);
         if (null != outputCollectionsString) {
             outputCollectionsString = outputCollectionsString.trim();
-            if (null != outputCollectionsString && outputCollectionsString.length() > 1) {
+            if (null != outputCollectionsString && outputCollectionsString.length() > 1) {                
                 outputCollections = outputCollectionsString.split(CSV_SSV_REGEX);
+                logger.finest(this + " outputCollections = " + Utilities.join(outputCollections, ","));
             }
         }        
 
@@ -577,6 +577,7 @@ public class Configuration extends AbstractLoggableClass {
     }
 
     public String[] getOutputCollections() {
+        logger.finest(this + " outputCollections = " + Utilities.join(outputCollections, ","));
         return outputCollections;
     }
 
@@ -584,7 +585,7 @@ public class Configuration extends AbstractLoggableClass {
      * @return
      */
     public boolean hasOutputCollections() {
-        return null != outputCollections && outputCollections.length > 1;
+        return null != outputCollections && outputCollections.length > 0;
     }
 
 }

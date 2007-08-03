@@ -20,11 +20,14 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
+import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 
@@ -70,10 +73,11 @@ public class CallableSync implements Callable<String> {
      * @param _path
      * @param _copyPermissions
      * @param _copyProperties
-     * @param _repairInputXml 
+     * @param _repairInputXml
      */
     public CallableSync(InputPackage _package, String _path,
-            boolean _copyPermissions, boolean _copyProperties, boolean _repairInputXml) {
+            boolean _copyPermissions, boolean _copyProperties,
+            boolean _repairInputXml) {
         inputPackage = _package;
         inputUri = _path;
         copyPermissions = _copyPermissions;
@@ -86,10 +90,11 @@ public class CallableSync implements Callable<String> {
      * @param _uri
      * @param _copyPermissions
      * @param _copyProperties
-     * @param _repairInputXml 
+     * @param _repairInputXml
      */
     public CallableSync(Session _session, String _uri,
-            boolean _copyPermissions, boolean _copyProperties, boolean _repairInputXml) {
+            boolean _copyPermissions, boolean _copyProperties,
+            boolean _repairInputXml) {
         inputSession = _session;
         inputUri = _uri;
         copyPermissions = _copyPermissions;
@@ -101,7 +106,7 @@ public class CallableSync implements Callable<String> {
      * @param _file
      * @param _copyPermissions
      * @param _copyProperties
-     * @param _repairInputXml 
+     * @param _repairInputXml
      * @throws IOException
      */
     public CallableSync(File _file, boolean _copyPermissions,
@@ -145,9 +150,9 @@ public class CallableSync implements Callable<String> {
         // write document to output session, package, or directory
         // marshal output arguments
         document.setOutputUriPrefix(outputPrefix);
-        
+
         // handle output collections
-        document.setOutputCollections(outputCollections);
+        document.addOutputCollections(outputCollections);
 
         try {
             if (outputSession != null) {
@@ -205,8 +210,20 @@ public class CallableSync implements Callable<String> {
     /**
      * @param _outputCollections
      */
-    public void setOutputCollections(String[] _outputCollections) {
-        outputCollections = _outputCollections;
+    public void addOutputCollections(String[] _outputCollections) {
+        if (null == _outputCollections) {
+            logger.finest(null);
+            return;
+        }
+        logger.finest(Utilities.join(_outputCollections, ","));
+        if (null == outputCollections) {
+            outputCollections = _outputCollections;
+        } else {
+            List<String> tmp = Arrays.asList(outputCollections);
+            tmp.addAll(Arrays.asList(_outputCollections));
+            outputCollections = tmp.toArray(new String[0]);
+        }
+        logger.finest(Utilities.join(outputCollections, ","));
     }
 
 }

@@ -302,6 +302,9 @@ public class Utilities {
      * @return
      */
     public static String join(String[] _items, String _delim) {
+        if (null == _items)
+            return null;
+        
         String rval = "";
         for (int i = 0; i < _items.length; i++)
             if (i == 0)

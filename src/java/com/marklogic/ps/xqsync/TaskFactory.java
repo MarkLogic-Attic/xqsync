@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import java.util.concurrent.Callable;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
+import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.ContentPermission;
 
 /**
@@ -80,9 +81,11 @@ public class TaskFactory {
 
         prefix = _config.getUriPrefix();
 
-        if (_config.hasOutputCollections()) {
-            outputCollections = _config.getOutputCollections();
-        }
+        logger.finest(this + " outputCollections = "
+                + Utilities.join(_config.getOutputCollections(), ","));
+        outputCollections = _config.getOutputCollections();
+        logger.finest(this + " outputCollections = "
+                + Utilities.join(outputCollections, ","));
     }
 
     /**
@@ -108,9 +111,9 @@ public class TaskFactory {
             cs.setPlaceKeys(placeKeys);
         }
 
-        if (null != outputCollections) {
-            cs.setOutputCollections(outputCollections);
-        }
+        logger.finest("outputCollections = "
+                + Utilities.join(outputCollections, ","));
+        cs.addOutputCollections(outputCollections);
     }
 
     /**

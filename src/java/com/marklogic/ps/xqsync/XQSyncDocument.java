@@ -416,6 +416,7 @@ public class XQSyncDocument {
         metadata.addPermissions(_readRoles);
         ContentPermission[] permissions = metadata.getPermissions();
         String[] collections = metadata.getCollections();
+        logger.fine("collections = " + Utilities.join(collections, " "));
 
         ContentCreateOptions options = null;
         if (metadata.isBinary()) {
@@ -570,7 +571,7 @@ public class XQSyncDocument {
     /**
      * @param _collections
      */
-    public void setOutputCollections(String[] _collections) {
+    public void addOutputCollections(String[] _collections) {
         metadata.addCollections(_collections);
     }
 
