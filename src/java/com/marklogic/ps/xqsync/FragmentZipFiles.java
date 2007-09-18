@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2006-2007 Mark Logic Corporation. All rights reserved.
  */
 package com.marklogic.ps.xqsync;
 
@@ -43,10 +43,6 @@ public class FragmentZipFiles {
         private static final String ZIP_EXTENSION = ".zip";
 
         File file;
-
-        private FragmentTask() {
-            super();
-        }
 
         public FragmentTask(File _file) {
             file = _file;

@@ -39,6 +39,7 @@ import com.marklogic.xcc.ContentbaseMetaData;
 import com.marklogic.xcc.Request;
 import com.marklogic.xcc.RequestOptions;
 import com.marklogic.xcc.ResultSequence;
+import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
 
 /**
@@ -46,6 +47,11 @@ import com.marklogic.xcc.exceptions.XccException;
  * 
  */
 public class XQSyncManager extends AbstractLoggableClass {
+
+    /**
+     * 
+     */
+    private static final String ERROR_CODE_MISSING_URI_LEXICON = "XDMP-URILXCNNOTFOUND";
 
     /**
      * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -244,6 +250,31 @@ public class XQSyncManager extends AbstractLoggableClass {
      */
     private long queueFromInputConnection(CompletionService<String> _cs)
             throws XccException {
+        // use lexicon by default - this may throw an exception
+        try {
+            return queueFromInputConnection(_cs, true);
+        } catch (XQueryException e) {
+            // check to see if the exception was XDMP-URILXCNNOTFOUND
+            if (ERROR_CODE_MISSING_URI_LEXICON.equals(e.getCode())) {
+                // try again, the hard way
+                logger.warning("Enable the document uri lexicon on "
+                        + inputSession.getContentBaseName()
+                        + " to speed up synchronization.");
+
+                return queueFromInputConnection(_cs, false);
+            }
+            logger.logException("error queuing from input connection", e);
+            throw e;
+        }
+    }
+
+    /**
+     * @param _cs
+     * @param _useLexicon
+     * @throws XccException
+     */
+    private long queueFromInputConnection(CompletionService<String> _cs,
+            boolean _useLexicon) throws XccException {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
@@ -273,6 +304,7 @@ public class XQSyncManager extends AbstractLoggableClass {
         }
 
         // use multiple collections or dirs (but not both)
+        // TODO should find a way to avoid multiple calls, for this case
         int size = 1;
         if (collectionUris != null && collectionUris.length > size) {
             size = collectionUris.length;
@@ -280,26 +312,28 @@ public class XQSyncManager extends AbstractLoggableClass {
             size = directoryUris.length;
         }
 
+        // in order to handle really big result sequences,
+        // we have to turn off caching, and
+        // we actually have to reduce the buffer size.
+        RequestOptions opts = inputSession.getDefaultRequestOptions();
+        logger.fine("buffer size = " + opts.getResultBufferSize());
+        logger.fine("caching = " + opts.getCacheResult());
+        opts.setCacheResult(false);
+        opts.setResultBufferSize(4 * 1024);
+        logger.fine("buffer size = " + opts.getResultBufferSize());
+        logger.fine("caching = " + opts.getCacheResult());
+
+        String uri;
+        ResultSequence rs;
+        Request request;
+
         for (int i = 0; i < size; i++) {
-            Request request = getRequest(collectionUris == null ? null
+            request = getRequest(collectionUris == null ? null
                     : collectionUris[i], directoryUris == null ? null
-                    : directoryUris[i], userQuery, startPosition);
-            RequestOptions opts = request.getEffectiveOptions();
-
-            // in order to handle really big result sequences,
-            // we have to turn off caching, and
-            // we actually have to reduce the buffer size.
-            logger.fine("buffer size = " + opts.getResultBufferSize());
-            logger.fine("caching = " + opts.getCacheResult());
-            opts.setCacheResult(false);
-            opts.setResultBufferSize(4 * 1024);
+                    : directoryUris[i], userQuery, startPosition,
+                    _useLexicon);
             request.setOptions(opts);
-            logger.fine("buffer size = " + opts.getResultBufferSize());
-            logger.fine("caching = " + opts.getCacheResult());
-
-            ResultSequence rs = inputSession.submitRequest(request);
-
-            String uri;
+            rs = inputSession.submitRequest(request);
 
             while (rs.hasNext()) {
                 uri = rs.next().asString();
@@ -314,71 +348,97 @@ public class XQSyncManager extends AbstractLoggableClass {
     }
 
     /**
-     * @param collectionUri
-     * @param directoryUri
-     * @param userQuery
-     * @param startPosition
+     * @param _collectionUri
+     * @param _directoryUri
+     * @param _userQuery
+     * @param _startPosition
+     * @param _useLexicon
      * @return
      * @throws XccException
      */
-    private Request getRequest(String collectionUri, String directoryUri,
-            String userQuery, Long startPosition) throws XccException {
-        boolean hasStart = (startPosition != null && startPosition
+    private Request getRequest(String _collectionUri,
+            String _directoryUri, String _userQuery, Long _startPosition,
+            boolean _useLexicon) throws XccException {
+        boolean hasStart = (_startPosition != null && _startPosition
                 .longValue() > 1);
         Request request;
-        if (collectionUri != null) {
-            request = getCollectionRequest(collectionUri, hasStart);
+        if (_collectionUri != null) {
+            request = getCollectionRequest(_collectionUri, hasStart,
+                    _useLexicon);
 
             // if requested, delete the collection
             if (configuration.isDeleteOutputCollection()) {
                 Session outputSession = configuration.newOutputSession();
                 if (outputSession != null) {
-                    logger.info("deleting collection " + collectionUri
+                    logger.info("deleting collection " + _collectionUri
                             + " on output connection");
-                    outputSession.deleteCollection(collectionUri);
+                    outputSession.deleteCollection(_collectionUri);
                     outputSession.close();
                 }
             }
-        } else if (directoryUri != null) {
-            request = getDirectoryRequest(directoryUri, hasStart);
-        } else if (userQuery != null) {
+        } else if (_directoryUri != null) {
+            request = getDirectoryRequest(_directoryUri, hasStart,
+                    _useLexicon);
+        } else if (_userQuery != null) {
             // set list of uris via a user-supplied query
-            logger.info("listing query: " + userQuery);
+            logger.info("listing query: " + _userQuery);
             if (hasStart) {
                 logger
                         .warning("ignoring start value in user-supplied query");
                 hasStart = false;
             }
-            request = inputSession.newAdhocQuery(userQuery);
+            request = inputSession.newAdhocQuery(_userQuery);
         } else {
             // list all the documents in the database
-            logger.info("listing all documents");
-            String query = (hasStart ? START_POSITION_DEFINE_VARIABLE
-                    : "")
-                    + "for $i in doc()\n"
-                    + (hasStart ? START_POSITION_PREDICATE : "")
-                    + "return string(xdmp:node-uri($i))";
-            request = inputSession.newAdhocQuery(query);
+            request = getUrisRequest(hasStart, _useLexicon);
         }
 
         if (hasStart) {
             request.setNewIntegerVariable(START_VARIABLE_NAME,
-                    startPosition);
+                    _startPosition);
         }
         return request;
+    }
+
+    /**
+     * @param _hasStart
+     * @return
+     */
+    private Request getUrisRequest(boolean _hasStart, boolean _useLexicon) {
+        String query;
+        logger.info("listing all documents");
+        if (_useLexicon) {
+            query = (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+                    + "cts:uris('', 'document')\n"
+                    + (_hasStart ? START_POSITION_PREDICATE : "");
+        } else {
+            query = (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+                    + "for $i in doc()\n"
+                    + (_hasStart ? START_POSITION_PREDICATE : "")
+                    + "return string(xdmp:node-uri($i))";
+        }
+        return inputSession.newAdhocQuery(query);
     }
 
     /**
      * @param _uri
      * @param _hasStart
      */
-    private Request getCollectionRequest(String _uri, boolean _hasStart) {
+    private Request getCollectionRequest(String _uri, boolean _hasStart,
+            boolean _useLexicon) {
         logger.info("listing collection " + _uri);
-        String query = "define variable $uri as xs:string external\n"
-                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                + "for $i in collection($uri)\n"
-                + (_hasStart ? START_POSITION_PREDICATE : "")
-                + "return string(xdmp:node-uri($i))\n";
+        String query;
+        if (_useLexicon) {
+            query = (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+                    + "cts:uris('', 'document', cts:collection-query($uri))\n"
+                    + (_hasStart ? START_POSITION_PREDICATE : "");
+        } else {
+            query = "define variable $uri as xs:string external\n"
+                    + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+                    + "for $i in collection($uri)\n"
+                    + (_hasStart ? START_POSITION_PREDICATE : "")
+                    + "return string(xdmp:node-uri($i))\n";
+        }
         Request request = inputSession.newAdhocQuery(query);
         request.setNewStringVariable("uri", _uri);
         return request;
@@ -389,13 +449,22 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @param _hasStart
      * @return
      */
-    private Request getDirectoryRequest(String _uri, boolean _hasStart) {
+    private Request getDirectoryRequest(String _uri, boolean _hasStart,
+            boolean _useLexicon) {
         logger.info("listing directory " + _uri);
-        String query = "define variable $uri as xs:string external\n"
-                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                + "for $i in xdmp:directory($uri, 'infinity')\n"
-                + (_hasStart ? START_POSITION_PREDICATE : "")
-                + "return string(xdmp:node-uri($i))\n";
+        String query;
+        if (_useLexicon) {
+            query = "define variable $uri as xs:string external\n"
+                    + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+                    + "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n"
+                    + (_hasStart ? START_POSITION_PREDICATE : "");
+        } else {
+            query = "define variable $uri as xs:string external\n"
+                    + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+                    + "for $i in xdmp:directory($uri, 'infinity')\n"
+                    + (_hasStart ? START_POSITION_PREDICATE : "")
+                    + "return string(xdmp:node-uri($i))\n";
+        }
         Request request = inputSession.newAdhocQuery(query);
         String uri = _uri;
         if (!uri.endsWith("/")) {

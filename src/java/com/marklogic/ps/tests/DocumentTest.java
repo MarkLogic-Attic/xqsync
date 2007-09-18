@@ -101,7 +101,7 @@ public class DocumentTest extends TestCase {
 
         // retrieve the test document
         XQSyncDocument doc = new XQSyncDocument(sess, documentUri, true,
-                true, false);
+                true, false, null);
         String retrievedXml = new String(doc.getContentBytes());
 
         // test the round-trip of the XML

@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,10 +129,10 @@ public class InputPackage extends AbstractLoggableClass {
 
         // there doesn't seem to be anything we can do about this
         if (size < MAX_ENTRIES) {
-            Enumeration e = inputZip.entries();
+            Enumeration<? extends ZipEntry> e = inputZip.entries();
 
             while (e.hasMoreElements()) {
-                entry = (ZipEntry) e.nextElement();
+                entry = e.nextElement();
                 entries += addEntry(entry, documentList);
             }
         } else {

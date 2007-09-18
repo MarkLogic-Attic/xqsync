@@ -20,6 +20,7 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
@@ -27,6 +28,7 @@ import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.ContentPermission;
+import com.marklogic.xcc.exceptions.RequestException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -58,15 +60,22 @@ public class TaskFactory {
 
     private boolean repairInputXml;
 
+    private boolean allowEmptyMetadata;
+
+    private BigInteger timestamp = null;
+
     /**
      * @param _config
+     * @throws RequestException
      */
-    public TaskFactory(Configuration _config) {
+    public TaskFactory(Configuration _config) throws RequestException {
         configuration = _config;
         logger = _config.getLogger();
         copyPermissions = _config.isCopyPermissions();
         copyProperties = _config.isCopyProperties();
         repairInputXml = _config.isRepairInputXml();
+        allowEmptyMetadata = _config.isAllowEmptyMetadata();
+
         skipExisting = _config.isSkipExisting();
 
         readRoles = _config.getReadRoles();
@@ -86,6 +95,41 @@ public class TaskFactory {
         outputCollections = _config.getOutputCollections();
         logger.finest(this + " outputCollections = "
                 + Utilities.join(outputCollections, ","));
+
+        configureTimestamp();
+    }
+
+    /**
+     * @throws RequestException 
+     * 
+     */
+    private void configureTimestamp() throws RequestException {
+        String timestampString = configuration.getTimestamp();
+        if (null != timestampString) {
+            Session sess = configuration.newInputSession();
+            if (null == sess) {
+                logger.warning("ignoring "
+                        + Configuration.INPUT_TIMESTAMP_KEY + "="
+                        + timestampString + " because "
+                        + Configuration.INPUT_CONNECTION_STRING_KEY
+                        + " is not set.");
+            } else if (timestampString.startsWith("#")) {
+                // handle special values
+                if (Configuration.INPUT_TIMESTAMP_AUTO
+                        .equals(timestampString)) {
+                    // fetch the current timestamp
+                    timestamp = sess.getCurrentServerPointInTime();
+                } else {
+                    logger.warning("ignoring unknown timestamp "
+                            + timestampString);
+                }
+            } else {
+                timestamp = new BigInteger(timestampString);
+            }
+            if (null != timestamp) {
+                logger.info("using timestamp " + timestamp);
+            }
+        }
     }
 
     /**
@@ -111,6 +155,10 @@ public class TaskFactory {
             cs.setPlaceKeys(placeKeys);
         }
 
+        if (null != timestamp) {
+            cs.setTimestamp(timestamp);
+        }
+
         logger.finest("outputCollections = "
                 + Utilities.join(outputCollections, ","));
         cs.addOutputCollections(outputCollections);
@@ -122,7 +170,7 @@ public class TaskFactory {
      */
     public Callable<String> newCallableSync(File file) {
         CallableSync cs = new CallableSync(file, copyPermissions,
-                copyProperties, repairInputXml);
+                copyProperties, repairInputXml, allowEmptyMetadata);
         configure(cs);
         return cs;
     }
@@ -135,11 +183,11 @@ public class TaskFactory {
         CallableSync cs;
         if (inputPackage != null) {
             cs = new CallableSync(inputPackage, uri, copyPermissions,
-                    copyProperties, repairInputXml);
+                    copyProperties, repairInputXml, allowEmptyMetadata);
         } else {
             Session session = configuration.newInputSession();
             cs = new CallableSync(session, uri, copyPermissions,
-                    copyProperties, repairInputXml);
+                    copyProperties, repairInputXml, allowEmptyMetadata);
         }
         configure(cs);
         return cs;

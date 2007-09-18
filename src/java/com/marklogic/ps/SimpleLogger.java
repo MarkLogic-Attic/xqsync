@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2005-2006 Mark Logic Corporation
+ * Copyright (c)2005-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -235,9 +235,9 @@ public class SimpleLogger extends Logger implements
                                 .asSubclass(Handler.class);
                         System.err.println("logging to class "
                                 + newHandlers[i]);
-                        Constructor con = lhc
+                        Constructor<? extends Handler> con = lhc
                                 .getConstructor(new Class[] {});
-                        h = (Handler) con.newInstance(new Object[] {});
+                        h = con.newInstance(new Object[] {});
                     } catch (Exception e) {
                         System.err.println("unrecognized LOG_HANDLER: "
                                 + newHandlers[i]);

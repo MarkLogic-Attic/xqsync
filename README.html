@@ -1,7 +1,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 /*
- * Copyright (c)2005-2006 Mark Logic Corporation
+ * Copyright (c)2005-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,22 +50,25 @@ See src/xqsync.sh for a sample shell script.
 <ul>
   <li>MarkLogic <a href="http://developer.marklogic.com/">XCC</a></li>
   <li>Codehaus <a href="http://xstream.codehaus.org/">XStream</a></li>
-  <li/><a href="http://www.extreme.indiana.edu/xgws/xsoap/xpp/">XPP3</a>
-  XML Pull-Parser
-  (here's a link to the
-  <a href="http://www.extreme.indiana.edu/dist/java-repository/xpp3/jars/">jar
-  files</a>)
 </ul>
 
 <h2>Required properties:</h2>
 <ul>
-<li>one of: INPUT_PACKAGE, INPUT_PATH, INPUT_CONNECTION_STRING</li>
-<li>one of: OUTPUT_PACKAGE, OUTPUT_PATH, OUTPUT_CONNECTION_STRING</li>
+<li>one of: INPUT_PACKAGE, INPUT_CONNECTION_STRING</li>
+<li>one of: OUTPUT_PACKAGE, OUTPUT_CONNECTION_STRING</li>
 </ul>
 
 <h2>Available properties:</h2>
 <table border>
 <tr><th>Property</th><th>default value</th><th>notes</th></tr>
+<tr>
+  <td>ALLOW_EMPTY_METADATA</td>
+  <td>false</td>
+  <td>
+    If false, missing metadata files
+    in <code>INPUT_PACKAGE</code> will be ignored.
+  </td>
+</tr>
 <tr>
   <td>COPY_PERMISSIONS</td><td>true</td>
   <td>If true, all document permissions are copied.</td>
@@ -81,7 +84,21 @@ See src/xqsync.sh for a sample shell script.
 <tr>
   <td>INPUT_CONNECTION_STRING</td>
   <td>null</td>
-  <td>Input documents will come from this XCC connection.</td>
+  <td>
+    Input documents will come from this XCC connection.
+    By default, every document in the input database will be transferred.
+    To change this behavior, use one of the related properties:
+    <ul>
+      <li<code>INPUT_COLLECTION_URI</code></li>
+      <li><code>INPUT_DIRECTORY_URI</code></li>
+      <li><code>INPUT_DOCUMENT_URIS</code></li>
+      <li><code>INPUT_QUERY</code></li>
+    </ul>
+    NB - to list all input documents, or to list a collection or a directory,
+    XQSync uses <code>cts:uris()</code>.
+    If the document URI lexicon is not available,
+    it will fall back to a slower technique.
+  </td>
 </tr>
 <tr>
   <td>INPUT_COLLECTION_URI</td>
@@ -90,6 +107,12 @@ See src/xqsync.sh for a sample shell script.
   all documents in the named collection(s) will be transferred.
     The value of this property will be tokenized on whitespace.
   </td>
+</tr>
+<tr>
+  <td>INPUT_DIRECTORY_URI</td>
+  <td>null</td>
+  <td>In combination with INPUT_CONNECTION_STRING,
+  all documents in the named directory will be transferred.</td>
 </tr>
 <tr>
   <td>INPUT_DOCUMENT_URIS</td>
@@ -102,31 +125,47 @@ See src/xqsync.sh for a sample shell script.
   <td>INPUT_QUERY</td>
   <td>null</td>
   <td>In combination with INPUT_CONNECTION_STRING,
-  all uris returned by the query will be transferred.
-  This sample query would transfer the first 100 documents:
-  <code>for $i in doc()[1 to 100] return xdmp:node-uri($i)</code></td>
-</tr>
-<tr>
-  <td>INPUT_DIRECTORY_URI</td>
-  <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
-  all documents in the named directory will be transferred.</td>
+    all uris returned by the query will be transferred.
+    This sample query would transfer the first 100 documents,
+    in document order:
+    <br/>
+    <code>for $i in doc()[1 to 100] return xdmp:node-uri($i)</code>
+    <br/>
+    If the document URI lexicon is enabled, this could be written as:
+    <br/>
+    <code>cts:uris('', 'document')[1 to 100]</code>
+    <br/>
+    to tranfer the first 100 documents, sorted by document URI.
+  </td>
 </tr>
 <tr>
   <td>INPUT_PACKAGE</td>
   <td>null</td>
   <td>Input documents will come from this zip file path.</td>
 </tr>
+<!--
 <tr>
   <td>INPUT_PATH</td>
   <td>null</td>
   <td>Input documents will come from this filesystem path.</td>
 </tr>
+-->
 <tr>
   <td>INPUT_START_POSITION</td>
   <td>null</td>
   <td>Use the numeric value of this property as the starting position
   for the sequence of input documents.</td>
+</tr>
+<tr>
+  <td>INPUT_TIMESTAMP</td>
+  <td>null</td>
+  <td>
+    If not null, and <code>INPUT_CONNECTION_STRING</code> is set,
+    then all input queries will use this timestamp.
+    The special value <code>#AUTO</code>
+    will cause the first request timestamp
+    to be used for the entire synchronization.
+  </td>
 </tr>
 <tr>
   <td>LOG_LEVEL</td><td>INFO</td>
@@ -158,11 +197,13 @@ See src/xqsync.sh for a sample shell script.
 <tr>
   <td>OUTPUT_FORESTS</td><td>null</td><td>Permitted output forest names.</td>
 </tr>
+<!--
 <tr>
   <td>OUTPUT_PATH</td>
   <td>null</td>
   <td>Output documents will be written to this filesystem path.</td>
 </tr>
+-->
 <tr>
   <td>OUTPUT_PACKAGE</td>
   <td>null</td>
@@ -181,7 +222,7 @@ See src/xqsync.sh for a sample shell script.
   <td>If true, documents that already exist in OUTPUT_CONNECTION
     are not overwritten. This only affects operations when
     OUTPUT_CONNECTION is defined. If false,
-    or if targeting an OUTPUT_PACKAGE or an OUTPUT_PATH,
+    or if targeting an OUTPUT_PACKAGE<!-- or an OUTPUT_PATH -->,
     then all documents will be overwritten.
   </td>
 </tr>

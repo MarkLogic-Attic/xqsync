@@ -33,10 +33,21 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2007-08-02.1";
+    public static String VERSION = "2007-09-18.1";
 
     public static void main(String[] args) throws IOException,
             XccException, URISyntaxException {
+        
+        // make sure the environment is healthy
+        String encoding = System.getProperty("file.encoding");
+        if (!encoding.equals("UTF-8")) {
+            throw new IOException(
+                    "UTF-8 encoding is required: System property file.encoding "
+                            + encoding
+                            + " is not UTF-8. "
+                            + "Change your locale, or set -Dfile.encoding=UTF-8");
+        }
+
         // assume that any input files are properties
         Properties props = new Properties();
         for (int i = 0; i < args.length; i++) {
@@ -53,17 +64,9 @@ public class XQSync extends AbstractLoggableClass {
         logger.info("XCC version = " + Version.getVersionString());
         configuration.setProperties(props);
 
-        // TODO set and use INPUT_ENCODING and OUTPUT_ENCODING, instead
-        String encoding = System.getProperty("file.encoding");
-        if (!encoding.equals("UTF-8")) {
-            throw new IOException(
-                    "UTF-8 encoding is required: default encoding "
-                            + encoding + " is not UTF-8");
-        }
-
         long start = System.currentTimeMillis();
 
-        // we don't need the xqm to be a Thread, so we'll run it directly
+        // we don't need the manager to be a Thread, so run it directly
         XQSyncManager xqm = new XQSyncManager(configuration);
         xqm.run();
         logger.info("completed " + xqm.getItemsQueued() + " in "

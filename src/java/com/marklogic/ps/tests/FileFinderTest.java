@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2006-2007 Mark Logic Corporation. All rights reserved.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public class FileFinderTest extends TestCase {
         ff.add(new File(basePath + "/test"));
         ff.add(new File(basePath + "/baz/test"));
         ff.add(new File(basePath + "/baz/buz/test1"));
-        List list = ff.listRelativePaths("/");
+        List<String> list = ff.listRelativePaths("/");
         String testString = Utilities.join(list, ":");
         String expected = "test/foo/bar/test" + ":test/foo/bar/baz/test"
                 + ":test/foo/bar/baz/buz/test1";

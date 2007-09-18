@@ -20,6 +20,7 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -69,20 +70,26 @@ public class CallableSync implements Callable<String> {
 
     private boolean repairInputXml;
 
+    private boolean allowEmptyMetadata;
+
+    private BigInteger timestamp;
+
     /**
      * @param _path
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
+     * @param _allowEmptyMetadata 
      */
     public CallableSync(InputPackage _package, String _path,
             boolean _copyPermissions, boolean _copyProperties,
-            boolean _repairInputXml) {
+            boolean _repairInputXml, boolean _allowEmptyMetadata) {
         inputPackage = _package;
         inputUri = _path;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
         repairInputXml = _repairInputXml;
+        allowEmptyMetadata = _allowEmptyMetadata;
     }
 
     /**
@@ -91,15 +98,17 @@ public class CallableSync implements Callable<String> {
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
+     * @param _allowEmptyMetadata 
      */
     public CallableSync(Session _session, String _uri,
             boolean _copyPermissions, boolean _copyProperties,
-            boolean _repairInputXml) {
+            boolean _repairInputXml, boolean _allowEmptyMetadata) {
         inputSession = _session;
         inputUri = _uri;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
         repairInputXml = _repairInputXml;
+        allowEmptyMetadata = _allowEmptyMetadata;
     }
 
     /**
@@ -107,15 +116,17 @@ public class CallableSync implements Callable<String> {
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
+     * @param _allowEmptyMetadata 
      * @throws IOException
      */
     public CallableSync(File _file, boolean _copyPermissions,
-            boolean _copyProperties, boolean _repairInputXml) {
+            boolean _copyProperties, boolean _repairInputXml, boolean _allowEmptyMetadata) {
         inputFile = _file;
         // note: don't set inputUri, since we can always get it from the file
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
         repairInputXml = _repairInputXml;
+        allowEmptyMetadata = _allowEmptyMetadata;
     }
 
     /*
@@ -136,13 +147,13 @@ public class CallableSync implements Callable<String> {
 
         if (inputSession != null) {
             document = new XQSyncDocument(inputSession, inputUri,
-                    copyPermissions, copyProperties, repairInputXml);
+                    copyPermissions, copyProperties, repairInputXml, timestamp);
         } else if (inputPackage != null) {
             document = new XQSyncDocument(inputPackage, inputUri,
-                    copyPermissions, copyProperties, repairInputXml);
+                    copyPermissions, copyProperties, repairInputXml, allowEmptyMetadata);
         } else if (inputFile != null) {
             document = new XQSyncDocument(inputFile, copyPermissions,
-                    copyProperties, repairInputXml);
+                    copyProperties, repairInputXml, allowEmptyMetadata);
         } else {
             throw new UnimplementedFeatureException("no input found");
         }
@@ -224,6 +235,13 @@ public class CallableSync implements Callable<String> {
             outputCollections = tmp.toArray(new String[0]);
         }
         logger.finest(Utilities.join(outputCollections, ","));
+    }
+
+    /**
+     * @param _timestamp
+     */
+    public void setTimestamp(BigInteger _timestamp) {
+        timestamp = _timestamp;
     }
 
 }

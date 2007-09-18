@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.util.Collection;
 
@@ -43,6 +44,7 @@ import com.marklogic.xcc.ContentFactory;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.DocumentRepairLevel;
 import com.marklogic.xcc.Request;
+import com.marklogic.xcc.RequestOptions;
 import com.marklogic.xcc.ResultItem;
 import com.marklogic.xcc.ResultSequence;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
@@ -61,7 +63,12 @@ public class XQSyncDocument {
     /**
      * 
      */
-    private static final String ENCODING = "UTF-8";
+    private static final String UTF_8 = "UTF-8";
+
+    /**
+     * 
+     */
+    private static final String ENCODING = UTF_8;
 
     public static final String METADATA_EXT = ".metadata";
 
@@ -86,12 +93,15 @@ public class XQSyncDocument {
 
     private boolean repairInputXml = false;
 
+    private BigInteger timestamp = null;
+
     /**
      * @param _session
      * @param _uri
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
+     * @param _timestamp
      * 
      * @throws XccException
      * @throws IOException
@@ -100,7 +110,8 @@ public class XQSyncDocument {
      */
     public XQSyncDocument(com.marklogic.ps.Session _session, String _uri,
             boolean _copyPermissions, boolean _copyProperties,
-            boolean _repairInputXml) throws XccException, IOException,
+            boolean _repairInputXml, BigInteger _timestamp)
+            throws XccException, IOException,
             ParserConfigurationException, SAXException {
         if (_uri == null) {
             throw new UnimplementedFeatureException("null uri");
@@ -110,6 +121,7 @@ public class XQSyncDocument {
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
         repairInputXml = _repairInputXml;
+        timestamp = _timestamp;
 
         // easy to distinguish the result-sets: metadata, data, properties
         // first is node-kind
@@ -161,8 +173,15 @@ public class XQSyncDocument {
         } else {
             query += "()\n";
         }
-
-        Request req = _session.newAdhocQuery(query);
+        
+        Request req = null;
+        if (null != timestamp) {
+            RequestOptions opts = _session.getDefaultRequestOptions();
+            opts.setEffectivePointInTime(timestamp);
+            req = _session.newAdhocQuery(query, opts);
+        } else {
+            req = _session.newAdhocQuery(query);
+        }
         req.setNewStringVariable("URI", _uri);
         ResultSequence rs = null;
         try {
@@ -277,12 +296,16 @@ public class XQSyncDocument {
         rs.close();
     }
 
+    private void setContentBytes(byte[] _contentBytes) {
+        contentBytes = _contentBytes;
+    }
+
     /**
      * @param reader
      * @throws IOException
      */
     private void setContentBytes(Reader reader) throws IOException {
-        contentBytes = Utilities.cat(reader).getBytes();
+        setContentBytes(Utilities.cat(reader).getBytes());
     }
 
     /**
@@ -290,7 +313,7 @@ public class XQSyncDocument {
      * @throws IOException
      */
     private void setContentBytes(InputStream stream) throws IOException {
-        contentBytes = Utilities.cat(stream);
+        setContentBytes(Utilities.cat(stream));
     }
 
     /**
@@ -299,31 +322,41 @@ public class XQSyncDocument {
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
+     * @param _allowEmptyMetadata
      * @throws IOException
      */
     public XQSyncDocument(InputPackage _pkg, String _path,
             boolean _copyPermissions, boolean _copyProperties,
-            boolean _repairInputXml) throws IOException {
+            boolean _repairInputXml, boolean _allowEmptyMetadata)
+            throws IOException {
         if (_path == null) {
             throw new IOException("null path");
         }
 
-        // inputUri = URLDecoder.decode(_path, ENCODING);
         inputUri = _path;
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
         repairInputXml = _repairInputXml;
 
         // need the metadata first, so we know if it's binary or text or xml
-        metadata = _pkg.getMetadataEntry(_path);
-        if (!copyPermissions) {
-            metadata.clearPermissions();
-        }
-        if (!copyProperties) {
-            metadata.clearProperties();
+        try {
+            metadata = _pkg.getMetadataEntry(_path);
+            if (!copyPermissions) {
+                metadata.clearPermissions();
+            }
+            if (!copyProperties) {
+                metadata.clearProperties();
+            }
+        } catch (IOException e) {
+            // optionally allow empty metadata
+            if (_allowEmptyMetadata) {
+                metadata = new XQSyncDocumentMetadata();
+            } else {
+                throw e;
+            }
         }
         // read the content: must work for bin or xml, so use bytes
-        contentBytes = _pkg.getContent(_path);
+        setContentBytes(_pkg.getContent(_path));
     }
 
     /**
@@ -331,30 +364,37 @@ public class XQSyncDocument {
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
+     * @param _allowEmptyMetadata
      * @throws IOException
      */
     public XQSyncDocument(File _file, boolean _copyPermissions,
-            boolean _copyProperties, boolean _repairInputXml)
-            throws IOException {
-        // read the content: must work for bin or xml, so use bytes
-        contentBytes = Utilities.getBytes(_file);
-
-        // inputUri = URLDecoder.decode(_file.getCanonicalPath(), ENCODING);
+            boolean _copyProperties, boolean _repairInputXml,
+            boolean _allowEmptyMetadata) throws IOException {
         inputUri = _file.getCanonicalPath();
         copyPermissions = _copyPermissions;
         copyProperties = _copyProperties;
         repairInputXml = _repairInputXml;
 
-        // TODO optionally allow empty metadata
-        File metaFile = getMetadataFile(_file);
-        metadata = XQSyncDocumentMetadata
-                .fromXML(new FileReader(metaFile));
-        if (!copyPermissions) {
-            metadata.clearPermissions();
+        try {
+            metadata = XQSyncDocumentMetadata.fromXML(new FileReader(
+                    getMetadataFile(_file)));
+            if (!copyPermissions) {
+                metadata.clearPermissions();
+            }
+            if (!copyProperties) {
+                metadata.clearProperties();
+            }
+        } catch (IOException e) {
+            // optionally allow empty metadata
+            if (_allowEmptyMetadata) {
+                metadata = new XQSyncDocumentMetadata();
+            } else {
+                throw e;
+            }
         }
-        if (!copyProperties) {
-            metadata.clearProperties();
-        }
+
+        // read the content: must work for bin or xml, so use bytes
+        setContentBytes(Utilities.cat(_file));
     }
 
     /**
@@ -389,7 +429,7 @@ public class XQSyncDocument {
         String outputUri = composeOutputUri(false);
 
         // handle deletes
-        if (contentBytes == null || contentBytes.length < 1) {
+        if (null == contentBytes || contentBytes.length < 1) {
             // this document has been deleted
             _session.deleteDocument(outputUri);
             return 0;
@@ -458,11 +498,11 @@ public class XQSyncDocument {
      * @param readRoles
      * @throws IOException
      */
-    public void write(OutputPackage _pkg, Collection _readRoles)
-            throws IOException {
+    public void write(OutputPackage _pkg,
+            Collection<ContentPermission> _readRoles) throws IOException {
         String outputUri = composeOutputUri(true);
         _pkg.write(outputUri, contentBytes, metadata);
-        // the caller has to flush() the pkg
+        // the caller has to flush() the package
     }
 
     /**
@@ -581,10 +621,6 @@ public class XQSyncDocument {
 
     public byte[] getContentBytes() {
         return contentBytes;
-    }
-
-    public void setContentBytes(byte[] contentBytes) {
-        this.contentBytes = contentBytes;
     }
 
     /**

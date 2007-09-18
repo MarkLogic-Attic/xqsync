@@ -42,7 +42,7 @@ public class Configuration extends AbstractLoggableClass {
     /**
      * 
      */
-    private static final String CSV_SSV_REGEX = "[,;\\s]+";
+    private static final String CSV_SCSV_SSV_REGEX = "[,;\\s]+";
 
     /**
      * 
@@ -94,8 +94,6 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static final String INPUT_PATH_KEY = "INPUT_PATH";
 
-    public static final String URI_PREFIX_KEY = "URI_PREFIX";
-
     /**
      * 
      */
@@ -104,6 +102,12 @@ public class Configuration extends AbstractLoggableClass {
     public static final String INPUT_DIRECTORY_URI = "INPUT_DIRECTORY_URI";
 
     public static final String INPUT_COLLECTION_URI_KEY = "INPUT_COLLECTION_URI";
+
+    public static final String INPUT_TIMESTAMP_AUTO = "#AUTO";
+
+    public static final String INPUT_TIMESTAMP_KEY = "INPUT_TIMESTAMP";
+
+    public static final String URI_PREFIX_KEY = "URI_PREFIX";
 
     private Properties properties;
 
@@ -114,7 +118,7 @@ public class Configuration extends AbstractLoggableClass {
     private boolean fatalErrors = true;
 
     private Collection<ContentPermission> readRoles;
-    
+
     private boolean repairInputXml = false;
 
     private String[] placeKeys = null;
@@ -188,6 +192,10 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static final String OUTPUT_PATH_KEY = "OUTPUT_PATH";
 
+    public static final String ALLOW_EMPTY_METADATA_KEY = "ALLOW_EMPTY_METADATA";
+
+    public static final String ALLOW_EMPTY_METADATA_DEFAULT = "false";
+
     private String outputPackagePath;
 
     private Long startPosition;
@@ -210,7 +218,7 @@ public class Configuration extends AbstractLoggableClass {
     public synchronized void setProperties(Properties _properties)
             throws XccException, IOException, URISyntaxException {
         properties = _properties;
-        
+
         // we need a logger as soon as possible: keep this first
         // logger config is hot
         logger.setProperties(_properties);
@@ -231,7 +239,8 @@ public class Configuration extends AbstractLoggableClass {
                 .getProperty(READ_PERMISSION_ROLES_KEY);
         if (readRolesString != null) {
             logger.fine("read roles are: " + readRolesString);
-            String[] roleNames = readRolesString.split(CSV_SSV_REGEX);
+            String[] roleNames = readRolesString
+                    .split(CSV_SCSV_SSV_REGEX);
             if (roleNames.length > 0) {
                 readRoles = new Vector<ContentPermission>();
                 for (int i = 0; i < roleNames.length; i++) {
@@ -251,9 +260,10 @@ public class Configuration extends AbstractLoggableClass {
                 .getProperty(COPY_PROPERTIES_KEY, "true"));
 
         repairInputXml = Utilities.stringToBoolean(properties
-                .getProperty(REPAIR_INPUT_XML_KEY, REPAIR_INPUT_XML_DEFAULT));
+                .getProperty(REPAIR_INPUT_XML_KEY,
+                        REPAIR_INPUT_XML_DEFAULT));
 
-       // skipExisting is hot
+        // skipExisting is hot
         skipExisting = Utilities.stringToBoolean(properties.getProperty(
                 SKIP_EXISTING_KEY, "false"));
 
@@ -261,17 +271,21 @@ public class Configuration extends AbstractLoggableClass {
         String placeKeysString = properties
                 .getProperty(OUTPUT_FORESTS_KEY);
         if (placeKeysString != null) {
-            placeKeys = placeKeysString.split(CSV_SSV_REGEX);
+            placeKeys = placeKeysString.split(CSV_SCSV_SSV_REGEX);
         }
-        
-        String outputCollectionsString = properties.getProperty(OUTPUT_COLLECTIONS_KEY);
+
+        String outputCollectionsString = properties
+                .getProperty(OUTPUT_COLLECTIONS_KEY);
         if (null != outputCollectionsString) {
             outputCollectionsString = outputCollectionsString.trim();
-            if (null != outputCollectionsString && outputCollectionsString.length() > 1) {                
-                outputCollections = outputCollectionsString.split(CSV_SSV_REGEX);
-                logger.finest(this + " outputCollections = " + Utilities.join(outputCollections, ","));
+            if (null != outputCollectionsString
+                    && outputCollectionsString.length() > 1) {
+                outputCollections = outputCollectionsString
+                        .split(CSV_SCSV_SSV_REGEX);
+                logger.finest(this + " outputCollections = "
+                        + Utilities.join(outputCollections, ","));
             }
-        }        
+        }
 
     }
 
@@ -348,7 +362,7 @@ public class Configuration extends AbstractLoggableClass {
 
     private void configureOutput() throws IOException,
             URISyntaxException, XccException {
-        
+
         outputPackagePath = properties.getProperty(OUTPUT_PACKAGE_KEY);
 
         if (outputPackagePath == null) {
@@ -567,8 +581,6 @@ public class Configuration extends AbstractLoggableClass {
         return OutputPackage.EXTENSION;
     }
 
-    // TODO uriSuffix impl
-    
     /**
      * @return
      */
@@ -577,7 +589,8 @@ public class Configuration extends AbstractLoggableClass {
     }
 
     public String[] getOutputCollections() {
-        logger.finest(this + " outputCollections = " + Utilities.join(outputCollections, ","));
+        logger.finest(this + " outputCollections = "
+                + Utilities.join(outputCollections, ","));
         return outputCollections;
     }
 
@@ -586,6 +599,22 @@ public class Configuration extends AbstractLoggableClass {
      */
     public boolean hasOutputCollections() {
         return null != outputCollections && outputCollections.length > 0;
+    }
+
+    /**
+     * @return
+     */
+    public boolean isAllowEmptyMetadata() {
+        return Utilities.stringToBoolean(properties.getProperty(
+                ALLOW_EMPTY_METADATA_KEY, ALLOW_EMPTY_METADATA_DEFAULT));
+    }
+
+    /**
+     * @return
+     */
+    public String getTimestamp() {
+        // NB - default is null
+        return properties.getProperty(INPUT_TIMESTAMP_KEY);
     }
 
 }

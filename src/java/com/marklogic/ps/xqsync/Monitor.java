@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2006 Mark Logic Corporation
+ * Copyright (c)2006-2007 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ public class Monitor extends Thread {
 
     private long eventCount = 0;
 
-    private CompletionService completionService;
+    private CompletionService<String> completionService;
 
     /**
      * @param _logger
@@ -56,7 +56,7 @@ public class Monitor extends Thread {
      * @param _cs
      */
     public Monitor(SimpleLogger _logger, ThreadPoolExecutor _pool,
-            CompletionService _cs) {
+            CompletionService<String> _cs) {
         completionService = _cs;
         pool = _pool;
         logger = _logger;
@@ -101,7 +101,7 @@ public class Monitor extends Thread {
     private void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
         int sleepMillis = SLEEP_MILLIS;
-        Future future = null;
+        Future<String> future = null;
         long currentMillis;
 
         // if anything goes wrong, the futuretask knows how to stop us
@@ -139,7 +139,7 @@ public class Monitor extends Thread {
                     if (null != future) {
                         // check for exceptions and log result (or throw
                         // exception)
-                        lastUri = (String) future.get();
+                        lastUri = future.get();
                         eventCount++;
                     }
                 } catch (InterruptedException e) {
