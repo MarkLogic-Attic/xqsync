@@ -1,3 +1,5 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 /*
@@ -22,7 +24,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <title>XQSync README</title>
-<style>
+<style type="text/css">
 tr {
   vertical-align: top;
 }
@@ -46,6 +48,13 @@ specified in earlier files on the command line.
 See src/xqsync.sh for a sample shell script.
 </p>
 
+<p>
+<b>Note:</b>
+XQSync needs a lot of heap space for large synchronization tasks.
+Be prepared to increase the Java VM heap space limit,
+using <code>-Xmx</code>.
+</p>
+
 <h2>Required libraries:</h2>
 <ul>
   <li>MarkLogic <a href="http://developer.marklogic.com/">XCC</a></li>
@@ -54,12 +63,20 @@ See src/xqsync.sh for a sample shell script.
 
 <h2>Required properties:</h2>
 <ul>
-<li>one of: INPUT_PACKAGE, INPUT_CONNECTION_STRING</li>
-<li>one of: OUTPUT_PACKAGE, OUTPUT_CONNECTION_STRING</li>
+<li>
+  one of:
+  <code>INPUT_PACKAGE</code>,
+  <code>INPUT_CONNECTION_STRING</code>
+  </li>
+<li>
+  one of:
+  <code>OUTPUT_PACKAGE</code>,
+  <code>OUTPUT_CONNECTION_STRING</code>
+  </li>
 </ul>
 
 <h2>Available properties:</h2>
-<table border>
+<table border="1" summary="properties">
 <tr><th>Property</th><th>default value</th><th>notes</th></tr>
 <tr>
   <td>ALLOW_EMPTY_METADATA</td>
@@ -89,7 +106,7 @@ See src/xqsync.sh for a sample shell script.
     By default, every document in the input database will be transferred.
     To change this behavior, use one of the related properties:
     <ul>
-      <li<code>INPUT_COLLECTION_URI</code></li>
+      <li><code>INPUT_COLLECTION_URI</code></li>
       <li><code>INPUT_DIRECTORY_URI</code></li>
       <li><code>INPUT_DOCUMENT_URIS</code></li>
       <li><code>INPUT_QUERY</code></li>
@@ -103,7 +120,7 @@ See src/xqsync.sh for a sample shell script.
 <tr>
   <td>INPUT_COLLECTION_URI</td>
   <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
+  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
   all documents in the named collection(s) will be transferred.
     The value of this property will be tokenized on whitespace.
   </td>
@@ -111,20 +128,20 @@ See src/xqsync.sh for a sample shell script.
 <tr>
   <td>INPUT_DIRECTORY_URI</td>
   <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
+  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
   all documents in the named directory will be transferred.</td>
 </tr>
 <tr>
   <td>INPUT_DOCUMENT_URIS</td>
   <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
+  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
   all documents named by the (whitespace-delimited) uris will be transferred.
   </td>
 </tr>
 <tr>
   <td>INPUT_QUERY</td>
   <td>null</td>
-  <td>In combination with INPUT_CONNECTION_STRING,
+  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
     all uris returned by the query will be transferred.
     This sample query would transfer the first 100 documents,
     in document order:
@@ -136,6 +153,28 @@ See src/xqsync.sh for a sample shell script.
     <code>cts:uris('', 'document')[1 to 100]</code>
     <br/>
     to tranfer the first 100 documents, sorted by document URI.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_QUERY_CACHABLE</td>
+  <td>false</td>
+  <td>
+    In combination with <code>INPUT_CONNECTION_STRING</code>,
+    the query which fetches the input document URIs
+    will instruct XCC to cache or to stream the URIs.
+    If set to <code>true</code>,
+    no documents will sync until all URIs have been fetched.
+    This is usually undesirable, so <code>false</code> is the default.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_QUERY_BUFFER_BYTES</td>
+  <td>0</td>
+  <td>
+    In combination with <code>INPUT_CONNECTION_STRING</code>,
+    the query which fetches the input document URIs
+    will use this buffer size.
+    The value 0 will cause XCC to use its default size.
   </td>
 </tr>
 <tr>
@@ -208,6 +247,18 @@ See src/xqsync.sh for a sample shell script.
   <td>OUTPUT_PACKAGE</td>
   <td>null</td>
   <td>Output documents will be written to this zip file path.</td>
+</tr>
+<tr>
+  <td>QUEUE_SIZE</td>
+  <td>100,000 * THREADS</td>
+  <td>
+    Maximum size of the synchronization queue,
+    to limit memory consumption by XQSync.
+    Because larger queues use more RAM,
+    you may also need something like <code>-Xmx4096m</code>
+    to increase the Java heap size.
+    Plan for roughly 1-GB per 1-M queue entries (ie, 1kB per entry).
+  </td>
 </tr>
 <tr>
   <td>READ_PERMISSION_ROLES</td><td>null</td>

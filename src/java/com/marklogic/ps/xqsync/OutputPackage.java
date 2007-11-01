@@ -149,22 +149,11 @@ public class OutputPackage extends AbstractLoggableClass {
             // use the constructor filename for the first zip,
             // then add filecount to subsequent archives, if any.
             if (fileCount > 0) {
-                if (path.endsWith(EXTENSION)) {
-                    String pathPattern = "(.+)" + EXTENSION + "$";
-                    // one MILLION zip files...
-                    String replacementPattern = "$1-"
-                            + String.format("%06d", fileCount)
-                            + EXTENSION;
-                    path = path.replaceFirst(pathPattern,
-                            replacementPattern);
-                } else {
-                    path = path + "." + fileCount;
-                }
-                logger.fine("built " + path + " from " + canonicalPath);
-                assert path.equals(canonicalPath);
+                path = newPackagePath(canonicalPath, fileCount, 6);
             }
             logger.info("new output package " + path);
             // TODO this flush can take several seconds
+            // TODO this is a bottleneck for large output syncs
             if (outputStream != null) {
                 flush();
                 close();
@@ -176,6 +165,29 @@ public class OutputPackage extends AbstractLoggableClass {
                     currentFile));
             fileCount++;
         }
+    }
+
+    /**
+     * @param canonicalPath
+     * @param count
+     * @param width
+     * @return
+     */
+    static protected String newPackagePath(String canonicalPath, int count,
+            int width) {
+        String path = canonicalPath;
+        if (path.endsWith(EXTENSION)) {
+            String pathPattern = "(.+)" + EXTENSION + "$";
+            String replacementPattern = "$1-"
+                    + String.format("%0" + width + "d", count)
+                    + EXTENSION;
+            path = path.replaceFirst(pathPattern, replacementPattern);
+        } else {
+            path = path + "-" + count;
+        }
+        logger.fine("built " + path + " from " + canonicalPath);
+        assert path.equals(canonicalPath);
+        return path;
     }
 
     public File getCurrentFile() {

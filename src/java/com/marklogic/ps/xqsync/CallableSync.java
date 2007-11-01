@@ -29,6 +29,7 @@ import java.util.concurrent.Callable;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
+import com.marklogic.ps.timing.TimedEvent;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 
@@ -36,9 +37,7 @@ import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
  */
-public class CallableSync implements Callable<String> {
-
-    private XQSyncDocument document;
+public class CallableSync implements Callable<TimedEvent> {
 
     private Session outputSession;
 
@@ -134,7 +133,8 @@ public class CallableSync implements Callable<String> {
      * 
      * @see java.util.concurrent.Callable#call()
      */
-    public String call() throws Exception {
+    public TimedEvent call() throws Exception {
+
         // note: if there's an input file, then inputUri may be null
         if (null == inputUri) {
             if (null == inputFile) {
@@ -143,7 +143,13 @@ public class CallableSync implements Callable<String> {
             }
             inputUri = inputFile.getCanonicalPath();
         }
+
+        // try to avoid starvation
+        Thread.yield();
         logger.fine("starting sync of " + inputUri);
+        TimedEvent te = new TimedEvent();
+
+        XQSyncDocument document;
 
         if (inputSession != null) {
             document = new XQSyncDocument(inputSession, inputUri,
@@ -157,6 +163,9 @@ public class CallableSync implements Callable<String> {
         } else {
             throw new UnimplementedFeatureException("no input found");
         }
+
+        // try to avoid starvation
+        Thread.yield();
 
         // write document to output session, package, or directory
         // marshal output arguments
@@ -176,11 +185,17 @@ public class CallableSync implements Callable<String> {
                 // default: filesystem
                 document.write();
             }
-            return document.getOutputUri();
+
+            te.setDescription(document.getOutputUri());
+            te.stop(document.getContentBytesLength());
+            return te;
         } finally {
             if (outputSession != null) {
                 outputSession.close();
             }
+            
+            // try to avoid starvation
+            Thread.yield();
         }
     }
 

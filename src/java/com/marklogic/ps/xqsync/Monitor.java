@@ -25,6 +25,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.marklogic.ps.SimpleLogger;
+import com.marklogic.ps.timing.TimedEvent;
+import com.marklogic.ps.timing.Timer;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -32,7 +34,7 @@ import com.marklogic.ps.SimpleLogger;
  */
 public class Monitor extends Thread {
 
-    private static final int DISPLAY_MILLIS = 15 * 1000;
+    private static final int DISPLAY_MILLIS = 60 * 1000;
 
     private static final int SLEEP_MILLIS = 500;
 
@@ -42,13 +44,9 @@ public class Monitor extends Thread {
 
     private static long lastDisplayMillis = 0;
 
-    String lastUri;
-
     private boolean running = true;
 
-    private long eventCount = 0;
-
-    private CompletionService<String> completionService;
+    private CompletionService<TimedEvent> completionService;
 
     /**
      * @param _logger
@@ -56,7 +54,7 @@ public class Monitor extends Thread {
      * @param _cs
      */
     public Monitor(SimpleLogger _logger, ThreadPoolExecutor _pool,
-            CompletionService<String> _cs) {
+            CompletionService<TimedEvent> _cs) {
         completionService = _cs;
         pool = _pool;
         logger = _logger;
@@ -67,12 +65,13 @@ public class Monitor extends Thread {
             if (logger == null) {
                 throw new NullPointerException("must call setLogger");
             }
-            logger.fine("starting");
+            logger.info("starting");
             monitor();
-            logger.info("loaded " + eventCount + " records ok");
         } catch (Exception e) {
             if (e instanceof ExecutionException) {
-                logger.logException("fatal execution error", e.getCause());
+                logger
+                        .logException("fatal execution error", e
+                                .getCause());
             } else {
                 logger.logException("fatal error", e);
             }
@@ -81,7 +80,7 @@ public class Monitor extends Thread {
         } finally {
             pool.shutdownNow();
         }
-        logger.fine("exiting");
+        logger.info("exiting");
     }
 
     /**
@@ -101,8 +100,9 @@ public class Monitor extends Thread {
     private void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
         int sleepMillis = SLEEP_MILLIS;
-        Future<String> future = null;
+        Future<TimedEvent> future = null;
         long currentMillis;
+        TimedEvent lastEvent = null;
 
         // if anything goes wrong, the futuretask knows how to stop us
         long taskCount = pool.getTaskCount();
@@ -110,46 +110,52 @@ public class Monitor extends Thread {
                 + pool.getCorePoolSize() + ", active="
                 + pool.getActiveCount() + ", tasks=" + taskCount);
 
+        Timer timer = new Timer();
+
         // run until all futures have been checked
         while (running && !pool.isTerminated()) {
             // try to avoid thread starvation
             yield();
 
-            currentMillis = System.currentTimeMillis();
-            if (currentMillis - lastDisplayMillis > displayMillis) {
-                lastDisplayMillis = currentMillis;
-                taskCount = pool.getTaskCount();
-                logger.finer("thread count: core="
-                        + pool.getCorePoolSize() + ", active="
-                        + pool.getActiveCount() + ", tasks=" + taskCount);
-                if (lastUri != null) {
-                    logger.info("processed item " + eventCount + " of "
-                            + taskCount + " as " + lastUri);
-                }
-            }
-
             // check completed tasks
+            // sometimes this goes so fast that we would never leave the loop,
+            // so progress is never displayed... so limit the number of loops.
             do {
-                // try to avoid thread starvation
-                yield();
-
                 try {
                     future = completionService.poll(SLEEP_MILLIS,
                             TimeUnit.MILLISECONDS);
                     if (null != future) {
-                        // check for exceptions and log result (or throw
-                        // exception)
-                        lastUri = future.get();
-                        eventCount++;
+                        // record result, or throw exception
+                        lastEvent = future.get();
+                        // reduce memory utilization by discarding events
+                        timer.add(lastEvent, false);
                     }
                 } catch (InterruptedException e) {
                     logger.logException("interrupted in poll() or get()",
                             e);
                     continue;
                 }
+
+                currentMillis = System.currentTimeMillis();
+                if (currentMillis - lastDisplayMillis > displayMillis) {
+                    lastDisplayMillis = currentMillis;
+                    taskCount = pool.getTaskCount();
+                    logger.finer("thread count: core="
+                            + pool.getCorePoolSize() + ", active="
+                            + pool.getActiveCount() + ", tasks=" + taskCount);
+                    if (lastEvent != null) {
+                        logger.info("" + timer.getEventCount() + "/"
+                                + taskCount + ", "
+                                + timer.getProgressMessage() + ", "
+                                + lastEvent.getDescription());
+                    }
+                }
+
             } while (null != future);
 
         }
+
+        logger.info(timer.getProgressMessage());
     }
 
     /**

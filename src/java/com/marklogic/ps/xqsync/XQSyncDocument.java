@@ -173,7 +173,7 @@ public class XQSyncDocument {
         } else {
             query += "()\n";
         }
-        
+
         Request req = null;
         if (null != timestamp) {
             RequestOptions opts = _session.getDefaultRequestOptions();
@@ -184,12 +184,28 @@ public class XQSyncDocument {
         }
         req.setNewStringVariable("URI", _uri);
         ResultSequence rs = null;
-        try {
-            rs = _session.submitRequest(req);
-        } catch (XQueryException e) {
-            // we want to know what the query was
-            logger.logException(query, e);
-            throw e;
+        int retries = 3;
+        // in case the server is unreliable, we try three times
+        while (retries > 0) {
+            try {
+                rs = _session.submitRequest(req);
+                // success!
+                break;
+            } catch (XQueryException e) {
+                // we want to know what the query was
+                logger.severe("error in query: " + query);
+                throw e;
+            } catch (XccException e) {
+                retries--;
+                // we want to know which document it was
+                if (retries < 1) {
+                    logger.severe("retries exhausted for " + _uri);
+                    throw e;
+                }
+                logger.logException("error reading document: will retry ("
+                        + retries + "): " + _uri, e);
+                Thread.yield();                
+            }
         }
 
         if (!rs.hasNext()) {
@@ -628,6 +644,13 @@ public class XQSyncDocument {
      */
     public XQSyncDocumentMetadata getMetadata() {
         return metadata;
+    }
+
+    /**
+     * @return
+     */
+    public long getContentBytesLength() {
+        return contentBytes.length;
     }
 
 }

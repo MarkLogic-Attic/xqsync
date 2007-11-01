@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
+import com.marklogic.ps.timing.TimedEvent;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.exceptions.RequestException;
 
@@ -48,7 +49,7 @@ public class TaskFactory {
 
     private Collection<ContentPermission> readRoles;
 
-    private OutputPackage outputPackage;
+    private OutputPackage[] outputPackages;
 
     private SimpleLogger logger;
 
@@ -64,11 +65,15 @@ public class TaskFactory {
 
     private BigInteger timestamp = null;
 
+    private int threadCount = Configuration.THREADS_DEFAULT_INT;
+
     /**
      * @param _config
      * @throws RequestException
+     * @throws IOException
      */
-    public TaskFactory(Configuration _config) throws RequestException {
+    public TaskFactory(Configuration _config) throws RequestException,
+            IOException {
         configuration = _config;
         logger = _config.getLogger();
         copyPermissions = _config.isCopyPermissions();
@@ -81,11 +86,14 @@ public class TaskFactory {
         readRoles = _config.getReadRoles();
         placeKeys = _config.getPlaceKeys();
 
+        threadCount = _config.getThreadCount();
+
         // TODO filesystem output broken?
         // outputPath = _config.getOutputPath();
+
         String outputPackagePath = _config.getOutputPackagePath();
         if (outputPackagePath != null) {
-            outputPackage = new OutputPackage(new File(outputPackagePath));
+            configureOutputPackages(outputPackagePath);
         }
 
         prefix = _config.getUriPrefix();
@@ -100,7 +108,28 @@ public class TaskFactory {
     }
 
     /**
-     * @throws RequestException 
+     * @param outputPackagePath
+     * @throws IOException
+     */
+    private void configureOutputPackages(String outputPackagePath)
+            throws IOException {
+        String canonicalPath = new File(outputPackagePath)
+                .getCanonicalPath();
+        String path;
+
+        // create enough output packages to avoid most thread contention
+        int numPackages = Math.max(Runtime.getRuntime()
+                .availableProcessors(), Math.min(1, threadCount / 2));
+        outputPackages = new OutputPackage[numPackages];
+
+        for (int i = 0; i < outputPackages.length; i++) {
+            path = OutputPackage.newPackagePath(canonicalPath, i, 3);
+            outputPackages[i] = new OutputPackage(new File(path));
+        }
+    }
+
+    /**
+     * @throws RequestException
      * 
      */
     private void configureTimestamp() throws RequestException {
@@ -143,8 +172,12 @@ public class TaskFactory {
         if (null != outputSession) {
             cs.setOutputSession(outputSession);
             cs.setSkipExisting(skipExisting);
-        } else if (null != outputPackage) {
-            cs.setOutputPackage(outputPackage);
+        } else if (null != outputPackages) {
+            // very simple pooling - outputPackage is thread-safe, anyway,
+            // but this keeps most threads from contending for a package
+            cs.setOutputPackage(outputPackages[Thread.currentThread()
+                    .hashCode()
+                    % outputPackages.length]);
         }
 
         if (null != readRoles) {
@@ -168,7 +201,7 @@ public class TaskFactory {
      * @param file
      * @return
      */
-    public Callable<String> newCallableSync(File file) {
+    public Callable<TimedEvent> newCallableSync(File file) {
         CallableSync cs = new CallableSync(file, copyPermissions,
                 copyProperties, repairInputXml, allowEmptyMetadata);
         configure(cs);
@@ -179,7 +212,7 @@ public class TaskFactory {
      * @param uri
      * @return
      */
-    public Callable<String> newCallableSync(String uri) {
+    public Callable<TimedEvent> newCallableSync(String uri) {
         CallableSync cs;
         if (inputPackage != null) {
             cs = new CallableSync(inputPackage, uri, copyPermissions,
@@ -205,11 +238,13 @@ public class TaskFactory {
      * 
      */
     public void close() {
-        if (outputPackage != null) {
-            try {
-                outputPackage.close();
-            } catch (IOException e) {
-                logger.logException("cleanup", e);
+        if (null != outputPackages) {
+            for (int i = 0; i < outputPackages.length; i++) {
+                try {
+                    outputPackages[i].close();
+                } catch (IOException e) {
+                    logger.logException("cleanup", e);
+                }
             }
         }
     }

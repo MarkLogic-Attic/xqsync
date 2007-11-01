@@ -135,15 +135,17 @@ public class Configuration extends AbstractLoggableClass {
 
     private String inputPackagePath;
 
-    /**
-     * 
-     */
-    private static final String THREADS_DEFAULT = "1";
+    protected static final int THREADS_DEFAULT_INT = 1;
 
     /**
      * 
      */
-    private static final String THREADS_KEY = "THREADS";
+    protected static final String THREADS_DEFAULT = "" + THREADS_DEFAULT_INT;
+
+    /**
+     * 
+     */
+    public static final String THREADS_KEY = "THREADS";
 
     /**
      * 
@@ -195,6 +197,16 @@ public class Configuration extends AbstractLoggableClass {
     public static final String ALLOW_EMPTY_METADATA_KEY = "ALLOW_EMPTY_METADATA";
 
     public static final String ALLOW_EMPTY_METADATA_DEFAULT = "false";
+
+    public static final String INPUT_CACHABLE_KEY = "INPUT_QUERY_CACHABLE";
+
+    private static final String INPUT_CACHABLE_DEFAULT = "" + false;
+
+    public static final String INPUT_BUFFER_BYTES_KEY = "INPUT_QUERY_BUFFER_BYTES";
+
+    private static final String INPUT_BUFFER_BYTES_DEFAULT = "0";
+
+    public static final String QUEUE_SIZE_KEY = "QUEUE_SIZE";
 
     private String outputPackagePath;
 
@@ -615,6 +627,30 @@ public class Configuration extends AbstractLoggableClass {
     public String getTimestamp() {
         // NB - default is null
         return properties.getProperty(INPUT_TIMESTAMP_KEY);
+    }
+
+    /**
+     * @return
+     */
+    public boolean isInputQueryCachable() {
+        return Boolean.parseBoolean(properties.getProperty(
+                INPUT_CACHABLE_KEY, INPUT_CACHABLE_DEFAULT));
+    }
+
+    /**
+     * @return
+     */
+    public int inputQueryBufferSize() {
+        return Integer.parseInt(properties.getProperty(
+                INPUT_BUFFER_BYTES_KEY, INPUT_BUFFER_BYTES_DEFAULT));
+    }
+
+    /**
+     * @return
+     */
+    public int getQueueSize() {
+        return Integer.parseInt(properties.getProperty(QUEUE_SIZE_KEY, ""
+                + (getThreadCount() * 100 * 1000)));
     }
 
 }

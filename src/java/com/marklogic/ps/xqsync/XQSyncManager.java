@@ -23,6 +23,7 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -35,10 +36,12 @@ import java.util.concurrent.TimeUnit;
 import com.marklogic.ps.AbstractLoggableClass;
 import com.marklogic.ps.FileFinder;
 import com.marklogic.ps.Session;
+import com.marklogic.ps.timing.TimedEvent;
 import com.marklogic.xcc.ContentbaseMetaData;
 import com.marklogic.xcc.Request;
 import com.marklogic.xcc.RequestOptions;
 import com.marklogic.xcc.ResultSequence;
+import com.marklogic.xcc.exceptions.StreamingResultException;
 import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
 
@@ -61,6 +64,8 @@ public class XQSyncManager extends AbstractLoggableClass {
 
         private BlockingQueue<Runnable> queue;
 
+        private boolean warning = false;
+
         /*
          * (non-Javadoc)
          * 
@@ -74,6 +79,12 @@ public class XQSyncManager extends AbstractLoggableClass {
             }
             try {
                 // block until space becomes available
+                if (!warning) {
+                    logger.warning("queue is full: size = "
+                            + queue.size()
+                            + " (warning will only appear once!)");
+                    warning = true;
+                }
                 queue.put(r);
             } catch (InterruptedException e) {
                 // someone is trying to interrupt us
@@ -114,14 +125,26 @@ public class XQSyncManager extends AbstractLoggableClass {
         try {
             // start your engines...
             int threads = configuration.getThreadCount();
-            logger.info("starting pool of " + threads + " threads");
-            BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(
-                    threads * 100 * 1000);
+            BlockingQueue<Runnable> workQueue = null;
+            inputSession = configuration.newInputSession();
+            if (null != inputSession) {
+                // we can't afford to block the input connection queue,
+                // or else the XCC request might time out
+                logger.info("starting pool of " + threads
+                        + " threads, queue size = unlimited");
+                workQueue = new LinkedBlockingQueue<Runnable>();
+            } else {
+                int queueSize = configuration.getQueueSize();
+                logger.info("starting pool of " + threads
+                        + " threads, queue size = " + queueSize);
+                // an array queue should be somewhat lighter-weight
+                workQueue = new ArrayBlockingQueue<Runnable>(queueSize);
+            }
             // by using CallerBlocksPolicy, we automatically throttle the queue
             RejectedExecutionHandler policy = new CallerBlocksPolicy();
             ThreadPoolExecutor pool = new ThreadPoolExecutor(threads,
                     threads, 16, TimeUnit.SECONDS, workQueue, policy);
-            CompletionService<String> completionService = new ExecutorCompletionService<String>(
+            CompletionService<TimedEvent> completionService = new ExecutorCompletionService<TimedEvent>(
                     pool);
 
             // to attempt to avoid starvation, run the monitor with higher
@@ -133,8 +156,8 @@ public class XQSyncManager extends AbstractLoggableClass {
             // TODO move into a task-producer thread
             // eventually, this means no dedicated manager at all
             factory = new TaskFactory(configuration);
+            CallableWrapper.setFactory(factory);
 
-            inputSession = configuration.newInputSession();
             if (inputSession != null) {
                 ContentbaseMetaData meta = inputSession
                         .getContentbaseMetaData();
@@ -166,6 +189,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             }
 
             factory.close();
+            factory = null;
 
         } catch (Throwable t) {
             if (monitor != null) {
@@ -182,7 +206,7 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @throws IOException
      * 
      */
-    private long queueFromInputPackage(CompletionService<String> _cs,
+    private long queueFromInputPackage(CompletionService<TimedEvent> _cs,
             String _path) throws IOException {
         File file = new File(_path);
 
@@ -221,7 +245,7 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @throws IOException
      * 
      */
-    private long queueFromInputPackage(CompletionService<String> _cs,
+    private long queueFromInputPackage(CompletionService<TimedEvent> _cs,
             File _path) throws IOException {
         // list contents of package
         logger.info("listing package " + _path);
@@ -238,7 +262,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             count++;
             path = iter.next();
             logger.finer("queuing " + count + ": " + path);
-            _cs.submit(factory.newCallableSync(path));
+            _cs.submit(new CallableWrapper(path));
         }
 
         return count;
@@ -248,8 +272,8 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @param _cs
      * @throws XccException
      */
-    private long queueFromInputConnection(CompletionService<String> _cs)
-            throws XccException {
+    private long queueFromInputConnection(
+            CompletionService<TimedEvent> _cs) throws XccException {
         // use lexicon by default - this may throw an exception
         try {
             return queueFromInputConnection(_cs, true);
@@ -273,8 +297,9 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @param _useLexicon
      * @throws XccException
      */
-    private long queueFromInputConnection(CompletionService<String> _cs,
-            boolean _useLexicon) throws XccException {
+    private long queueFromInputConnection(
+            CompletionService<TimedEvent> _cs, boolean _useLexicon)
+            throws XccException {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
@@ -298,7 +323,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             // we don't need to touch the database
             for (int i = 0; i < documentUris.length; i++) {
                 count++;
-                _cs.submit(factory.newCallableSync(documentUris[i]));
+                _cs.submit(new CallableWrapper(documentUris[i]));
             }
             return count;
         }
@@ -313,37 +338,51 @@ public class XQSyncManager extends AbstractLoggableClass {
         }
 
         // in order to handle really big result sequences,
-        // we have to turn off caching, and
-        // we actually have to reduce the buffer size.
+        // we may have to turn off caching (default),
+        // and we may also have to *reduce* the buffer size.
         RequestOptions opts = inputSession.getDefaultRequestOptions();
-        logger.fine("buffer size = " + opts.getResultBufferSize());
-        logger.fine("caching = " + opts.getCacheResult());
-        opts.setCacheResult(false);
-        opts.setResultBufferSize(4 * 1024);
-        logger.fine("buffer size = " + opts.getResultBufferSize());
-        logger.fine("caching = " + opts.getCacheResult());
+        logger.fine("buffer size = " + opts.getResultBufferSize()
+                + ", caching = " + opts.getCacheResult());
+        opts.setCacheResult(configuration.isInputQueryCachable());
+        opts.setResultBufferSize(configuration.inputQueryBufferSize());
+        logger.info("buffer size = " + opts.getResultBufferSize()
+                + ", caching = " + opts.getCacheResult());
 
         String uri;
         ResultSequence rs;
         Request request;
 
-        for (int i = 0; i < size; i++) {
-            request = getRequest(collectionUris == null ? null
-                    : collectionUris[i], directoryUris == null ? null
-                    : directoryUris[i], userQuery, startPosition,
-                    _useLexicon);
-            request.setOptions(opts);
-            rs = inputSession.submitRequest(request);
+        // There is an inherent conflict here, for large URI sets.
+        // We want a limited queue size, to limit memory consumption,
+        // but we must retrieve quickly so that XCC doesn't time out.
+        // Maybe there should be two queues?
 
-            while (rs.hasNext()) {
-                uri = rs.next().asString();
-                logger.fine("queuing " + count + ": " + uri);
-                _cs.submit(factory.newCallableSync(uri));
-                count++;
+        try {
+            for (int i = 0; i < size; i++) {
+
+                request = getRequest(collectionUris == null ? null
+                        : collectionUris[i], directoryUris == null ? null
+                        : directoryUris[i], userQuery, startPosition,
+                        _useLexicon);
+                request.setOptions(opts);
+                rs = inputSession.submitRequest(request);
+
+                while (rs.hasNext()) {
+                    uri = rs.next().asString();
+                    logger.fine("queuing " + count + ": " + uri);
+                    _cs.submit(new CallableWrapper(uri));
+                    count++;
+                }
+                rs.close();
             }
-            rs.close();
+        } catch (StreamingResultException e) {
+            logger.info("count = " + count);
+            logger.warning("Listing input URIs probably timed out:"
+                    + " try setting " + Configuration.INPUT_CACHABLE_KEY
+                    + " or " + Configuration.INPUT_BUFFER_BYTES_KEY
+                    + " or " + Configuration.QUEUE_SIZE_KEY);
+            throw e;
         }
-
         return count;
     }
 
@@ -480,7 +519,7 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @return
      * @throws IOException
      */
-    private long queueFromInputPath(CompletionService<String> _cs,
+    private long queueFromInputPath(CompletionService<TimedEvent> _cs,
             String _inputPath) throws IOException {
         // build documentList from a filesystem path
         // exclude stuff that ends with '.metadata'
@@ -498,7 +537,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             file = iter.next();
             logger.finer("queuing " + count + ": "
                     + file.getCanonicalPath());
-            _cs.submit(factory.newCallableSync(file));
+            _cs.submit(new CallableWrapper(file));
         }
 
         return count;
