@@ -104,7 +104,8 @@ public class InputPackage extends AbstractLoggableClass {
         }
 
         // otherwise there's no hope: something went very wrong
-        throw new IOException("entry " + _path + " not found");
+        throw new IOException("entry " + _path + " not found in "
+                + inputZip.getName());
     }
 
     /**

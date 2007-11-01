@@ -18,6 +18,7 @@ public class CallableWrapper implements Callable<TimedEvent> {
     private static TaskFactory factory;
     private String uri;
     private File file;
+    private InputPackage inputPackage;
     
     /**
      * @param uri
@@ -34,6 +35,15 @@ public class CallableWrapper implements Callable<TimedEvent> {
     }
 
     /**
+     * @param inputPackage
+     * @param path
+     */
+    public CallableWrapper(InputPackage inputPackage, String path) {
+        this.inputPackage = inputPackage;
+        this.uri = path;
+    }
+
+    /**
      * @param _factory
      */
     public static void setFactory(TaskFactory _factory) {
@@ -46,9 +56,14 @@ public class CallableWrapper implements Callable<TimedEvent> {
     public TimedEvent call() throws Exception {
         // basically we do everything at call() time,
         // to reduce memory utilization for the queue
+        if (null != inputPackage) {
+            return factory.newCallableSync(inputPackage, uri).call();
+        }
+
         if (null != uri) {
             return factory.newCallableSync(uri).call();
         }
+        
         return factory.newCallableSync(file).call();        
     }
 

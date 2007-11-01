@@ -252,7 +252,6 @@ public class XQSyncManager extends AbstractLoggableClass {
 
         InputPackage inputPackage = new InputPackage(_path
                 .getCanonicalPath());
-        factory.setInputPackage(inputPackage);
 
         Iterator<String> iter = inputPackage.list().iterator();
         String path;
@@ -262,7 +261,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             count++;
             path = iter.next();
             logger.finer("queuing " + count + ": " + path);
-            _cs.submit(new CallableWrapper(path));
+            _cs.submit(new CallableWrapper(inputPackage, path));
         }
 
         return count;

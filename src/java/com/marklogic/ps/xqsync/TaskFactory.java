@@ -43,8 +43,6 @@ public class TaskFactory {
 
     private boolean skipExisting;
 
-    private InputPackage inputPackage;
-
     private String[] placeKeys;
 
     private Collection<ContentPermission> readRoles;
@@ -213,25 +211,25 @@ public class TaskFactory {
      * @return
      */
     public Callable<TimedEvent> newCallableSync(String uri) {
-        CallableSync cs;
-        if (inputPackage != null) {
-            cs = new CallableSync(inputPackage, uri, copyPermissions,
-                    copyProperties, repairInputXml, allowEmptyMetadata);
-        } else {
-            Session session = configuration.newInputSession();
-            cs = new CallableSync(session, uri, copyPermissions,
-                    copyProperties, repairInputXml, allowEmptyMetadata);
-        }
+        Session session = configuration.newInputSession();
+        CallableSync cs = new CallableSync(session, uri, copyPermissions,
+                copyProperties, repairInputXml, allowEmptyMetadata);
         configure(cs);
         return cs;
     }
 
     /**
      * @param inputPackage
+     * @param uri
+     * @return
      */
-    public void setInputPackage(InputPackage inputPackage) {
-        this.inputPackage = inputPackage;
-        InputPackage.setLogger(logger);
+    public Callable<TimedEvent> newCallableSync(InputPackage inputPackage,
+            String uri) {
+        CallableSync cs = new CallableSync(inputPackage, uri,
+                copyPermissions, copyProperties, repairInputXml,
+                allowEmptyMetadata);
+        configure(cs);
+        return cs;
     }
 
     /**
