@@ -96,7 +96,11 @@ using <code>-Xmx</code>.
 </tr>
 <tr>
   <td>FATAL_ERRORS</td><td>true</td>
-  <td>If true, all exceptions are fatal.</td>
+  <td>
+    If true, all exceptions are fatal.
+    If false, exceptions will still be logged,
+    but in most cases XQSync will proceed.
+  </td>
 </tr>
 <tr>
   <td>INPUT_CONNECTION_STRING</td>
@@ -250,7 +254,7 @@ using <code>-Xmx</code>.
 </tr>
 <tr>
   <td>QUEUE_SIZE</td>
-  <td>100,000 * THREADS</td>
+  <td>100,000</td>
   <td>
     Maximum size of the synchronization queue,
     to limit memory consumption by XQSync.

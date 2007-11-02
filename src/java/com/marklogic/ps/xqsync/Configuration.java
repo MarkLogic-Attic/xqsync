@@ -64,6 +64,8 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static final String FATAL_ERRORS_KEY = "FATAL_ERRORS";
 
+    public static final boolean FATAL_ERRORS_DEFAULT_BOOLEAN = true;
+
     /**
      * 
      */
@@ -140,7 +142,8 @@ public class Configuration extends AbstractLoggableClass {
     /**
      * 
      */
-    protected static final String THREADS_DEFAULT = "" + THREADS_DEFAULT_INT;
+    protected static final String THREADS_DEFAULT = ""
+            + THREADS_DEFAULT_INT;
 
     /**
      * 
@@ -244,7 +247,8 @@ public class Configuration extends AbstractLoggableClass {
 
         // fatalErrors is hot
         fatalErrors = Utilities.stringToBoolean(properties.getProperty(
-                FATAL_ERRORS_KEY, "true"), true);
+                FATAL_ERRORS_KEY, "" + FATAL_ERRORS_DEFAULT_BOOLEAN),
+                FATAL_ERRORS_DEFAULT_BOOLEAN);
 
         // read-roles are hot
         String readRolesString = properties
@@ -650,7 +654,7 @@ public class Configuration extends AbstractLoggableClass {
      */
     public int getQueueSize() {
         return Integer.parseInt(properties.getProperty(QUEUE_SIZE_KEY, ""
-                + (getThreadCount() * 100 * 1000)));
+                + (100 * 1000)));
     }
 
 }

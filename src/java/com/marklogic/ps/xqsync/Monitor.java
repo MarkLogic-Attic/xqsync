@@ -48,16 +48,20 @@ public class Monitor extends Thread {
 
     private CompletionService<TimedEvent> completionService;
 
+    private boolean fatalErrors = Configuration.FATAL_ERRORS_DEFAULT_BOOLEAN;
+
     /**
      * @param _logger
      * @param _pool
      * @param _cs
+     * @param _fatalErrors
      */
     public Monitor(SimpleLogger _logger, ThreadPoolExecutor _pool,
-            CompletionService<TimedEvent> _cs) {
+            CompletionService<TimedEvent> _cs, boolean _fatalErrors) {
         completionService = _cs;
         pool = _pool;
         logger = _logger;
+        fatalErrors = _fatalErrors;
     }
 
     public void run() {
@@ -104,7 +108,7 @@ public class Monitor extends Thread {
         long currentMillis;
         TimedEvent lastEvent = null;
 
-        // if anything goes wrong, the futuretask knows how to stop us
+        // if anything goes wrong, the manager knows how to stop us
         long taskCount = pool.getTaskCount();
         logger.finest("looping every " + sleepMillis + ", core="
                 + pool.getCorePoolSize() + ", active="
@@ -126,7 +130,14 @@ public class Monitor extends Thread {
                             TimeUnit.MILLISECONDS);
                     if (null != future) {
                         // record result, or throw exception
-                        lastEvent = future.get();
+                        try {
+                            lastEvent = future.get();
+                        } catch (ExecutionException e) {
+                            if (fatalErrors) {
+                                throw e;
+                            }
+                            logger.logException("non-fatal", e);
+                        }
                         // reduce memory utilization by discarding events
                         timer.add(lastEvent, false);
                     }
@@ -142,7 +153,8 @@ public class Monitor extends Thread {
                     taskCount = pool.getTaskCount();
                     logger.finer("thread count: core="
                             + pool.getCorePoolSize() + ", active="
-                            + pool.getActiveCount() + ", tasks=" + taskCount);
+                            + pool.getActiveCount() + ", tasks="
+                            + taskCount);
                     if (lastEvent != null) {
                         logger.info("" + timer.getEventCount() + "/"
                                 + taskCount + ", "

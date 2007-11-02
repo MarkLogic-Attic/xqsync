@@ -140,7 +140,8 @@ public class XQSyncManager extends AbstractLoggableClass {
                 // an array queue should be somewhat lighter-weight
                 workQueue = new ArrayBlockingQueue<Runnable>(queueSize);
             }
-            // by using CallerBlocksPolicy, we automatically throttle the queue
+            // by using CallerBlocksPolicy, we automatically throttle the queue,
+            // but this won't affect runs that use input-connection.
             RejectedExecutionHandler policy = new CallerBlocksPolicy();
             ThreadPoolExecutor pool = new ThreadPoolExecutor(threads,
                     threads, 16, TimeUnit.SECONDS, workQueue, policy);
@@ -149,11 +150,12 @@ public class XQSyncManager extends AbstractLoggableClass {
 
             // to attempt to avoid starvation, run the monitor with higher
             // priority than the thread pool will have.
-            monitor = new Monitor(logger, pool, completionService);
+            monitor = new Monitor(logger, pool, completionService,
+                    configuration.isFatalErrors());
             monitor.setPriority(Thread.NORM_PRIORITY + 1);
             monitor.start();
 
-            // TODO move into a task-producer thread
+            // TODO move into a task-producer thread?
             // eventually, this means no dedicated manager at all
             factory = new TaskFactory(configuration);
             CallableWrapper.setFactory(factory);
@@ -354,7 +356,10 @@ public class XQSyncManager extends AbstractLoggableClass {
         // There is an inherent conflict here, for large URI sets.
         // We want a limited queue size, to limit memory consumption,
         // but we must retrieve quickly so that XCC doesn't time out.
-        // Maybe there should be two queues?
+        // The current solution is limited queue size for most runs,
+        // but an unlimited queue site when input-connection is used.
+        // The queue is as light-weight as possible,
+        // by using CallableWrapper instead of CallableSync.
 
         try {
             for (int i = 0; i < size; i++) {

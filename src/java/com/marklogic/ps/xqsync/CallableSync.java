@@ -32,6 +32,7 @@ import com.marklogic.ps.Utilities;
 import com.marklogic.ps.timing.TimedEvent;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
+import com.marklogic.xcc.exceptions.XQueryException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -78,7 +79,7 @@ public class CallableSync implements Callable<TimedEvent> {
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
-     * @param _allowEmptyMetadata 
+     * @param _allowEmptyMetadata
      */
     public CallableSync(InputPackage _package, String _path,
             boolean _copyPermissions, boolean _copyProperties,
@@ -97,7 +98,7 @@ public class CallableSync implements Callable<TimedEvent> {
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
-     * @param _allowEmptyMetadata 
+     * @param _allowEmptyMetadata
      */
     public CallableSync(Session _session, String _uri,
             boolean _copyPermissions, boolean _copyProperties,
@@ -115,11 +116,12 @@ public class CallableSync implements Callable<TimedEvent> {
      * @param _copyPermissions
      * @param _copyProperties
      * @param _repairInputXml
-     * @param _allowEmptyMetadata 
+     * @param _allowEmptyMetadata
      * @throws IOException
      */
     public CallableSync(File _file, boolean _copyPermissions,
-            boolean _copyProperties, boolean _repairInputXml, boolean _allowEmptyMetadata) {
+            boolean _copyProperties, boolean _repairInputXml,
+            boolean _allowEmptyMetadata) {
         inputFile = _file;
         // note: don't set inputUri, since we can always get it from the file
         copyPermissions = _copyPermissions;
@@ -153,10 +155,12 @@ public class CallableSync implements Callable<TimedEvent> {
 
         if (inputSession != null) {
             document = new XQSyncDocument(inputSession, inputUri,
-                    copyPermissions, copyProperties, repairInputXml, timestamp);
+                    copyPermissions, copyProperties, repairInputXml,
+                    timestamp);
         } else if (inputPackage != null) {
             document = new XQSyncDocument(inputPackage, inputUri,
-                    copyPermissions, copyProperties, repairInputXml, allowEmptyMetadata);
+                    copyPermissions, copyProperties, repairInputXml,
+                    allowEmptyMetadata);
         } else if (inputFile != null) {
             document = new XQSyncDocument(inputFile, copyPermissions,
                     copyProperties, repairInputXml, allowEmptyMetadata);
@@ -189,11 +193,17 @@ public class CallableSync implements Callable<TimedEvent> {
             te.setDescription(document.getOutputUri());
             te.stop(document.getContentBytesLength());
             return te;
+        } catch (XQueryException e) {
+            if (null != inputPackage) {
+                logger.warning("error in input package "
+                        + inputPackage.getPath());
+            }
+            throw e;
         } finally {
             if (outputSession != null) {
                 outputSession.close();
             }
-            
+
             // try to avoid starvation
             Thread.yield();
         }
