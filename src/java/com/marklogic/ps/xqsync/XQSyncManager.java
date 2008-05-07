@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,8 @@ public class XQSyncManager extends AbstractLoggableClass {
      * 
      */
     private static final String ERROR_CODE_MISSING_URI_LEXICON = "XDMP-URILXCNNOTFOUND";
+
+    private static final String ERROR_CODE_UNDEFINED_FUNCTION = "XDMP-UNDFUN";
 
     /**
      * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -221,6 +223,7 @@ public class XQSyncManager extends AbstractLoggableClass {
                     + file.getCanonicalPath());
         }
 
+        // directory, so look for zip children
         long total = 0;
         final String extension = Configuration.getPackageFileExtension();
         FileFilter filter = new FileFilter() {
@@ -280,7 +283,10 @@ public class XQSyncManager extends AbstractLoggableClass {
             return queueFromInputConnection(_cs, true);
         } catch (XQueryException e) {
             // check to see if the exception was XDMP-URILXCNNOTFOUND
-            if (ERROR_CODE_MISSING_URI_LEXICON.equals(e.getCode())) {
+            // for 3.1, check for missing cts:uris() function
+            String code = e.getCode();
+            if (ERROR_CODE_MISSING_URI_LEXICON.equals(code)
+                    || ERROR_CODE_UNDEFINED_FUNCTION.equals(code)) {
                 // try again, the hard way
                 logger.warning("Enable the document uri lexicon on "
                         + inputSession.getContentBaseName()

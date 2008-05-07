@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2007-11-02.1";
+    public static String VERSION = "2008-05-06.2";
 
     public static void main(String[] args) throws IOException,
             XccException, URISyntaxException {
@@ -63,6 +63,9 @@ public class XQSync extends AbstractLoggableClass {
         logger.info("XQSync starting: version = " + VERSION);
         logger.info("XCC version = " + Version.getVersionString());
         configuration.setProperties(props);
+        // repeat, to log - and for emphasis
+        logger.info("XQSync starting: version = " + VERSION);
+        logger.info("XCC version = " + Version.getVersionString());
 
         long start = System.currentTimeMillis();
 

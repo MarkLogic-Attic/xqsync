@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2006-2007 Mark Logic Corporation
+ * Copyright (c)2006-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,14 +132,15 @@ public class Monitor extends Thread {
                         // record result, or throw exception
                         try {
                             lastEvent = future.get();
+                            // reduce memory utilization by discarding events
+                            timer.add(lastEvent, false);
                         } catch (ExecutionException e) {
                             if (fatalErrors) {
                                 throw e;
                             }
                             logger.logException("non-fatal", e);
+                            timer.incrementEventCount(false);
                         }
-                        // reduce memory utilization by discarding events
-                        timer.add(lastEvent, false);
                     }
                 } catch (InterruptedException e) {
                     logger.logException("interrupted in poll() or get()",

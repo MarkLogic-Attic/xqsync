@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -176,7 +176,9 @@ public class XQSyncDocumentMetadata {
      */
     public void setFormat(String _format) {
         if (_format.equals(DocumentFormat.XML)
-                || _format.equals("element")) {
+                || _format.equals("element")
+                || _format.equals("comment")
+                || _format.equals("processing-instruction")) {
             setFormat(DocumentFormat.XML);
             return;
         }

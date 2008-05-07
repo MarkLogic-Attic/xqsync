@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.ContentPermission;
+import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XccException;
 
 /**
@@ -363,10 +364,9 @@ public class Configuration extends AbstractLoggableClass {
             }
             if (!(inputConnectionString.startsWith(XCC_PREFIX) || inputConnectionString
                     .startsWith(XCC_PREFIX_OLD))) {
-                logger.fine("fixing connection string "
-                        + inputConnectionString);
-                inputConnectionString = XCC_PREFIX
-                        + inputConnectionString;
+                throw new UnimplementedFeatureException(
+                        "unsupported connection string: "
+                                + inputConnectionString);
             }
             logger
                     .info("input from connection: "
@@ -398,10 +398,9 @@ public class Configuration extends AbstractLoggableClass {
                 }
                 if (!(outputConnectionString.startsWith(XCC_PREFIX) || outputConnectionString
                         .startsWith(XCC_PREFIX_OLD))) {
-                    logger.fine("fixing connection string "
-                            + outputConnectionString);
-                    outputConnectionString = XCC_PREFIX
-                            + outputConnectionString;
+                    throw new UnimplementedFeatureException(
+                            "unsupported connection string: "
+                                    + outputConnectionString);
                 }
                 logger.info("output to connection: "
                         + outputConnectionString);

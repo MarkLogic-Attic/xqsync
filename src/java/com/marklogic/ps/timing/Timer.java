@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2005-2007 Mark Logic Corporation
+ * Copyright (c)2005-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -231,17 +231,35 @@ public class Timer {
     }
 
     /**
+     * @param count
+     * @param successful
+     */
+    public void incrementEventCount(int count, boolean successful) {
+        eventCount += count;
+        if (!successful) {
+            errors++;
+        }
+    }
+
+    /**
      * 
      */
     public void incrementEventCount() {
-        eventCount++;
+        incrementEventCount(1, true);
     }
 
     /**
      * @param count
      */
     public void incrementEventCount(int count) {
-        eventCount += count;
+        incrementEventCount(count, true);
+    }
+
+    /**
+     * @param successful
+     */
+    public void incrementEventCount(boolean successful) {
+        incrementEventCount(1, successful);
     }
 
     /**

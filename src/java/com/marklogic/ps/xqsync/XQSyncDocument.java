@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ import com.marklogic.xcc.Request;
 import com.marklogic.xcc.RequestOptions;
 import com.marklogic.xcc.ResultItem;
 import com.marklogic.xcc.ResultSequence;
+import com.marklogic.xcc.exceptions.RequestException;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
@@ -103,15 +104,15 @@ public class XQSyncDocument {
      * @param _repairInputXml
      * @param _timestamp
      * 
-     * @throws XccException
      * @throws IOException
+     * @throws RequestException
      * @throws SAXException
      * @throws ParserConfigurationException
      */
     public XQSyncDocument(com.marklogic.ps.Session _session, String _uri,
             boolean _copyPermissions, boolean _copyProperties,
             boolean _repairInputXml, BigInteger _timestamp)
-            throws XccException, IOException,
+            throws IOException, RequestException,
             ParserConfigurationException, SAXException {
         if (_uri == null) {
             throw new UnimplementedFeatureException("null uri");
@@ -141,7 +142,8 @@ public class XQSyncDocument {
                 // cf bug 3575 - document allows multiple roots
                 // we will prefer the element(), if present
                 + "define variable $ROOT as node()+ {\n"
-                + " ($DOC/element(), $DOC/binary(), $DOC/text())[1] }\n"
+                + " ($DOC/element(), $DOC/binary(), $DOC/comment(),\n"
+                + "  $DOC/processing-instruction(), $DOC/text() )[1] }\n"
                 + "node-kind($ROOT),\n"
                 + "xdmp:document-get-collections($URI),\n";
 
@@ -192,19 +194,22 @@ public class XQSyncDocument {
                 // success!
                 break;
             } catch (XQueryException e) {
-                // we want to know what the query was
+                // probably an XQuery syntax error - do not retry
+                // we want to know what the uri and query were.
+                logger.severe("error in document, uri = " + _uri);
                 logger.severe("error in query: " + query);
-                throw e;
+                throw new RequestException(_uri, req, e);
             } catch (XccException e) {
                 retries--;
                 // we want to know which document it was
                 if (retries < 1) {
                     logger.severe("retries exhausted for " + _uri);
-                    throw e;
+                    throw new RequestException(_uri, req, e);
                 }
-                logger.logException("error reading document: will retry ("
-                        + retries + "): " + _uri, e);
-                Thread.yield();                
+                logger.logException(
+                        "error reading document: will retry (" + retries
+                                + "): " + _uri, e);
+                Thread.yield();
             }
         }
 
@@ -444,67 +449,95 @@ public class XQSyncDocument {
             throws XccException {
         String outputUri = composeOutputUri(false);
 
-        // handle deletes
-        if (null == contentBytes || contentBytes.length < 1) {
-            // this document has been deleted
-            _session.deleteDocument(outputUri);
-            return 0;
-        }
+        logger.finest("placeKeys = " + Utilities.join(_placeKeys, ","));
 
-        // optionally, check to see if document is already up-to-date
-        if (_skipExisting && _session.existsDocument(outputUri)) {
-            logger.fine("skipping existing document: " + outputUri);
-            return 0;
-        }
+        int retries = 3;
+        // in case the server is unreliable, we try three times
+        while (retries > 0) {
+            try {
+                // handle deletes
+                if (null == contentBytes || contentBytes.length < 1) {
+                    // this document has been deleted
+                    _session.deleteDocument(outputUri);
+                    return 0;
+                }
 
-        // constants
-        boolean resolveEntities = false;
-        String namespace = null;
+                // optionally, check to see if document is already up-to-date
+                if (_skipExisting && _session.existsDocument(outputUri)) {
+                    logger.fine("skipping existing document: "
+                            + outputUri);
+                    return 0;
+                }
 
-        DocumentRepairLevel repair = (!repairInputXml) ? DocumentRepairLevel.NONE
-                : DocumentRepairLevel.FULL;
-        logger.fine("repair = " + repairInputXml + ", " + repair);
+                // constants
+                boolean resolveEntities = false;
+                String namespace = null;
 
-        // marshal the permissions as an array
-        // don't check copyProperties here:
-        // if false, the constructor shouldn't have read any
-        // and anyway we still want to handle any _readRoles
-        metadata.addPermissions(_readRoles);
-        ContentPermission[] permissions = metadata.getPermissions();
-        String[] collections = metadata.getCollections();
-        logger.fine("collections = " + Utilities.join(collections, " "));
+                DocumentRepairLevel repair = (!repairInputXml) ? DocumentRepairLevel.NONE
+                        : DocumentRepairLevel.FULL;
+                logger.fine("repair = " + repairInputXml + ", " + repair);
 
-        ContentCreateOptions options = null;
-        if (metadata.isBinary()) {
-            logger.fine(inputUri + " is binary");
-            options = ContentCreateOptions.newBinaryInstance();
-        } else if (metadata.isText()) {
-            logger.fine(inputUri + " is text");
-            options = ContentCreateOptions.newTextInstance();
-        } else {
-            logger.fine(inputUri + " is xml");
-            options = ContentCreateOptions.newXmlInstance();
-        }
+                // marshal the permissions as an array
+                // don't check copyProperties here:
+                // if false, the constructor shouldn't have read any
+                // and anyway we still want to handle any _readRoles
+                metadata.addPermissions(_readRoles);
+                ContentPermission[] permissions = metadata
+                        .getPermissions();
+                String[] collections = metadata.getCollections();
+                logger.fine("collections = "
+                        + Utilities.join(collections, " "));
 
-        options.setResolveEntities(resolveEntities);
-        options.setPermissions(permissions);
-        options.setCollections(collections);
-        options.setQuality(metadata.getQuality());
-        options.setNamespace(namespace);
-        options.setRepairLevel(repair);
-        options.setPlaceKeys(_session.forestNamesToIds(_placeKeys));
+                ContentCreateOptions options = null;
+                if (metadata.isBinary()) {
+                    logger.fine(inputUri + " is binary");
+                    options = ContentCreateOptions.newBinaryInstance();
+                } else if (metadata.isText()) {
+                    logger.fine(inputUri + " is text");
+                    options = ContentCreateOptions.newTextInstance();
+                } else {
+                    logger.fine(inputUri + " is xml");
+                    options = ContentCreateOptions.newXmlInstance();
+                }
 
-        Content content = ContentFactory.newContent(outputUri,
-                contentBytes, options);
+                options.setResolveEntities(resolveEntities);
+                options.setPermissions(permissions);
+                options.setCollections(collections);
+                options.setQuality(metadata.getQuality());
+                options.setNamespace(namespace);
+                options.setRepairLevel(repair);
+                options.setPlaceKeys(_session
+                        .forestNamesToIds(_placeKeys));
 
-        _session.insertContent(content);
-        _session.commit();
+                Content content = ContentFactory.newContent(outputUri,
+                        contentBytes, options);
 
-        // handle prop:properties node, optional
-        // TODO would be nice to do this in the same transaction, drat it
-        String properties = metadata.getProperties();
-        if (copyProperties && properties != null) {
-            _session.setDocumentProperties(outputUri, properties);
+                _session.insertContent(content);
+                _session.commit();
+
+                // handle prop:properties node, optional
+                // TODO would be nice to do this in the same transaction, drat
+                // it
+                String properties = metadata.getProperties();
+                if (copyProperties && properties != null) {
+                    _session.setDocumentProperties(outputUri, properties);
+                }
+                // success - will not loop
+                break;
+            } catch (XQueryException e) {
+                throw e;
+            } catch (XccException e) {
+                retries--;
+                // we want to know which document it was
+                if (retries < 1) {
+                    logger.severe("retries exhausted for " + outputUri);
+                    throw e;
+                }
+                logger.logException(
+                        "error writing document: will retry (" + retries
+                                + "): " + outputUri, e);
+                Thread.yield();
+            }
         }
         return contentBytes.length;
     }
