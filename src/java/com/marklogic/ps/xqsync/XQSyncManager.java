@@ -478,7 +478,8 @@ public class XQSyncManager extends AbstractLoggableClass {
         logger.info("listing collection " + _uri);
         String query;
         if (_useLexicon) {
-            query = (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
+            query = "define variable $uri as xs:string external\n"
+                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
                     + "cts:uris('', 'document', cts:collection-query($uri))\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
