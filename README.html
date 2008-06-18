@@ -82,7 +82,7 @@ using <code>-Xmx</code>.
   <td>ALLOW_EMPTY_METADATA</td>
   <td>false</td>
   <td>
-    If false, missing metadata files
+    If true, missing metadata files
     in <code>INPUT_PACKAGE</code> will be ignored.
   </td>
 </tr>
@@ -184,7 +184,9 @@ using <code>-Xmx</code>.
 <tr>
   <td>INPUT_PACKAGE</td>
   <td>null</td>
-  <td>Input documents will come from this zip file path.</td>
+  <td>Input documents will come from this zip file path.
+    If the path is a directory, any "*.zip" children will be used.
+  </td>
 </tr>
 <!--
 <tr>
@@ -258,7 +260,11 @@ using <code>-Xmx</code>.
   <td>
     Maximum size of the synchronization queue,
     to limit memory consumption by XQSync.
-    Because larger queues use more RAM,
+    You may wish to use a smaller value,
+    if you encounter OutOfMemoryError.
+    You may wish to use a larger value,
+    if using many threads and loading very small documents.
+    If you use a large value,
     you may also need something like <code>-Xmx4096m</code>
     to increase the Java heap size.
     Plan for roughly 1-GB per 1-M queue entries (ie, 1-kB per entry).

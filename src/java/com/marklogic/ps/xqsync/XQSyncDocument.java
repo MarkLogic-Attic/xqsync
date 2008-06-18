@@ -516,8 +516,7 @@ public class XQSyncDocument {
                 _session.commit();
 
                 // handle prop:properties node, optional
-                // TODO would be nice to do this in the same transaction, drat
-                // it
+                // TODO do this in the same transaction
                 String properties = metadata.getProperties();
                 if (copyProperties && properties != null) {
                     _session.setDocumentProperties(outputUri, properties);

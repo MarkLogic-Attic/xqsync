@@ -169,7 +169,7 @@ public class XQSyncManager extends AbstractLoggableClass {
                         + meta.getDriverVersionString() + ", server "
                         + meta.getServerVersionString());
                 itemsQueued = queueFromInputConnection(completionService);
-            } else if (configuration.getInputPackagePath() != null) {
+            } else if (null != configuration.getInputPackagePath()) {
                 itemsQueued = queueFromInputPackage(completionService,
                         configuration.getInputPackagePath());
             } else {
