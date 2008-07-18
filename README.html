@@ -126,14 +126,22 @@ using <code>-Xmx</code>.
   <td>null</td>
   <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
   all documents in the named collection(s) will be transferred.
-    The value of this property will be tokenized on whitespace.
+  If whitespace is present, <code>INPUT_COLLECTION_URI</code>
+  will be treated as a whitespace-delimited sequence;
+  e.g., <code>INPUT_COLLECTION_URI=a b</code> would transfer all documents
+  in either collection <code>a</code> or collection <code>b</code>.
   </td>
 </tr>
 <tr>
   <td>INPUT_DIRECTORY_URI</td>
   <td>null</td>
   <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
-  all documents in the named directory will be transferred.</td>
+  all documents in the named directory will be transferred.
+  If whitespace is present, <code>INPUT_DIRECTORY_URI</code>
+  will be treated as a whitespace-delimited sequence;
+  e.g., <code>INPUT_DIRECTORY_URI=a/ b/</code> would transfer all documents
+  whose URIs begin with <code>a/</code> or <code>b/</code>.
+  </td>
 </tr>
 <tr>
   <td>INPUT_DOCUMENT_URIS</td>
