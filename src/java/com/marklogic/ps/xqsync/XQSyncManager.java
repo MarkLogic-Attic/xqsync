@@ -130,7 +130,6 @@ public class XQSyncManager extends AbstractLoggableClass {
             logger.finer("threads = " + threads);
             BlockingQueue<Runnable> workQueue = null;
             inputSession = configuration.newInputSession();
-            logger.finer(inputSession.toString());
             if (null != inputSession) {
                 // we can't afford to block the input connection queue,
                 // or else the XCC request might time out

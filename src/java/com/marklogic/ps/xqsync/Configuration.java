@@ -511,7 +511,8 @@ public class Configuration extends AbstractLoggableClass {
      * @return
      */
     public Session newInputSession() {
-        logger.fine(inputConnection.toString());
+        logger.fine(null == inputConnection ? null : inputConnection
+                .toString());
         if (null == inputConnection) {
             return null;
         }
@@ -543,12 +544,11 @@ public class Configuration extends AbstractLoggableClass {
     }
 
     /**
-     * @param _key 
+     * @param _key
      * @return
      */
     private String[] getDelimitedPropertyValues(String _key) {
-        String property = properties
-                .getProperty(_key);
+        String property = properties.getProperty(_key);
         logger.fine(_key + "=" + property);
         if (property == null) {
             return null;
