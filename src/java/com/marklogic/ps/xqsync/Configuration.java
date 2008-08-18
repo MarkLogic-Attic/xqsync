@@ -102,7 +102,7 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static final String INPUT_PACKAGE_KEY = "INPUT_PACKAGE";
 
-    public static final String INPUT_DIRECTORY_URI = "INPUT_DIRECTORY_URI";
+    public static final String INPUT_DIRECTORY_URI_KEY = "INPUT_DIRECTORY_URI";
 
     public static final String INPUT_COLLECTION_URI_KEY = "INPUT_COLLECTION_URI";
 
@@ -511,7 +511,8 @@ public class Configuration extends AbstractLoggableClass {
      * @return
      */
     public Session newInputSession() {
-        if (inputConnection == null) {
+        logger.fine(inputConnection.toString());
+        if (null == inputConnection) {
             return null;
         }
         synchronized (inputConnection) {
@@ -542,37 +543,38 @@ public class Configuration extends AbstractLoggableClass {
     }
 
     /**
+     * @param _key 
      * @return
      */
-    public String[] getInputCollectionUris() {
+    private String[] getDelimitedPropertyValues(String _key) {
         String property = properties
-                .getProperty(INPUT_COLLECTION_URI_KEY);
+                .getProperty(_key);
+        logger.fine(_key + "=" + property);
         if (property == null) {
             return null;
         }
         return property.split("\\s+");
+    }
+
+    /**
+     * @return
+     */
+    public String[] getInputCollectionUris() {
+        return getDelimitedPropertyValues(INPUT_COLLECTION_URI_KEY);
     }
 
     /**
      * @return
      */
     public String[] getInputDirectoryUris() {
-        String property = properties.getProperty(INPUT_DIRECTORY_URI);
-        if (property == null) {
-            return null;
-        }
-        return property.split("\\s+");
+        return getDelimitedPropertyValues(INPUT_DIRECTORY_URI_KEY);
     }
 
     /**
      * @return
      */
     public String[] getInputDocumentUris() {
-        String property = properties.getProperty(INPUT_DOCUMENT_URIS_KEY);
-        if (property == null) {
-            return null;
-        }
-        return property.split("\\s+");
+        return getDelimitedPropertyValues(INPUT_DOCUMENT_URIS_KEY);
     }
 
     /**

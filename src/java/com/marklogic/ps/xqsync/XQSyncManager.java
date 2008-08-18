@@ -127,8 +127,10 @@ public class XQSyncManager extends AbstractLoggableClass {
         try {
             // start your engines...
             int threads = configuration.getThreadCount();
+            logger.finer("threads = " + threads);
             BlockingQueue<Runnable> workQueue = null;
             inputSession = configuration.newInputSession();
+            logger.finer(inputSession.toString());
             if (null != inputSession) {
                 // we can't afford to block the input connection queue,
                 // or else the XCC request might time out
@@ -196,6 +198,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             factory = null;
 
         } catch (Throwable t) {
+            logger.logException("fatal error", t);
             if (monitor != null) {
                 monitor.halt(t);
             }
@@ -314,7 +317,7 @@ public class XQSyncManager extends AbstractLoggableClass {
         if (collectionUris != null && directoryUris != null) {
             logger.warning("conflicting properties: using "
                     + Configuration.INPUT_COLLECTION_URI_KEY + ", not "
-                    + Configuration.INPUT_DIRECTORY_URI);
+                    + Configuration.INPUT_DIRECTORY_URI_KEY);
         }
 
         Long startPosition = configuration.getStartPosition();
