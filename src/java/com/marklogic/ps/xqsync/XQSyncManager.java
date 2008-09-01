@@ -456,15 +456,14 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @return
      */
     private Request getUrisRequest(boolean _hasStart, boolean _useLexicon) {
-        String query;
+        String query = Session.XQUERY_VERSION_0_9_ML
+                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         logger.info("listing all documents");
         if (_useLexicon) {
-            query = (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                    + "cts:uris('', 'document')\n"
+            query += "cts:uris('', 'document')\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
-            query = (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                    + "for $i in doc()\n"
+            query += "for $i in doc()\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "")
                     + "return string(xdmp:node-uri($i))";
         }
@@ -478,16 +477,14 @@ public class XQSyncManager extends AbstractLoggableClass {
     private Request getCollectionRequest(String _uri, boolean _hasStart,
             boolean _useLexicon) {
         logger.info("listing collection " + _uri);
-        String query;
+        String query = Session.XQUERY_VERSION_0_9_ML
+                + "define variable $uri as xs:string external\n"
+                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         if (_useLexicon) {
-            query = "define variable $uri as xs:string external\n"
-                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                    + "cts:uris('', 'document', cts:collection-query($uri))\n"
+            query = "cts:uris('', 'document', cts:collection-query($uri))\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
-            query = "define variable $uri as xs:string external\n"
-                    + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                    + "for $i in collection($uri)\n"
+            query = "for $i in collection($uri)\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "")
                     + "return string(xdmp:node-uri($i))\n";
         }
@@ -504,16 +501,14 @@ public class XQSyncManager extends AbstractLoggableClass {
     private Request getDirectoryRequest(String _uri, boolean _hasStart,
             boolean _useLexicon) {
         logger.info("listing directory " + _uri);
-        String query;
+        String query = Session.XQUERY_VERSION_0_9_ML
+                + "define variable $uri as xs:string external\n"
+                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         if (_useLexicon) {
-            query = "define variable $uri as xs:string external\n"
-                    + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                    + "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n"
+            query = "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
-            query = "define variable $uri as xs:string external\n"
-                    + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "")
-                    + "for $i in xdmp:directory($uri, 'infinity')\n"
+            query = "for $i in xdmp:directory($uri, 'infinity')\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "")
                     + "return string(xdmp:node-uri($i))\n";
         }

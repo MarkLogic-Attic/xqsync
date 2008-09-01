@@ -92,10 +92,10 @@ public class DocumentTest extends TestCase {
         sess.insertContent(content);
 
         // set the permissions
-        AdhocQuery req = sess
-                .newAdhocQuery("define variable $URI as xs:string external\n"
-                        + "let $perms := xdmp:permission('admin', 'read')\n"
-                        + "return xdmp:document-set-permissions($URI, $perms)\n");
+        AdhocQuery req = sess.newAdhocQuery(Session.XQUERY_VERSION_0_9_ML
+                + "define variable $URI as xs:string external\n"
+                + "let $perms := xdmp:permission('admin', 'read')\n"
+                + "return xdmp:document-set-permissions($URI, $perms)\n");
         req.setNewStringVariable("URI", documentUri);
         sess.submitRequest(req);
 

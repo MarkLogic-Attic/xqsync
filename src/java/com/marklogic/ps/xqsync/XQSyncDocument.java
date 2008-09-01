@@ -36,6 +36,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.Content;
@@ -137,11 +138,13 @@ public class XQSyncDocument {
         //
         // normally I'd put this code in a module,
         // but I want this program to be self-contained
-        String query = "define variable $URI as xs:string external\n"
+        String query = Session.XQUERY_VERSION_0_9_ML
+                + "define variable $URI as xs:string external\n"
                 + "define variable $DOC as document-node() { doc($URI) }\n"
-                // cf bug 3575 - document allows multiple roots
+                // a document may contain multiple root nodes
                 // we will prefer the element(), if present
-                + "define variable $ROOT as node()+ {\n"
+                + "define variable $ROOT as node() {\n"
+                // no need to check for document-node, attribute, namespace
                 + " ($DOC/element(), $DOC/binary(), $DOC/comment(),\n"
                 + "  $DOC/processing-instruction(), $DOC/text() )[1] }\n"
                 + "node-kind($ROOT),\n"
@@ -176,14 +179,11 @@ public class XQSyncDocument {
             query += "()\n";
         }
 
-        Request req = null;
+        RequestOptions opts = _session.getDefaultRequestOptions();
         if (null != timestamp) {
-            RequestOptions opts = _session.getDefaultRequestOptions();
             opts.setEffectivePointInTime(timestamp);
-            req = _session.newAdhocQuery(query, opts);
-        } else {
-            req = _session.newAdhocQuery(query);
         }
+        Request req = _session.newAdhocQuery(query, opts);
         req.setNewStringVariable("URI", _uri);
         ResultSequence rs = null;
         int retries = 3;
@@ -436,6 +436,8 @@ public class XQSyncDocument {
     }
 
     /**
+     * write to output content source
+     * 
      * @param _session
      * @param _placeKeys
      * @param _readRoles
@@ -542,6 +544,8 @@ public class XQSyncDocument {
     }
 
     /**
+     * write to output package
+     * 
      * @param _pkg
      * @param readRoles
      * @throws IOException
@@ -578,6 +582,8 @@ public class XQSyncDocument {
     }
 
     /**
+     * write to filesystem file
+     * 
      * @throws IOException
      */
     public void write() throws IOException {
@@ -629,7 +635,8 @@ public class XQSyncDocument {
 
     public String composeOutputUri(boolean isEscaped) {
         if (null != outputPathPrefix && !outputPathPrefix.equals("")
-                && !outputPathPrefix.endsWith("/")) {
+                && !outputPathPrefix.endsWith("/")
+                && !inputUri.startsWith("/")) {
             outputPathPrefix += "/";
         }
 

@@ -58,6 +58,7 @@ public class InputPackage extends AbstractLoggableClass {
     public InputPackage(String _path) throws IOException {
         inputFile = new File(_path);
         inputZip = new ZipFile(inputFile);
+        packagePath = inputFile.getCanonicalPath();
     }
 
     /**

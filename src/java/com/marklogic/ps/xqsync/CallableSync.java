@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,11 +44,11 @@ public class CallableSync implements Callable<TimedEvent> {
 
     private OutputPackage outputPackage;
 
+    private SimpleLogger logger;
+
     private Collection<ContentPermission> readRoles;
 
     private String[] placeKeys;
-
-    private SimpleLogger logger;
 
     private String inputUri;
 
@@ -74,60 +74,33 @@ public class CallableSync implements Callable<TimedEvent> {
 
     private BigInteger timestamp;
 
+    private String[] outputFormatFilters = null;
+
     /**
+     * @param _package
      * @param _path
-     * @param _copyPermissions
-     * @param _copyProperties
-     * @param _repairInputXml
-     * @param _allowEmptyMetadata
      */
-    public CallableSync(InputPackage _package, String _path,
-            boolean _copyPermissions, boolean _copyProperties,
-            boolean _repairInputXml, boolean _allowEmptyMetadata) {
+    public CallableSync(InputPackage _package, String _path) {
         inputPackage = _package;
         inputUri = _path;
-        copyPermissions = _copyPermissions;
-        copyProperties = _copyProperties;
-        repairInputXml = _repairInputXml;
-        allowEmptyMetadata = _allowEmptyMetadata;
     }
 
     /**
      * @param _session
      * @param _uri
-     * @param _copyPermissions
-     * @param _copyProperties
-     * @param _repairInputXml
-     * @param _allowEmptyMetadata
      */
-    public CallableSync(Session _session, String _uri,
-            boolean _copyPermissions, boolean _copyProperties,
-            boolean _repairInputXml, boolean _allowEmptyMetadata) {
+    public CallableSync(Session _session, String _uri) {
         inputSession = _session;
         inputUri = _uri;
-        copyPermissions = _copyPermissions;
-        copyProperties = _copyProperties;
-        repairInputXml = _repairInputXml;
-        allowEmptyMetadata = _allowEmptyMetadata;
     }
 
     /**
      * @param _file
-     * @param _copyPermissions
-     * @param _copyProperties
-     * @param _repairInputXml
-     * @param _allowEmptyMetadata
      * @throws IOException
      */
-    public CallableSync(File _file, boolean _copyPermissions,
-            boolean _copyProperties, boolean _repairInputXml,
-            boolean _allowEmptyMetadata) {
+    public CallableSync(File _file) {
         inputFile = _file;
         // note: don't set inputUri, since we can always get it from the file
-        copyPermissions = _copyPermissions;
-        copyProperties = _copyProperties;
-        repairInputXml = _repairInputXml;
-        allowEmptyMetadata = _allowEmptyMetadata;
     }
 
     /*
@@ -136,7 +109,6 @@ public class CallableSync implements Callable<TimedEvent> {
      * @see java.util.concurrent.Callable#call()
      */
     public TimedEvent call() throws Exception {
-
         // note: if there's an input file, then inputUri may be null
         if (null == inputUri) {
             if (null == inputFile) {
@@ -179,7 +151,10 @@ public class CallableSync implements Callable<TimedEvent> {
         document.addOutputCollections(outputCollections);
 
         try {
-            if (outputSession != null) {
+            if (matchesFilters(document)) {
+                // do not write
+                // TODO correct accounting?
+            } else if (outputSession != null) {
                 document.write(outputSession, readRoles, placeKeys,
                         skipExisting);
             } else if (outputPackage != null) {
@@ -207,6 +182,25 @@ public class CallableSync implements Callable<TimedEvent> {
             // try to avoid starvation
             Thread.yield();
         }
+    }
+
+    /**
+     * @param document
+     * @return
+     */
+    private boolean matchesFilters(XQSyncDocument document) {
+        // return true if any filter matches
+
+        // check format
+        if (outputFormatFilters != null
+                && Arrays.binarySearch(outputFormatFilters, document
+                        .getMetadata().getFormatName()) > -1) {
+            logger.finer(Configuration.OUTPUT_FILTER_FORMATS_KEY
+                    + " matched " + document.getOutputUri());
+            return true;
+        }
+
+        return false;
     }
 
     public void setOutputPackage(OutputPackage outputPackage) {
@@ -267,6 +261,41 @@ public class CallableSync implements Callable<TimedEvent> {
      */
     public void setTimestamp(BigInteger _timestamp) {
         timestamp = _timestamp;
+    }
+
+    /**
+     * @param _copyPermissions
+     */
+    public void setCopyPermissions(boolean _copyPermissions) {
+        copyPermissions = _copyPermissions;
+    }
+
+    /**
+     * @param _copyProperties
+     */
+    public void setCopyProperties(boolean _copyProperties) {
+        copyProperties = _copyProperties;
+    }
+
+    /**
+     * @param repairInputXml2
+     */
+    public void setRepairInputXml(boolean _repairInputXml) {
+        repairInputXml = _repairInputXml;
+    }
+
+    /**
+     * @param _allowEmptyMetadata
+     */
+    public void setAllowEmptyMetadata(boolean _allowEmptyMetadata) {
+        allowEmptyMetadata = _allowEmptyMetadata;
+    }
+
+    /**
+     * @param _outputFormatFilters
+     */
+    public void setOutputFormatFilters(String[] _outputFormatFilters) {
+        outputFormatFilters = _outputFormatFilters;
     }
 
 }

@@ -212,6 +212,8 @@ public class Configuration extends AbstractLoggableClass {
 
     public static final String QUEUE_SIZE_KEY = "QUEUE_SIZE";
 
+    static final String OUTPUT_FILTER_FORMATS_KEY = "OUTPUT_FILTER_FORMATS";
+
     private String outputPackagePath;
 
     private Long startPosition;
@@ -221,6 +223,8 @@ public class Configuration extends AbstractLoggableClass {
     private String uriPrefix = null;
 
     private String[] outputCollections = null;
+
+    private String[] outputFormatFilters;
 
     public Configuration() {
         super();
@@ -289,6 +293,19 @@ public class Configuration extends AbstractLoggableClass {
                 .getProperty(OUTPUT_FORESTS_KEY);
         if (placeKeysString != null) {
             placeKeys = placeKeysString.split(CSV_SCSV_SSV_REGEX);
+        }
+
+        String outputFormatFilterString = properties
+                .getProperty(OUTPUT_FILTER_FORMATS_KEY);
+        if (null != outputFormatFilterString) {
+            outputFormatFilterString = outputFormatFilterString.trim();
+            if (null != outputFormatFilterString
+                    && outputFormatFilterString.length() > 1) {
+                outputFormatFilters = outputFormatFilterString
+                        .split(CSV_SCSV_SSV_REGEX);
+                logger.finest(this + " outputFormatFilters = "
+                        + Utilities.join(outputFormatFilters, ","));
+            }
         }
 
         String outputCollectionsString = properties
@@ -656,6 +673,13 @@ public class Configuration extends AbstractLoggableClass {
     public int getQueueSize() {
         return Integer.parseInt(properties.getProperty(QUEUE_SIZE_KEY, ""
                 + (100 * 1000)));
+    }
+
+    /**
+     * @return
+     */
+    public String[] getOutputFormatFilters() {
+        return outputFormatFilters;
     }
 
 }

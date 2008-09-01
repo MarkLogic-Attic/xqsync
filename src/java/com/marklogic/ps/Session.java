@@ -45,6 +45,11 @@ import com.marklogic.xcc.types.XSInteger;
  */
 public class Session implements com.marklogic.xcc.Session {
 
+    /**
+     * 
+     */
+    public static final String XQUERY_VERSION_0_9_ML = "xquery version \"0.9-ml\"\n";
+
     private com.marklogic.xcc.Session session;
 
     private Connection conn;

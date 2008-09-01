@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,6 +65,8 @@ public class TaskFactory {
 
     private int threadCount = Configuration.THREADS_DEFAULT_INT;
 
+    private String[] outputFormatFilters = null;
+
     /**
      * @param _config
      * @throws RequestException
@@ -85,6 +87,8 @@ public class TaskFactory {
         placeKeys = _config.getPlaceKeys();
 
         threadCount = _config.getThreadCount();
+
+        outputFormatFilters = _config.getOutputFormatFilters();
 
         // TODO filesystem output broken?
         // outputPath = _config.getOutputPath();
@@ -165,6 +169,14 @@ public class TaskFactory {
     private void configure(CallableSync cs) {
         cs.setLogger(logger);
 
+        // TODO place a config ref in the callablesync object?
+
+        cs.setCopyPermissions(copyPermissions);
+        cs.setCopyProperties(copyProperties);
+        cs.setRepairInputXml(repairInputXml);
+        cs.setAllowEmptyMetadata(allowEmptyMetadata);
+        cs.setOutputFormatFilters(outputFormatFilters);
+
         Session outputSession = configuration.newOutputSession();
         cs.setOutputPrefix(prefix);
         if (null != outputSession) {
@@ -200,8 +212,7 @@ public class TaskFactory {
      * @return
      */
     public Callable<TimedEvent> newCallableSync(File file) {
-        CallableSync cs = new CallableSync(file, copyPermissions,
-                copyProperties, repairInputXml, allowEmptyMetadata);
+        CallableSync cs = new CallableSync(file);
         configure(cs);
         return cs;
     }
@@ -212,8 +223,7 @@ public class TaskFactory {
      */
     public Callable<TimedEvent> newCallableSync(String uri) {
         Session session = configuration.newInputSession();
-        CallableSync cs = new CallableSync(session, uri, copyPermissions,
-                copyProperties, repairInputXml, allowEmptyMetadata);
+        CallableSync cs = new CallableSync(session, uri);
         configure(cs);
         return cs;
     }
@@ -223,11 +233,9 @@ public class TaskFactory {
      * @param uri
      * @return
      */
-    public Callable<TimedEvent> newCallableSync(InputPackage inputPackage,
-            String uri) {
-        CallableSync cs = new CallableSync(inputPackage, uri,
-                copyPermissions, copyProperties, repairInputXml,
-                allowEmptyMetadata);
+    public Callable<TimedEvent> newCallableSync(
+            InputPackage inputPackage, String uri) {
+        CallableSync cs = new CallableSync(inputPackage, uri);
         configure(cs);
         return cs;
     }
