@@ -481,10 +481,10 @@ public class XQSyncManager extends AbstractLoggableClass {
                 + "define variable $uri as xs:string external\n"
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         if (_useLexicon) {
-            query = "cts:uris('', 'document', cts:collection-query($uri))\n"
+            query += "cts:uris('', 'document', cts:collection-query($uri))\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
-            query = "for $i in collection($uri)\n"
+            query += "for $i in collection($uri)\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "")
                     + "return string(xdmp:node-uri($i))\n";
         }
@@ -505,13 +505,14 @@ public class XQSyncManager extends AbstractLoggableClass {
                 + "define variable $uri as xs:string external\n"
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         if (_useLexicon) {
-            query = "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n"
+            query += "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
-            query = "for $i in xdmp:directory($uri, 'infinity')\n"
+            query += "for $i in xdmp:directory($uri, 'infinity')\n"
                     + (_hasStart ? START_POSITION_PREDICATE : "")
                     + "return string(xdmp:node-uri($i))\n";
         }
+        logger.fine(query);
         Request request = inputSession.newAdhocQuery(query);
         String uri = _uri;
         if (!uri.endsWith("/")) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import java.util.List;
 
 /**
  * @author mike.blakeley@marklogic.com
- * 
+ *
  */
 public class Utilities {
 
@@ -256,7 +256,7 @@ public class Utilities {
      * @throws IOException
      */
     public static String cat(Reader r) throws IOException {
-        StringBuffer rv = new StringBuffer();
+        StringBuilder rv = new StringBuilder();
 
         int size;
         char[] buf = new char[BUFFER_SIZE];
