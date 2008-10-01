@@ -163,10 +163,19 @@ public class XQSyncManager extends AbstractLoggableClass {
             factory = new TaskFactory(configuration);
             CallableWrapper.setFactory(factory);
 
-            if (inputSession != null) {
+            Session outputSession = configuration.newOutputSession();
+            if (null != outputSession) {
+                ContentbaseMetaData meta = outputSession
+                        .getContentbaseMetaData();
+                logger.info("output version info: client "
+                        + meta.getDriverVersionString() + ", server "
+                        + meta.getServerVersionString());
+            }
+            
+            if (null != inputSession) {
                 ContentbaseMetaData meta = inputSession
                         .getContentbaseMetaData();
-                logger.info("version info: client "
+                logger.info("input version info: client "
                         + meta.getDriverVersionString() + ", server "
                         + meta.getServerVersionString());
                 itemsQueued = queueFromInputConnection(completionService);
