@@ -67,6 +67,8 @@ public class TaskFactory {
 
     private String[] outputFormatFilters = null;
 
+    private String inputModule;
+
     /**
      * @param _config
      * @throws RequestException
@@ -78,6 +80,12 @@ public class TaskFactory {
         logger = _config.getLogger();
         copyPermissions = _config.isCopyPermissions();
         copyProperties = _config.isCopyProperties();
+
+        inputModule = _config.getInputModule();
+        if (null != inputModule) {
+            logger.info("using " + Configuration.INPUT_MODULE_URI_KEY
+                    + "=" + inputModule);
+        }
         repairInputXml = _config.isRepairInputXml();
         allowEmptyMetadata = _config.isAllowEmptyMetadata();
 
@@ -170,12 +178,12 @@ public class TaskFactory {
         cs.setLogger(logger);
 
         // TODO place a config ref in the callablesync object?
-
         cs.setCopyPermissions(copyPermissions);
         cs.setCopyProperties(copyProperties);
         cs.setRepairInputXml(repairInputXml);
         cs.setAllowEmptyMetadata(allowEmptyMetadata);
         cs.setOutputFormatFilters(outputFormatFilters);
+        cs.setInputModule(inputModule);
 
         Session outputSession = configuration.newOutputSession();
         cs.setOutputPrefix(prefix);
@@ -245,6 +253,8 @@ public class TaskFactory {
      */
     public void close() {
         if (null != outputPackages) {
+            logger.info("closing " + outputPackages.length
+                    + " output package(s)");
             for (int i = 0; i < outputPackages.length; i++) {
                 try {
                     outputPackages[i].close();

@@ -33,11 +33,15 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2008-10-01.1";
+    public static String VERSION = "2008-10-31.1";
+
+    private static String versionMessage = "version " + VERSION + " on "
+            + System.getProperty("java.version") + " ("
+            + System.getProperty("java.runtime.name") + ")";
 
     public static void main(String[] args) throws IOException,
             XccException, URISyntaxException {
-        
+
         // make sure the environment is healthy
         String encoding = System.getProperty("file.encoding");
         if (!encoding.equals("UTF-8")) {
@@ -60,11 +64,11 @@ public class XQSync extends AbstractLoggableClass {
         System.err.println("added system properties");
 
         Configuration configuration = new Configuration();
-        logger.info("XQSync starting: version = " + VERSION);
+        logger.info("XQSync starting: " + versionMessage);
         logger.info("XCC version = " + Version.getVersionString());
         configuration.setProperties(props);
         // repeat, to log - and for emphasis
-        logger.info("XQSync starting: version = " + VERSION);
+        logger.info("XQSync starting: " + versionMessage);
         logger.info("XCC version = " + Version.getVersionString());
 
         long start = System.currentTimeMillis();

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2007-2008 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ public class DocumentTest extends TestCase {
 
         // retrieve the test document
         XQSyncDocument doc = new XQSyncDocument(sess, documentUri, true,
-                true, false, null);
+                true, false, null, null);
         String retrievedXml = new String(doc.getContentBytes());
 
         // test the round-trip of the XML

@@ -214,6 +214,8 @@ public class Configuration extends AbstractLoggableClass {
 
     static final String OUTPUT_FILTER_FORMATS_KEY = "OUTPUT_FILTER_FORMATS";
 
+    static final String INPUT_MODULE_URI_KEY = "INPUT_MODULE_URI";
+
     private String outputPackagePath;
 
     private Long startPosition;
@@ -472,7 +474,7 @@ public class Configuration extends AbstractLoggableClass {
      * @return
      */
     public com.marklogic.ps.Session newOutputSession() {
-        if (outputConnection == null) {
+        if (null == outputConnection) {
             return null;
         }
         synchronized (outputConnection) {
@@ -680,6 +682,13 @@ public class Configuration extends AbstractLoggableClass {
      */
     public String[] getOutputFormatFilters() {
         return outputFormatFilters;
+    }
+
+    /**
+     * @return
+     */
+    public String getInputModule() {
+        return properties.getProperty(INPUT_MODULE_URI_KEY);
     }
 
 }

@@ -71,8 +71,9 @@ public class XQSyncManager extends AbstractLoggableClass {
         /*
          * (non-Javadoc)
          * 
-         * @see java.util.concurrent.RejectedExecutionHandler#rejectedExecution(java.lang.Runnable,
-         *      java.util.concurrent.ThreadPoolExecutor)
+         * @see
+         * java.util.concurrent.RejectedExecutionHandler#rejectedExecution(java
+         * .lang.Runnable, java.util.concurrent.ThreadPoolExecutor)
          */
         public void rejectedExecution(Runnable r,
                 ThreadPoolExecutor executor) {
@@ -131,10 +132,9 @@ public class XQSyncManager extends AbstractLoggableClass {
             BlockingQueue<Runnable> workQueue = null;
             inputSession = configuration.newInputSession();
             if (null != inputSession) {
-                // we can't afford to block the input connection queue,
-                // or else the XCC request might time out
+                // if the input queue blocks, the XCC request may time out
                 logger.info("starting pool of " + threads
-                        + " threads, queue size = unlimited");
+                        + " threads, unlimited queue for input session");
                 workQueue = new LinkedBlockingQueue<Runnable>();
             } else {
                 int queueSize = configuration.getQueueSize();
@@ -171,7 +171,7 @@ public class XQSyncManager extends AbstractLoggableClass {
                         + meta.getDriverVersionString() + ", server "
                         + meta.getServerVersionString());
             }
-            
+
             if (null != inputSession) {
                 ContentbaseMetaData meta = inputSession
                         .getContentbaseMetaData();

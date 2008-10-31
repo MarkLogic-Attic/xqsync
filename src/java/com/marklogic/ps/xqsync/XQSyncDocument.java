@@ -104,6 +104,7 @@ public class XQSyncDocument {
      * @param _copyProperties
      * @param _repairInputXml
      * @param _timestamp
+     * @param _inputModule
      * 
      * @throws IOException
      * @throws RequestException
@@ -112,8 +113,8 @@ public class XQSyncDocument {
      */
     public XQSyncDocument(com.marklogic.ps.Session _session, String _uri,
             boolean _copyPermissions, boolean _copyProperties,
-            boolean _repairInputXml, BigInteger _timestamp)
-            throws IOException, RequestException,
+            boolean _repairInputXml, BigInteger _timestamp,
+            String _inputModule) throws IOException, RequestException,
             ParserConfigurationException, SAXException {
         if (_uri == null) {
             throw new UnimplementedFeatureException("null uri");
@@ -140,7 +141,12 @@ public class XQSyncDocument {
         // but I want this program to be self-contained
         String query = Session.XQUERY_VERSION_0_9_ML
                 + "define variable $URI as xs:string external\n"
-                + "define variable $DOC as document-node() { doc($URI) }\n"
+                + "define variable $MODULE-URI as xs:string external\n"
+                + "define variable $DOC as document-node() {\n"
+                + "  if ($MODULE-URI) then xdmp:invoke(\n"
+                + "    $MODULE-URI, (xs:QName('URI'), $URI))\n"
+                + "  else doc($URI)\n"
+                + "}\n"
                 // a document may contain multiple root nodes
                 // we will prefer the element(), if present
                 + "define variable $ROOT as node() {\n"
@@ -185,6 +191,8 @@ public class XQSyncDocument {
         }
         Request req = _session.newAdhocQuery(query, opts);
         req.setNewStringVariable("URI", _uri);
+        req.setNewStringVariable("MODULE-URI",
+                (null == _inputModule) ? "" : _inputModule);
         ResultSequence rs = null;
         int retries = 3;
         // in case the server is unreliable, we try three times

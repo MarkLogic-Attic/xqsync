@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2007 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2006-2008 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -157,7 +157,7 @@ public class Session implements com.marklogic.xcc.Session {
      * (non-Javadoc)
      * 
      * @see com.marklogic.xcc.Session#newAdhocQuery(java.lang.String,
-     *      com.marklogic.xcc.RequestOptions)
+     * com.marklogic.xcc.RequestOptions)
      */
     public AdhocQuery newAdhocQuery(String queryText,
             RequestOptions options) {
@@ -177,7 +177,7 @@ public class Session implements com.marklogic.xcc.Session {
      * (non-Javadoc)
      * 
      * @see com.marklogic.xcc.Session#newModuleInvoke(java.lang.String,
-     *      com.marklogic.xcc.RequestOptions)
+     * com.marklogic.xcc.RequestOptions)
      */
     public ModuleInvoke newModuleInvoke(String moduleUri,
             RequestOptions options) {
@@ -197,7 +197,7 @@ public class Session implements com.marklogic.xcc.Session {
      * (non-Javadoc)
      * 
      * @see com.marklogic.xcc.Session#newModuleSpawn(java.lang.String,
-     *      com.marklogic.xcc.RequestOptions)
+     * com.marklogic.xcc.RequestOptions)
      */
     public ModuleSpawn newModuleSpawn(String moduleUri,
             RequestOptions options) {
@@ -243,7 +243,9 @@ public class Session implements com.marklogic.xcc.Session {
     /*
      * (non-Javadoc)
      * 
-     * @see com.marklogic.xcc.Session#setDefaultRequestOptions(com.marklogic.xcc.RequestOptions)
+     * @see
+     * com.marklogic.xcc.Session#setDefaultRequestOptions(com.marklogic.xcc.
+     * RequestOptions)
      */
     public void setDefaultRequestOptions(RequestOptions options) {
         session.setDefaultRequestOptions(options);
@@ -314,8 +316,9 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     public boolean existsDocument(String _uri) throws XccException {
-        String query = "define variable $URI as xs:string external\n"
-                + "xdmp:exists(doc($URI))\n";
+        String query = XQUERY_VERSION_0_9_ML
+                + "define variable $URI as xs:string external\n"
+                + "boolean(doc($URI))\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
         ResultSequence result = session.submitRequest(req);
@@ -324,7 +327,7 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     public long getCount() throws XccException {
-        String query = "xdmp:estimate(doc())";
+        String query = XQUERY_VERSION_0_9_ML + "xdmp:estimate(doc())";
         AdhocQuery req = session.newAdhocQuery(query);
         ResultSequence result = session.submitRequest(req);
         return ((XSInteger) (result.next().getItem())).asPrimitiveLong();
@@ -336,8 +339,9 @@ public class Session implements com.marklogic.xcc.Session {
      */
     public void deleteDocument(String _uri) throws XccException {
         // ignore documents that do not exist
-        String query = "define variable $URI as xs:string external\n"
-                + "if (xdmp:exists(doc($URI)))\n"
+        String query = XQUERY_VERSION_0_9_ML
+                + "define variable $URI as xs:string external\n"
+                + "if (boolean(doc($URI)))\n"
                 + "then xdmp:document-delete($URI) else ()\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
@@ -349,7 +353,8 @@ public class Session implements com.marklogic.xcc.Session {
      * @throws XccException
      */
     public void deleteCollection(String _uri) throws XccException {
-        String query = "define variable $URI as xs:string external\n"
+        String query = XQUERY_VERSION_0_9_ML
+                + "define variable $URI as xs:string external\n"
                 + "xdmp:collection-delete($URI)\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
@@ -367,7 +372,8 @@ public class Session implements com.marklogic.xcc.Session {
         // properties will be set to empty sequence
         // this doesn't affect last-modified, though, if it's active
         // note that we go down two levels, to get the prop:properties children
-        String query = "define variable $URI as xs:string external\n"
+        String query = XQUERY_VERSION_0_9_ML
+                + "define variable $URI as xs:string external\n"
                 + "define variable $XML-STRING as xs:string external\n"
                 + "xdmp:document-set-properties($URI,\n"
                 + "  xdmp:unquote($XML-STRING)/prop:properties/node() )\n";
@@ -398,7 +404,9 @@ public class Session implements com.marklogic.xcc.Session {
         return list.toArray(new BigInteger[0]);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.marklogic.xcc.Session#getConnectionUri()
      */
     public URI getConnectionUri() {

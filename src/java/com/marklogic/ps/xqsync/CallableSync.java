@@ -76,6 +76,8 @@ public class CallableSync implements Callable<TimedEvent> {
 
     private String[] outputFormatFilters = null;
 
+    private String inputModule = null;
+
     /**
      * @param _package
      * @param _path
@@ -128,7 +130,7 @@ public class CallableSync implements Callable<TimedEvent> {
         if (inputSession != null) {
             document = new XQSyncDocument(inputSession, inputUri,
                     copyPermissions, copyProperties, repairInputXml,
-                    timestamp);
+                    timestamp, inputModule);
         } else if (inputPackage != null) {
             document = new XQSyncDocument(inputPackage, inputUri,
                     copyPermissions, copyProperties, repairInputXml,
@@ -151,13 +153,14 @@ public class CallableSync implements Callable<TimedEvent> {
         document.addOutputCollections(outputCollections);
 
         try {
+            // TODO replace with subclasses?
             if (matchesFilters(document)) {
                 // do not write
                 // TODO correct accounting?
-            } else if (outputSession != null) {
+            } else if (null != outputSession) {
                 document.write(outputSession, readRoles, placeKeys,
                         skipExisting);
-            } else if (outputPackage != null) {
+            } else if (null != outputPackage) {
                 document.write(outputPackage, readRoles);
                 outputPackage.flush();
             } else {
@@ -278,7 +281,14 @@ public class CallableSync implements Callable<TimedEvent> {
     }
 
     /**
-     * @param repairInputXml2
+     * @param _module
+     */
+    public void setInputModule(String _module) {
+        inputModule = _module;
+    }
+
+    /**
+     * @param _repairInputXml
      */
     public void setRepairInputXml(boolean _repairInputXml) {
         repairInputXml = _repairInputXml;
