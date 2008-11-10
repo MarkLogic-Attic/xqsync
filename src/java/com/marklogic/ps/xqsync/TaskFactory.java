@@ -20,16 +20,10 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Collection;
 import java.util.concurrent.Callable;
 
-import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
-import com.marklogic.ps.Utilities;
 import com.marklogic.ps.timing.TimedEvent;
-import com.marklogic.xcc.ContentPermission;
-import com.marklogic.xcc.exceptions.RequestException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -37,232 +31,124 @@ import com.marklogic.xcc.exceptions.RequestException;
  */
 public class TaskFactory {
 
-    private boolean copyPermissions;
+    protected SimpleLogger logger;
 
-    private boolean copyProperties;
+    protected Configuration configuration;
 
-    private boolean skipExisting;
+    protected WriterInterface[] writers;
 
-    private String[] placeKeys;
+    protected String outputPackagePath;
 
-    private Collection<ContentPermission> readRoles;
-
-    private OutputPackage[] outputPackages;
-
-    private SimpleLogger logger;
-
-    private Configuration configuration;
-
-    private String prefix;
-
-    private String[] outputCollections;
-
-    private boolean repairInputXml;
-
-    private boolean allowEmptyMetadata;
-
-    private BigInteger timestamp = null;
-
-    private int threadCount = Configuration.THREADS_DEFAULT_INT;
-
-    private String[] outputFormatFilters = null;
-
-    private String inputModule;
+    protected volatile int count = 0;
 
     /**
      * @param _config
-     * @throws RequestException
-     * @throws IOException
+     * @throws SyncException
      */
-    public TaskFactory(Configuration _config) throws RequestException,
-            IOException {
+    public TaskFactory(Configuration _config) throws SyncException {
         configuration = _config;
-        logger = _config.getLogger();
-        copyPermissions = _config.isCopyPermissions();
-        copyProperties = _config.isCopyProperties();
 
-        inputModule = _config.getInputModule();
-        if (null != inputModule) {
-            logger.info("using " + Configuration.INPUT_MODULE_URI_KEY
-                    + "=" + inputModule);
-        }
-        repairInputXml = _config.isRepairInputXml();
-        allowEmptyMetadata = _config.isAllowEmptyMetadata();
+        logger = configuration.getLogger();
 
-        skipExisting = _config.isSkipExisting();
+        outputPackagePath = _config.getOutputPackagePath();
 
-        readRoles = _config.getReadRoles();
-        placeKeys = _config.getPlaceKeys();
-
-        threadCount = _config.getThreadCount();
-
-        outputFormatFilters = _config.getOutputFormatFilters();
-
-        // TODO filesystem output broken?
-        // outputPath = _config.getOutputPath();
-
-        String outputPackagePath = _config.getOutputPackagePath();
-        if (outputPackagePath != null) {
-            configureOutputPackages(outputPackagePath);
-        }
-
-        prefix = _config.getUriPrefix();
-
-        logger.finest(this + " outputCollections = "
-                + Utilities.join(_config.getOutputCollections(), ","));
-        outputCollections = _config.getOutputCollections();
-        logger.finest(this + " outputCollections = "
-                + Utilities.join(outputCollections, ","));
-
-        configureTimestamp();
-    }
-
-    /**
-     * @param outputPackagePath
-     * @throws IOException
-     */
-    private void configureOutputPackages(String outputPackagePath)
-            throws IOException {
-        String canonicalPath = new File(outputPackagePath)
-                .getCanonicalPath();
-        String path;
-
-        // create enough output packages to avoid most thread contention
-        int numPackages = Math.max(Runtime.getRuntime()
-                .availableProcessors(), Math.min(1, threadCount / 2));
-        outputPackages = new OutputPackage[numPackages];
-
-        for (int i = 0; i < outputPackages.length; i++) {
-            path = OutputPackage.newPackagePath(canonicalPath, i, 3);
-            outputPackages[i] = new OutputPackage(new File(path));
-        }
-    }
-
-    /**
-     * @throws RequestException
-     * 
-     */
-    private void configureTimestamp() throws RequestException {
-        String timestampString = configuration.getTimestamp();
-        if (null != timestampString) {
-            Session sess = configuration.newInputSession();
-            if (null == sess) {
-                logger.warning("ignoring "
-                        + Configuration.INPUT_TIMESTAMP_KEY + "="
-                        + timestampString + " because "
-                        + Configuration.INPUT_CONNECTION_STRING_KEY
-                        + " is not set.");
-            } else if (timestampString.startsWith("#")) {
-                // handle special values
-                if (Configuration.INPUT_TIMESTAMP_AUTO
-                        .equals(timestampString)) {
-                    // fetch the current timestamp
-                    timestamp = sess.getCurrentServerPointInTime();
-                } else {
-                    logger.warning("ignoring unknown timestamp "
-                            + timestampString);
+        if (null != outputPackagePath) {
+            try {
+                // create enough writers to minimize contention
+                int threadCount = _config.getThreadCount();
+                int poolSize = Math.min(Runtime.getRuntime()
+                        .availableProcessors(), threadCount);
+                logger.info("creating " + poolSize + " writer(s)");
+                writers = new WriterInterface[poolSize];
+                String path;
+                String canonicalPath = new File(outputPackagePath)
+                        .getCanonicalPath();
+                for (int i = 0; i < poolSize; i++) {
+                    path = OutputPackage.newPackagePath(canonicalPath, i,
+                            3);
+                    logger.fine("new writer " + path);
+                    writers[i] = new PackageWriter(configuration,
+                            new OutputPackage(new File(path)));
                 }
-            } else {
-                timestamp = new BigInteger(timestampString);
-            }
-            if (null != timestamp) {
-                logger.info("using timestamp " + timestamp);
+            } catch (IOException e) {
+                throw new SyncException(e);
             }
         }
-    }
-
-    /**
-     * @param cs
-     */
-    private void configure(CallableSync cs) {
-        cs.setLogger(logger);
-
-        // TODO place a config ref in the callablesync object?
-        cs.setCopyPermissions(copyPermissions);
-        cs.setCopyProperties(copyProperties);
-        cs.setRepairInputXml(repairInputXml);
-        cs.setAllowEmptyMetadata(allowEmptyMetadata);
-        cs.setOutputFormatFilters(outputFormatFilters);
-        cs.setInputModule(inputModule);
-
-        Session outputSession = configuration.newOutputSession();
-        cs.setOutputPrefix(prefix);
-        if (null != outputSession) {
-            cs.setOutputSession(outputSession);
-            cs.setSkipExisting(skipExisting);
-        } else if (null != outputPackages) {
-            // very simple pooling - outputPackage is thread-safe, anyway,
-            // but this keeps most threads from contending for a package
-            cs.setOutputPackage(outputPackages[Thread.currentThread()
-                    .hashCode()
-                    % outputPackages.length]);
-        }
-
-        if (null != readRoles) {
-            cs.setReadRoles(readRoles);
-        }
-
-        if (null != placeKeys) {
-            cs.setPlaceKeys(placeKeys);
-        }
-
-        if (null != timestamp) {
-            cs.setTimestamp(timestamp);
-        }
-
-        logger.finest("outputCollections = "
-                + Utilities.join(outputCollections, ","));
-        cs.addOutputCollections(outputCollections);
     }
 
     /**
      * @param file
      * @return
+     * @throws SyncException
      */
-    public Callable<TimedEvent> newCallableSync(File file) {
-        CallableSync cs = new CallableSync(file);
-        configure(cs);
-        return cs;
+    public Callable<TimedEvent> newTask(File file) throws SyncException {
+        try {
+            return newTask(file.getCanonicalPath());
+        } catch (IOException e) {
+            throw new SyncException(e);
+        }
     }
 
     /**
-     * @param uri
+     * @param _uri
      * @return
+     * @throws SyncException
      */
-    public Callable<TimedEvent> newCallableSync(String uri) {
-        Session session = configuration.newInputSession();
-        CallableSync cs = new CallableSync(session, uri);
-        configure(cs);
-        return cs;
-    }
-
-    /**
-     * @param inputPackage
-     * @param uri
-     * @return
-     */
-    public Callable<TimedEvent> newCallableSync(
-            InputPackage inputPackage, String uri) {
-        CallableSync cs = new CallableSync(inputPackage, uri);
-        configure(cs);
-        return cs;
+    public Callable<TimedEvent> newTask(String _uri) throws SyncException {
+        return new CallableSync(this, _uri);
     }
 
     /**
      * 
      */
     public void close() {
-        if (null != outputPackages) {
-            logger.info("closing " + outputPackages.length
+        if (null != writers && null != writers[0]
+                && writers[0] instanceof PackageWriter) {
+            logger.info("closing " + writers.length
                     + " output package(s)");
-            for (int i = 0; i < outputPackages.length; i++) {
+            for (int i = 0; i < writers.length; i++) {
+                if (null == writers[i]) {
+                    continue;
+                }
                 try {
-                    outputPackages[i].close();
-                } catch (IOException e) {
-                    logger.logException("cleanup", e);
+                    ((PackageWriter) writers[i]).close();
+                } catch (SyncException e) {
+                    logger.logException("cleanup " + i, e);
                 }
             }
         }
+    }
+
+    /**
+     * @return
+     */
+    public Configuration getConfiguration() {
+        return configuration;
+    }
+
+    /**
+     * @return
+     * @throws SyncException
+     */
+    public ReaderInterface getReader() throws SyncException {
+        return new SessionReader(configuration);
+    }
+
+    /**
+     * @return
+     * @throws SyncException
+     */
+    public WriterInterface getWriter() throws SyncException {
+        WriterInterface writer = null;
+        // TODO handle sync to file path
+        if (null != outputPackagePath) {
+            // simple balancer, to keep threads from contending for packages
+            writer = writers[count % writers.length];
+            count++;
+        } else {
+            writer = new SessionWriter(configuration);
+        }
+        return writer;
     }
 
 }

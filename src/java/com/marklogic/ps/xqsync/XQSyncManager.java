@@ -83,9 +83,8 @@ public class XQSyncManager extends AbstractLoggableClass {
             try {
                 // block until space becomes available
                 if (!warning) {
-                    logger.warning("queue is full: size = "
-                            + queue.size()
-                            + " (warning will only appear once!)");
+                    logger.fine("queue is full: size = " + queue.size()
+                            + " (will only appear once!)");
                     warning = true;
                 }
                 queue.put(r);
@@ -119,7 +118,6 @@ public class XQSyncManager extends AbstractLoggableClass {
     public XQSyncManager(Configuration _config) {
         configuration = _config;
         logger = configuration.getLogger();
-        XQSyncDocument.setLogger(logger);
     }
 
     public void run() {
@@ -131,20 +129,14 @@ public class XQSyncManager extends AbstractLoggableClass {
             logger.finer("threads = " + threads);
             BlockingQueue<Runnable> workQueue = null;
             inputSession = configuration.newInputSession();
-            if (null != inputSession) {
-                // if the input queue blocks, the XCC request may time out
-                logger.info("starting pool of " + threads
-                        + " threads, unlimited queue for input session");
-                workQueue = new LinkedBlockingQueue<Runnable>();
-            } else {
-                int queueSize = configuration.getQueueSize();
-                logger.info("starting pool of " + threads
-                        + " threads, queue size = " + queueSize);
-                // an array queue should be somewhat lighter-weight
-                workQueue = new ArrayBlockingQueue<Runnable>(queueSize);
-            }
-            // by using CallerBlocksPolicy, we automatically throttle the queue,
-            // but this won't affect runs that use input-connection.
+            int queueSize = configuration.getQueueSize();
+            logger.info("starting pool of " + threads
+                    + " threads, queue size = " + queueSize);
+            // an array queue should be somewhat lighter-weight
+            workQueue = new ArrayBlockingQueue<Runnable>(queueSize);
+
+            // CallerBlocksPolicy will automatically throttle the queue,
+            // except for runs that use input-connection.
             RejectedExecutionHandler policy = new CallerBlocksPolicy();
             ThreadPoolExecutor pool = new ThreadPoolExecutor(threads,
                     threads, 16, TimeUnit.SECONDS, workQueue, policy);
@@ -155,13 +147,10 @@ public class XQSyncManager extends AbstractLoggableClass {
             // priority than the thread pool will have.
             monitor = new Monitor(logger, pool, completionService,
                     configuration.isFatalErrors());
-            monitor.setPriority(Thread.NORM_PRIORITY + 1);
+            monitor.setPriority(1 + Thread.NORM_PRIORITY);
             monitor.start();
 
-            // TODO move into a task-producer thread?
-            // eventually, this means no dedicated manager at all
             factory = new TaskFactory(configuration);
-            CallableWrapper.setFactory(factory);
 
             Session outputSession = configuration.newOutputSession();
             if (null != outputSession) {
@@ -178,21 +167,29 @@ public class XQSyncManager extends AbstractLoggableClass {
                 logger.info("input version info: client "
                         + meta.getDriverVersionString() + ", server "
                         + meta.getServerVersionString());
+                // extra thread, to avoid deadlock with 1 thread
+                if (1 == threads) {
+                    logger.info("adding extra input queue thread");
+                    pool.setMaximumPoolSize(1 + threads);
+                    pool.setCorePoolSize(1 + threads);
+                }
                 itemsQueued = queueFromInputConnection(completionService);
-            } else if (null != configuration.getInputPackagePath()) {
-                itemsQueued = queueFromInputPackage(completionService,
-                        configuration.getInputPackagePath());
+                // queueFromInputConnection will shut down the pool via monitor
+                inputSession.close();
             } else {
-                itemsQueued = queueFromInputPath(completionService,
-                        configuration.getInputPath());
+                if (null != configuration.getInputPackagePath()) {
+                    itemsQueued = queueFromInputPackage(
+                            completionService, configuration
+                                    .getInputPackagePath());
+                } else {
+                    itemsQueued = queueFromInputPath(completionService,
+                            configuration.getInputPath());
+                }
+                pool.shutdown();
             }
 
-            // no more tasks to queue: now we just wait
-            if (inputSession != null) {
-                inputSession.close();
-            }
+            // no more tasks to queue - now we just wait
             logger.info("queued " + itemsQueued + " items");
-            pool.shutdown();
 
             while (null != monitor && monitor.isAlive()) {
                 try {
@@ -219,10 +216,11 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @param _cs
      * @return
      * @throws IOException
+     * @throws SyncException
      * 
      */
     private long queueFromInputPackage(CompletionService<TimedEvent> _cs,
-            String _path) throws IOException {
+            String _path) throws IOException, SyncException {
         File file = new File(_path);
 
         if (file.isFile()) {
@@ -259,15 +257,22 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @param _cs
      * @return
      * @throws IOException
+     * @throws SyncException
      * 
      */
     private long queueFromInputPackage(CompletionService<TimedEvent> _cs,
-            File _path) throws IOException {
+            File _path) throws IOException, SyncException {
         // list contents of package
         logger.info("listing package " + _path);
 
         InputPackage inputPackage = new InputPackage(_path
                 .getCanonicalPath());
+        // ensure that the package won't close while queuing
+        inputPackage.addReference();
+
+        // create a new factory for each input package
+        PackageTaskFactory factory = new PackageTaskFactory(
+                configuration, inputPackage);
 
         Iterator<String> iter = inputPackage.list().iterator();
         String path;
@@ -277,18 +282,22 @@ public class XQSyncManager extends AbstractLoggableClass {
             count++;
             path = iter.next();
             logger.finer("queuing " + count + ": " + path);
-            _cs.submit(new CallableWrapper(inputPackage, path));
+            _cs.submit(factory.newTask(path));
         }
 
+        // clean up so that the package can be closed
+        inputPackage.closeReference();
         return count;
     }
 
     /**
      * @param _cs
      * @throws XccException
+     * @throws SyncException
      */
     private long queueFromInputConnection(
-            CompletionService<TimedEvent> _cs) throws XccException {
+            CompletionService<TimedEvent> _cs) throws XccException,
+            SyncException {
         // use lexicon by default - this may throw an exception
         try {
             return queueFromInputConnection(_cs, true);
@@ -314,15 +323,16 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @param _cs
      * @param _useLexicon
      * @throws XccException
+     * @throws SyncException
      */
     private long queueFromInputConnection(
             CompletionService<TimedEvent> _cs, boolean _useLexicon)
-            throws XccException {
+            throws XccException, SyncException {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
         String userQuery = configuration.getInputQuery();
-        if (collectionUris != null && directoryUris != null) {
+        if (null != collectionUris && null != directoryUris) {
             logger.warning("conflicting properties: using "
                     + Configuration.INPUT_COLLECTION_URI_KEY + ", not "
                     + Configuration.INPUT_DIRECTORY_URI_KEY);
@@ -330,34 +340,32 @@ public class XQSyncManager extends AbstractLoggableClass {
 
         Long startPosition = configuration.getStartPosition();
 
-        if (startPosition != null) {
+        if (null != startPosition) {
             logger.info("using " + Configuration.INPUT_START_POSITION_KEY
                     + "=" + startPosition.longValue());
         }
 
         long count = 0;
+        BlockingQueue<String> queue;
 
-        if (documentUris != null) {
-            // we don't need to touch the database
+        if (null != documentUris) {
+            // we don't need to touch the database to get the uris
+            queue = new ArrayBlockingQueue<String>(documentUris.length);
+            _cs.submit(new CallableUriQueue(configuration, _cs, factory,
+                    queue));
             for (int i = 0; i < documentUris.length; i++) {
+                if (null != startPosition && i < startPosition) {
+                    continue;
+                }
+                queue.add(documentUris[i]);
                 count++;
-                _cs.submit(new CallableWrapper(documentUris[i]));
             }
+            queue.add(CallableUriQueue.POISON);
             return count;
         }
 
-        // use multiple collections or dirs (but not both)
-        // TODO should find a way to avoid multiple calls, for this case
-        int size = 1;
-        if (collectionUris != null && collectionUris.length > size) {
-            size = collectionUris.length;
-        } else if (directoryUris != null && directoryUris.length > size) {
-            size = directoryUris.length;
-        }
-
-        // in order to handle really big result sequences,
-        // we may have to turn off caching (default),
-        // and we may also have to *reduce* the buffer size.
+        // XCC has trouble caching really large result sequences
+        // This will all end up in RAM anyway...
         RequestOptions opts = inputSession.getDefaultRequestOptions();
         logger.fine("buffer size = " + opts.getResultBufferSize()
                 + ", caching = " + opts.getCacheResult());
@@ -370,19 +378,30 @@ public class XQSyncManager extends AbstractLoggableClass {
         ResultSequence rs;
         Request request;
 
-        // There is an inherent conflict here, for large URI sets.
-        // We want a limited queue size, to limit memory consumption,
-        // but we must retrieve quickly so that XCC doesn't time out.
-        // The current solution is limited queue size for most runs,
-        // but an unlimited queue site when input-connection is used.
-        // The queue is as light-weight as possible,
-        // by using CallableWrapper instead of CallableSync.
+        queue = new LinkedBlockingQueue<String>();
+        _cs.submit(new CallableUriQueue(configuration, _cs, factory,
+                queue));
 
+        // support multiple collections or directories (but not both)
+        // TODO find a way to avoid 1 request per collection or directory?
+        int size = 1;
+        if (null != collectionUris && collectionUris.length > size) {
+            size = collectionUris.length;
+        } else if (null != directoryUris && directoryUris.length > size) {
+            size = directoryUris.length;
+        }
+
+        /*
+         * There is an inherent conflict here, for large URI sets. We want a
+         * limited queue size, to limit memory consumption, but we must retrieve
+         * quickly so that XCC doesn't time out. The current solution is to read
+         * all the results at once, but use an extra thread to queue them as
+         * CallableSync objects.
+         */
         try {
             for (int i = 0; i < size; i++) {
-
-                request = getRequest(collectionUris == null ? null
-                        : collectionUris[i], directoryUris == null ? null
+                request = getRequest(null == collectionUris ? null
+                        : collectionUris[i], null == directoryUris ? null
                         : directoryUris[i], userQuery, startPosition,
                         _useLexicon);
                 request.setOptions(opts);
@@ -390,12 +409,16 @@ public class XQSyncManager extends AbstractLoggableClass {
 
                 while (rs.hasNext()) {
                     uri = rs.next().asString();
+                    if (0 == count) {
+                        logger.info("queuing first task: " + uri);
+                    }
                     logger.fine("queuing " + count + ": " + uri);
-                    _cs.submit(new CallableWrapper(uri));
+                    queue.add(uri);
                     count++;
                 }
                 rs.close();
             }
+            queue.add(CallableUriQueue.POISON);
         } catch (StreamingResultException e) {
             logger.info("count = " + count);
             logger.warning("Listing input URIs probably timed out:"
@@ -536,9 +559,10 @@ public class XQSyncManager extends AbstractLoggableClass {
      * @param _inputPath
      * @return
      * @throws IOException
+     * @throws SyncException
      */
     private long queueFromInputPath(CompletionService<TimedEvent> _cs,
-            String _inputPath) throws IOException {
+            String _inputPath) throws IOException, SyncException {
         // build documentList from a filesystem path
         // exclude stuff that ends with '.metadata'
         logger.info("listing from " + _inputPath + ", excluding "
@@ -555,7 +579,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             file = iter.next();
             logger.finer("queuing " + count + ": "
                     + file.getCanonicalPath());
-            _cs.submit(new CallableWrapper(file));
+            _cs.submit(factory.newTask(file));
         }
 
         return count;

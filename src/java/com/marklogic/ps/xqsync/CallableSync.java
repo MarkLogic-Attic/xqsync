@@ -18,91 +18,33 @@
  */
 package com.marklogic.ps.xqsync;
 
-import java.io.File;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
-import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
-import com.marklogic.ps.Utilities;
 import com.marklogic.ps.timing.TimedEvent;
-import com.marklogic.xcc.ContentPermission;
-import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
-import com.marklogic.xcc.exceptions.XQueryException;
 
+/**
+ * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * 
+ */
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
  */
 public class CallableSync implements Callable<TimedEvent> {
 
-    private Session outputSession;
+    protected String inputUri;
 
-    private OutputPackage outputPackage;
-
-    private SimpleLogger logger;
-
-    private Collection<ContentPermission> readRoles;
-
-    private String[] placeKeys;
-
-    private String inputUri;
-
-    private Session inputSession;
-
-    private boolean copyPermissions;
-
-    private boolean copyProperties;
-
-    private InputPackage inputPackage;
-
-    private File inputFile;
-
-    private boolean skipExisting;
-
-    private String outputPrefix;
-
-    private String[] outputCollections;
-
-    private boolean repairInputXml;
-
-    private boolean allowEmptyMetadata;
-
-    private BigInteger timestamp;
-
-    private String[] outputFormatFilters = null;
-
-    private String inputModule = null;
+    protected TaskFactory taskFactory;
 
     /**
-     * @param _package
-     * @param _path
-     */
-    public CallableSync(InputPackage _package, String _path) {
-        inputPackage = _package;
-        inputUri = _path;
-    }
-
-    /**
-     * @param _session
+     * @param _taskFactory
      * @param _uri
      */
-    public CallableSync(Session _session, String _uri) {
-        inputSession = _session;
+    public CallableSync(TaskFactory _taskFactory, String _uri) {
+        taskFactory = _taskFactory;
         inputUri = _uri;
-    }
-
-    /**
-     * @param _file
-     * @throws IOException
-     */
-    public CallableSync(File _file) {
-        inputFile = _file;
-        // note: don't set inputUri, since we can always get it from the file
     }
 
     /*
@@ -111,201 +53,58 @@ public class CallableSync implements Callable<TimedEvent> {
      * @see java.util.concurrent.Callable#call()
      */
     public TimedEvent call() throws Exception {
-        // note: if there's an input file, then inputUri may be null
-        if (null == inputUri) {
-            if (null == inputFile) {
-                throw new UnimplementedFeatureException(
-                        "missing required field: inputUri or inputFile");
-            }
-            inputUri = inputFile.getCanonicalPath();
-        }
+        initialize();
 
-        // try to avoid starvation
-        Thread.yield();
-        logger.fine("starting sync of " + inputUri);
         TimedEvent te = new TimedEvent();
 
-        XQSyncDocument document;
+        // lazy initialization, to reduce memory
+        Configuration configuration = taskFactory.getConfiguration();
+        SimpleLogger logger = configuration.getLogger();
+        ReaderInterface reader = taskFactory.getReader();
+        WriterInterface writer = taskFactory.getWriter();
 
-        if (inputSession != null) {
-            document = new XQSyncDocument(inputSession, inputUri,
-                    copyPermissions, copyProperties, repairInputXml,
-                    timestamp, inputModule);
-        } else if (inputPackage != null) {
-            document = new XQSyncDocument(inputPackage, inputUri,
-                    copyPermissions, copyProperties, repairInputXml,
-                    allowEmptyMetadata);
-        } else if (inputFile != null) {
-            document = new XQSyncDocument(inputFile, copyPermissions,
-                    copyProperties, repairInputXml, allowEmptyMetadata);
-        } else {
-            throw new UnimplementedFeatureException("no input found");
-        }
-
-        // try to avoid starvation
-        Thread.yield();
-
-        // write document to output session, package, or directory
-        // marshal output arguments
-        document.setOutputUriPrefix(outputPrefix);
-
-        // handle output collections
-        document.addOutputCollections(outputCollections);
+        logger.fine("starting sync of " + inputUri);
 
         try {
-            // TODO replace with subclasses?
-            if (matchesFilters(document)) {
-                // do not write
-                // TODO correct accounting?
-            } else if (null != outputSession) {
-                document.write(outputSession, readRoles, placeKeys,
-                        skipExisting);
-            } else if (null != outputPackage) {
-                document.write(outputPackage, readRoles);
-                outputPackage.flush();
-            } else {
-                // default: filesystem
-                document.write();
-            }
-
+            DocumentInterface document = new XQSyncDocument(inputUri,
+                    reader, writer, configuration);
+            int bytesWritten = document.sync();
             te.setDescription(document.getOutputUri());
-            te.stop(document.getContentBytesLength());
+            te.stop(bytesWritten);
             return te;
-        } catch (XQueryException e) {
-            if (null != inputPackage) {
+        } catch (SyncException e) {
+            if (reader instanceof PackageReader) {
                 logger.warning("error in input package "
-                        + inputPackage.getPath());
+                        + ((PackageReader) reader).getPath());
             }
             throw e;
         } finally {
-            if (outputSession != null) {
-                outputSession.close();
+            if (null != reader) {
+                reader.close();
             }
-
-            // try to avoid starvation
+            // avoid starving other threads
             Thread.yield();
         }
     }
 
     /**
-     * @param document
-     * @return
+     * @throws NoSuchMethodException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
      */
-    private boolean matchesFilters(XQSyncDocument document) {
-        // return true if any filter matches
-
-        // check format
-        if (outputFormatFilters != null
-                && Arrays.binarySearch(outputFormatFilters, document
-                        .getMetadata().getFormatName()) > -1) {
-            logger.finer(Configuration.OUTPUT_FILTER_FORMATS_KEY
-                    + " matched " + document.getOutputUri());
-            return true;
+    private void initialize() throws NoSuchMethodException,
+            InstantiationException, IllegalAccessException,
+            InvocationTargetException {
+        if (null == inputUri) {
+            throw new NullPointerException(
+                    "missing required field: inputUri");
         }
 
-        return false;
-    }
-
-    public void setOutputPackage(OutputPackage outputPackage) {
-        this.outputPackage = outputPackage;
-    }
-
-    public void setOutputSession(Session outputSession) {
-        this.outputSession = outputSession;
-    }
-
-    public void setPlaceKeys(String[] placeKeys) {
-        this.placeKeys = placeKeys;
-    }
-
-    public void setReadRoles(Collection<ContentPermission> readRoles) {
-        this.readRoles = readRoles;
-    }
-
-    /**
-     * @param logger
-     */
-    public void setLogger(SimpleLogger logger) {
-        this.logger = logger;
-    }
-
-    public void setSkipExisting(boolean skipExisting) {
-        this.skipExisting = skipExisting;
-    }
-
-    /**
-     * @param prefix
-     */
-    public void setOutputPrefix(String prefix) {
-        outputPrefix = prefix;
-    }
-
-    /**
-     * @param _outputCollections
-     */
-    public void addOutputCollections(String[] _outputCollections) {
-        if (null == _outputCollections) {
-            logger.finest(null);
-            return;
+        if (null == taskFactory) {
+            throw new NullPointerException(
+                    "missing required field: taskFactory");
         }
-        logger.finest(Utilities.join(_outputCollections, ","));
-        if (null == outputCollections) {
-            outputCollections = _outputCollections;
-        } else {
-            List<String> tmp = Arrays.asList(outputCollections);
-            tmp.addAll(Arrays.asList(_outputCollections));
-            outputCollections = tmp.toArray(new String[0]);
-        }
-        logger.finest(Utilities.join(outputCollections, ","));
-    }
-
-    /**
-     * @param _timestamp
-     */
-    public void setTimestamp(BigInteger _timestamp) {
-        timestamp = _timestamp;
-    }
-
-    /**
-     * @param _copyPermissions
-     */
-    public void setCopyPermissions(boolean _copyPermissions) {
-        copyPermissions = _copyPermissions;
-    }
-
-    /**
-     * @param _copyProperties
-     */
-    public void setCopyProperties(boolean _copyProperties) {
-        copyProperties = _copyProperties;
-    }
-
-    /**
-     * @param _module
-     */
-    public void setInputModule(String _module) {
-        inputModule = _module;
-    }
-
-    /**
-     * @param _repairInputXml
-     */
-    public void setRepairInputXml(boolean _repairInputXml) {
-        repairInputXml = _repairInputXml;
-    }
-
-    /**
-     * @param _allowEmptyMetadata
-     */
-    public void setAllowEmptyMetadata(boolean _allowEmptyMetadata) {
-        allowEmptyMetadata = _allowEmptyMetadata;
-    }
-
-    /**
-     * @param _outputFormatFilters
-     */
-    public void setOutputFormatFilters(String[] _outputFormatFilters) {
-        outputFormatFilters = _outputFormatFilters;
     }
 
 }

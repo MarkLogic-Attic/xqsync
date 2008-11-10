@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,13 +43,15 @@ public class InputPackage extends AbstractLoggableClass {
     // number of entries overflows at 2^16 = 65536
     // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
     // (supposed to be fixed, but isn't)
-    private static final int MAX_ENTRIES = 65536 - 1;
+    protected static final int MAX_ENTRIES = 65536 - 1;
 
-    private String packagePath;
+    protected String packagePath;
 
-    private ZipFile inputZip;
+    protected ZipFile inputZip;
 
-    private File inputFile;
+    protected File inputFile;
+
+    protected volatile int references = 0;
 
     /**
      * @param _path
@@ -177,6 +179,35 @@ public class InputPackage extends AbstractLoggableClass {
         // logger.finest("adding " + path);
         documentList.add(path);
         return 1;
+    }
+
+    /**
+     * 
+     */
+    public void addReference() {
+        // TODO does this need to be synchronized? mutex?
+        references++;
+    }
+
+    /**
+     * 
+     */
+    public void closeReference() {
+        // TODO does this need to be synchronized? mutex?
+        references--;
+
+        if (0 != references) {
+            return;
+        }
+
+        // free the resources for the input zip package
+        logger.info("closing " + inputZip.getName());
+        try {
+            inputZip.close();
+        } catch (IOException e) {
+            // should not happen - log it and proceed
+            logger.logException(inputZip.getName(), e);
+        }
     }
 
 }

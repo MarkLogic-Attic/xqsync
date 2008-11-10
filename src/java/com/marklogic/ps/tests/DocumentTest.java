@@ -19,20 +19,20 @@
 package com.marklogic.ps.tests;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 
-import javax.xml.parsers.ParserConfigurationException;
-
 import junit.framework.TestCase;
-
-import org.xml.sax.SAXException;
 
 import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
+import com.marklogic.ps.xqsync.Configuration;
+import com.marklogic.ps.xqsync.FilePathReader;
+import com.marklogic.ps.xqsync.FilePathWriter;
+import com.marklogic.ps.xqsync.SessionReader;
+import com.marklogic.ps.xqsync.SyncException;
 import com.marklogic.ps.xqsync.XQSyncDocument;
 import com.marklogic.xcc.AdhocQuery;
 import com.marklogic.xcc.Content;
@@ -48,34 +48,35 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class DocumentTest extends TestCase {
 
-    public void testEscaping() throws UnsupportedEncodingException {
-        SimpleLogger logger = SimpleLogger.getSimpleLogger();
-
+    public void testEscaping() throws SyncException, XccException,
+            IOException, URISyntaxException {
         String testString = "http://foo.com/bar baz/";
-        // URI uri = new URI(null, null, testString, null, null);
-        // logger.info(uri.toString());
-        // logger.info(uri.toASCIIString());
-
         String expected = testString;
-        XQSyncDocument.setLogger(logger);
-        XQSyncDocument doc = new XQSyncDocument(testString, true);
+        Configuration config = new Configuration();
+        Properties properties = new Properties();
+        properties.setProperty(Configuration.INPUT_PATH_KEY, "/dev/null");
+        properties
+                .setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
+        config.setProperties(properties);
+        FilePathReader reader = new FilePathReader(config);
+        FilePathWriter writer = new FilePathWriter(config);
+        XQSyncDocument doc = new XQSyncDocument(testString, reader,
+                writer, config);
         testString = doc.getOutputUri();
-        // logger.info(testString);
         assertEquals(testString, expected);
-        testString = doc.composeOutputUri(true);
-        // logger.info(testString);
+        testString = doc.getOutputUri(true);
         assertEquals(testString, expected);
     }
 
     public void testPermissions() throws URISyntaxException,
-            XccException, IOException, ParserConfigurationException,
-            SAXException {
-        SimpleLogger logger = SimpleLogger.getSimpleLogger();
+            XccException, SyncException, IOException {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
         props.setProperty(SimpleLogger.LOG_HANDLER, "CONSOLE");
-        logger.configureLogger(props);
         URI uri = new URI("xcc://admin:admin@localhost:9000/");
+        props.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, uri
+                .toString());
+        props.setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
         Connection c = new Connection(uri);
         Session sess = (Session) c.newSession();
         String documentUri = this.getClass().getName()
@@ -100,9 +101,14 @@ public class DocumentTest extends TestCase {
         sess.submitRequest(req);
 
         // retrieve the test document
-        XQSyncDocument doc = new XQSyncDocument(sess, documentUri, true,
-                true, false, null, null);
-        String retrievedXml = new String(doc.getContentBytes());
+        Configuration config = new Configuration();
+        config.setProperties(props);
+        SessionReader reader = new SessionReader(config);
+        FilePathWriter writer = new FilePathWriter(config);
+        XQSyncDocument doc = new XQSyncDocument(documentUri, reader,
+                writer, config);
+        doc.read();
+        String retrievedXml = new String(doc.getContent());
 
         // test the round-trip of the XML
         assertEquals(documentString, retrievedXml);
@@ -110,6 +116,7 @@ public class DocumentTest extends TestCase {
         // test the permissions
         ContentPermission[] permissions = doc.getMetadata()
                 .getPermissions();
+        SimpleLogger logger = config.getLogger();
         logger.fine("found permissions " + permissions.length);
         for (int i = 0; i < permissions.length; i++) {
             logger.finer("permission[" + i + "] = " + permissions[i]);
@@ -121,9 +128,9 @@ public class DocumentTest extends TestCase {
 
         // on success, delete the test document
         // (otherwise we might inspect it)
-        req = sess
-                .newAdhocQuery("define variable $URI as xs:string external\n"
-                        + "xdmp:document-delete($URI)\n");
+        req = sess.newAdhocQuery(Session.XQUERY_VERSION_0_9_ML
+                + "define variable $URI as xs:string external\n"
+                + "xdmp:document-delete($URI)\n");
         req.setNewStringVariable("URI", documentUri);
         sess.submitRequest(req);
 

@@ -33,14 +33,14 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync extends AbstractLoggableClass {
 
-    public static String VERSION = "2008-10-31.1";
+    public static String VERSION = "2008-11-09.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("
             + System.getProperty("java.runtime.name") + ")";
 
     public static void main(String[] args) throws IOException,
-            XccException, URISyntaxException {
+            XccException, URISyntaxException, SyncException {
 
         // make sure the environment is healthy
         String encoding = System.getProperty("file.encoding");
@@ -76,7 +76,11 @@ public class XQSync extends AbstractLoggableClass {
         // we don't need the manager to be a Thread, so run it directly
         XQSyncManager xqm = new XQSyncManager(configuration);
         xqm.run();
-        logger.info("completed " + xqm.getItemsQueued() + " in "
-                + (System.currentTimeMillis() - start) + " ms");
+
+        long duration = System.currentTimeMillis() - start;
+        long itemsQueued = xqm.getItemsQueued();
+        logger.info("completed " + itemsQueued + " in " + duration
+                + " ms (" + (int) (1000 * itemsQueued / duration)
+                + " tps)");
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2007 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,38 @@ import com.marklogic.ps.AbstractLoggableClass;
  */
 public class OutputPackage extends AbstractLoggableClass {
 
+    class CloseThread extends Thread {
+
+        private ZipOutputStream zos;
+
+        private String name;
+
+        /**
+         * @param _zos
+         * @param _name
+         */
+        public CloseThread(ZipOutputStream _zos, String _name) {
+            zos = _zos;
+            name = _name;
+        }
+
+        @Override
+        public void run() {
+            // serialize closing, which can be a client-side bottleneck:
+            // this doesn't remove the bottleneck, but may improve throughput.
+            try {
+                synchronized (closeMutex) {
+                    zos.flush();
+                    zos.close();
+                    logger.info("saved " + name);
+                }
+            } catch (IOException e) {
+                throw new FatalException(e);
+            }
+        }
+
+    }
+
     // number of entries overflows at 2^16 = 65536
     // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
     // (supposed to be fixed, but isn't)
@@ -44,6 +76,8 @@ public class OutputPackage extends AbstractLoggableClass {
     private Object outputMutex = new Object();
 
     private ZipOutputStream outputStream;
+
+    private static volatile Object closeMutex = new Object();
 
     private File constructorFile;
 
@@ -61,28 +95,16 @@ public class OutputPackage extends AbstractLoggableClass {
     }
 
     /**
-     * @throws IOException
      * 
      */
-    public void close() throws IOException {
+    public void close() {
         synchronized (outputMutex) {
-            if (outputStream == null) {
+            if (null == outputStream) {
                 return;
             }
-            outputStream.close();
-        }
-    }
-
-    /**
-     * @throws IOException
-     * 
-     */
-    public void flush() throws IOException {
-        synchronized (outputMutex) {
-            if (outputStream == null) {
-                return;
-            }
-            outputStream.flush();
+            // flush can take several seconds, so do it in another thread
+            new CloseThread(outputStream, currentFile.getName())
+                    .start();
         }
     }
 
@@ -92,7 +114,7 @@ public class OutputPackage extends AbstractLoggableClass {
      * @param metadata
      * @throws IOException
      */
-    public void write(String outputPath, byte[] bytes,
+    public long write(String outputPath, byte[] bytes,
             XQSyncDocumentMetadata metadata) throws IOException {
         /*
          * This method uses size metrics to automatically manage multiple zip
@@ -140,6 +162,8 @@ public class OutputPackage extends AbstractLoggableClass {
         }
         currentFileBytes += total;
         currentEntries += 2;
+
+        return total;
     }
 
     private void newOutputStream() throws IOException {
@@ -151,13 +175,8 @@ public class OutputPackage extends AbstractLoggableClass {
             if (fileCount > 0) {
                 path = newPackagePath(canonicalPath, fileCount, 6);
             }
+            close();
             logger.info("new output package " + path);
-            // TODO this flush can take several seconds
-            // TODO this is a bottleneck for large output syncs
-            if (outputStream != null) {
-                flush();
-                close();
-            }
             currentFileBytes = 0;
             currentEntries = 0;
             currentFile = new File(path);
@@ -173,8 +192,8 @@ public class OutputPackage extends AbstractLoggableClass {
      * @param width
      * @return
      */
-    static protected String newPackagePath(String canonicalPath, int count,
-            int width) {
+    static protected String newPackagePath(String canonicalPath,
+            int count, int width) {
         String path = canonicalPath;
         if (path.endsWith(EXTENSION)) {
             String pathPattern = "(.+)" + EXTENSION + "$";

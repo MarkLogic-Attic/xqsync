@@ -20,6 +20,7 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
@@ -31,6 +32,7 @@ import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.ContentPermission;
+import com.marklogic.xcc.exceptions.RequestException;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XccException;
 
@@ -55,6 +57,15 @@ public class Configuration extends AbstractLoggableClass {
      */
     public static final String COPY_PERMISSIONS_KEY = "COPY_PERMISSIONS";
 
+    /**
+     * 
+     */
+    public static final String COPY_COLLECTIONS_KEY = "COPY_COLLECTIONS";
+
+    /**
+     * 
+     */
+    public static final String COPY_QUALITY_KEY = "COPY_QUALITY";
     /**
      * 
      */
@@ -117,6 +128,10 @@ public class Configuration extends AbstractLoggableClass {
     private boolean copyPermissions = true;
 
     private boolean copyProperties = true;
+
+    private boolean copyCollections = true;
+
+    private boolean copyQuality = true;
 
     private boolean fatalErrors = true;
 
@@ -216,6 +231,14 @@ public class Configuration extends AbstractLoggableClass {
 
     static final String INPUT_MODULE_URI_KEY = "INPUT_MODULE_URI";
 
+    protected static final String INPUT_CACHE_RESULTS_KEY = "INPUT_CACHE_RESULTS";
+
+    protected static final String INPUT_CACHE_RESULTS_DEFAULT = "false";
+
+    protected static final String INPUT_RESULT_BUFFER_SIZE_KEY = "INPUT_RESULT_BUFFER_SIZE";
+
+    protected static final String INPUT_RESULT_BUFFER_SIZE_DEFAULT = "0";
+
     private String outputPackagePath;
 
     private Long startPosition;
@@ -228,6 +251,8 @@ public class Configuration extends AbstractLoggableClass {
 
     private String[] outputFormatFilters;
 
+    private BigInteger timestamp = null;
+
     public Configuration() {
         super();
     }
@@ -235,10 +260,13 @@ public class Configuration extends AbstractLoggableClass {
     /*
      * (non-Javadoc)
      * 
-     * @see com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties)
+     * @see
+     * com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties
+     * )
      */
     public synchronized void setProperties(Properties _properties)
-            throws XccException, IOException, URISyntaxException {
+            throws XccException, IOException, URISyntaxException,
+            SyncException {
         properties = _properties;
 
         // we need a logger as soon as possible: keep this first
@@ -281,6 +309,12 @@ public class Configuration extends AbstractLoggableClass {
         // copyProperties is hot
         copyProperties = Utilities.stringToBoolean(properties
                 .getProperty(COPY_PROPERTIES_KEY, "true"));
+
+        copyCollections = Utilities.stringToBoolean(properties
+                .getProperty(COPY_COLLECTIONS_KEY, "true"));
+
+        copyQuality = Utilities.stringToBoolean(properties.getProperty(
+                COPY_QUALITY_KEY, "true"));
 
         repairInputXml = Utilities.stringToBoolean(properties
                 .getProperty(REPAIR_INPUT_XML_KEY,
@@ -329,10 +363,11 @@ public class Configuration extends AbstractLoggableClass {
      * @throws XccException
      * @throws IOException
      * @throws URISyntaxException
+     * @throws SyncException
      * 
      */
     private void configure() throws XccException, IOException,
-            URISyntaxException {
+            URISyntaxException, SyncException {
         // cold configuration
         if (!firstConfiguration) {
             return;
@@ -341,7 +376,7 @@ public class Configuration extends AbstractLoggableClass {
         firstConfiguration = false;
 
         if (properties == null || !properties.keys().hasMoreElements()) {
-            throw new IOException("null or empty properties");
+            logger.warning("null or empty properties");
         }
 
         // figure out the input source
@@ -349,6 +384,8 @@ public class Configuration extends AbstractLoggableClass {
 
         // decide on the output
         configureOutput();
+
+        configureTimestamp(properties.getProperty(INPUT_TIMESTAMP_KEY));
 
         // miscellaneous
         String startPositionString = properties
@@ -363,7 +400,7 @@ public class Configuration extends AbstractLoggableClass {
     }
 
     private void configureInput() throws IOException, URISyntaxException,
-            XccException {
+            XccException, SyncException {
         inputPackagePath = properties.getProperty(INPUT_PACKAGE_KEY);
 
         if (null != inputPackagePath) {
@@ -383,15 +420,24 @@ public class Configuration extends AbstractLoggableClass {
             }
             if (!(inputConnectionString.startsWith(XCC_PREFIX) || inputConnectionString
                     .startsWith(XCC_PREFIX_OLD))) {
-                throw new UnimplementedFeatureException(
-                        "unsupported connection string: "
-                                + inputConnectionString);
+                throw new SyncException("unsupported connection string: "
+                        + inputConnectionString);
             }
             logger
                     .info("input from connection: "
                             + inputConnectionString);
-            URI inputUri = new URI(inputConnectionString);
+            // split for load balancing
+            String[] inputStrings = inputConnectionString
+                    .split(CSV_SCSV_SSV_REGEX);
+            URI[] inputUri = new URI[inputStrings.length];
+            for (int i = 0; i < inputUri.length; i++) {
+                inputUri[i] = new URI(inputStrings[i]);
+            }
             inputConnection = new Connection(inputUri);
+
+            if (isInputCacheResults()) {
+                logger.info(INPUT_CACHE_RESULTS_KEY + "=true");
+            }
         }
     }
 
@@ -522,8 +568,8 @@ public class Configuration extends AbstractLoggableClass {
      * @return
      */
     public int getThreadCount() {
-        return new Integer(properties.getProperty(THREADS_KEY,
-                THREADS_DEFAULT)).intValue();
+        return Integer.parseInt(properties.getProperty(THREADS_KEY,
+                THREADS_DEFAULT));
     }
 
     /**
@@ -648,9 +694,8 @@ public class Configuration extends AbstractLoggableClass {
     /**
      * @return
      */
-    public String getTimestamp() {
-        // NB - default is null
-        return properties.getProperty(INPUT_TIMESTAMP_KEY);
+    public BigInteger getTimestamp() {
+        return timestamp;
     }
 
     /**
@@ -689,6 +734,72 @@ public class Configuration extends AbstractLoggableClass {
      */
     public String getInputModule() {
         return properties.getProperty(INPUT_MODULE_URI_KEY);
+    }
+
+    /**
+     * @param _timestampString
+     * @throws RequestException
+     * 
+     */
+    private void configureTimestamp(String _timestampString)
+            throws RequestException {
+        if (null != _timestampString) {
+            Session sess = newInputSession();
+            if (null == sess) {
+                logger.warning("ignoring "
+                        + Configuration.INPUT_TIMESTAMP_KEY + "="
+                        + _timestampString + " because "
+                        + Configuration.INPUT_CONNECTION_STRING_KEY
+                        + " is not set.");
+            } else if (_timestampString.startsWith("#")) {
+                // handle special values
+                if (Configuration.INPUT_TIMESTAMP_AUTO
+                        .equals(_timestampString)) {
+                    // fetch the current timestamp
+                    timestamp = sess.getCurrentServerPointInTime();
+                } else {
+                    logger.warning("ignoring unknown timestamp "
+                            + _timestampString);
+                }
+            } else {
+                timestamp = new BigInteger(_timestampString);
+            }
+
+            if (null != timestamp) {
+                logger.info("using timestamp " + timestamp);
+            }
+        }
+    }
+
+    /**
+     * @return
+     */
+    public boolean isInputCacheResults() {
+        return Boolean.parseBoolean(properties.getProperty(
+                INPUT_CACHE_RESULTS_KEY, INPUT_CACHE_RESULTS_DEFAULT));
+    }
+
+    /**
+     * @return
+     */
+    public int inputResultBufferSize() {
+        return Integer.parseInt(properties.getProperty(
+                INPUT_RESULT_BUFFER_SIZE_KEY,
+                INPUT_RESULT_BUFFER_SIZE_DEFAULT));
+    }
+
+    /**
+     * @return
+     */
+    public boolean isCopyCollections() {
+        return copyCollections;
+    }
+
+    /**
+     * @return
+     */
+    public boolean isCopyQuality() {
+        return copyQuality;
     }
 
 }

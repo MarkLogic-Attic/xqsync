@@ -35,7 +35,7 @@ import com.thoughtworks.xstream.io.xml.DomDriver;
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  * 
  */
-public class XQSyncDocumentMetadata {
+public class XQSyncDocumentMetadata implements MetadataInterface {
     private DocumentFormat format = null;
 
     List<String> collectionsList = new Vector<String>();
@@ -164,8 +164,8 @@ public class XQSyncDocumentMetadata {
         properties = null;
     }
 
-    /**
-     * @return
+    /* (non-Javadoc)
+     * @see com.marklogic.ps.xqsync.MetadataInterface#getFormatName()
      */
     public String getFormatName() {
         return format.toString();
@@ -239,7 +239,7 @@ public class XQSyncDocumentMetadata {
      * @param _collections
      */
     public void addCollections(String[] _collections) {
-        if (null == _collections) {
+        if (null == _collections || 1 > _collections.length) {
             return;
         }
         for (int i = 0; i < _collections.length; i++) {

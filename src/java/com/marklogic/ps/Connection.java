@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2006 Mark Logic Corporation
+ * Copyright (c)2004-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import com.marklogic.xcc.ContentSource;
 import com.marklogic.xcc.ContentSourceFactory;
 import com.marklogic.xcc.Session;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
+import com.marklogic.xcc.exceptions.XccConfigException;
 import com.marklogic.xcc.exceptions.XccException;
 
 /**
@@ -33,29 +34,54 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class Connection implements ContentSource {
 
-    private URI uri;
+    protected URI[] uri;
 
-    private ContentSource cs;
+    protected ContentSource[] cs;
+
+    protected volatile int count = 0;
 
     /**
      * @param _uri
      * @throws XccException
      */
     public Connection(URI _uri) throws XccException {
-        // detect bad URIs, since the JVM allows them
-        if (null == _uri.getHost()) {
-            throw new UnimplementedFeatureException(
-                    "bad URI: cannot parse host from " + _uri);
+        init(new URI[] { _uri });
+    }
+
+    /**
+     * @param _uris
+     * @throws XccConfigException
+     */
+    private void init(URI[] _uris) throws XccConfigException {
+        if (null == _uris || 1 > _uris.length) {
+            throw new NullPointerException("must supply uris");
         }
-        uri = _uri;
-        cs = ContentSourceFactory.newContentSource(uri);
+        // detect bad URIs, since the JVM allows them
+        uri = new URI[_uris.length];
+        cs = new ContentSource[_uris.length];
+        for (int i = 0; i < _uris.length; i++) {
+            if (null == _uris[i].getHost()) {
+                throw new UnimplementedFeatureException(
+                        "bad URI: cannot parse host from " + _uris[i]);
+            }
+            uri[i] = _uris[i];
+            cs[i] = ContentSourceFactory.newContentSource(uri[i]);
+        }
+    }
+
+    /**
+     * @param _uri
+     * @throws XccException
+     */
+    public Connection(URI[] _uris) throws XccException {
+        init(_uris);
     }
 
     /**
      * @return
      */
     public URI getUri() {
-        return uri;
+        return uri[count++ % uri.length];
     }
 
     /*
@@ -64,7 +90,17 @@ public class Connection implements ContentSource {
      * @see com.marklogic.xcc.ContentSource#newSession()
      */
     public Session newSession() {
-        return new com.marklogic.ps.Session(this, cs.newSession());
+        return new com.marklogic.ps.Session(this, getContentSource()
+                .newSession());
+    }
+
+    /**
+     * @return
+     */
+    public synchronized ContentSource getContentSource() {
+        // this may not need synchronized, since count is volatile,
+        // but no one should call this function frequently
+        return cs[count++ % cs.length];
     }
 
     /*
@@ -73,7 +109,7 @@ public class Connection implements ContentSource {
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String)
      */
     public Session newSession(String contentbaseId) {
-        return new com.marklogic.ps.Session(this, cs
+        return new com.marklogic.ps.Session(this, getContentSource()
                 .newSession(contentbaseId));
     }
 
@@ -81,23 +117,23 @@ public class Connection implements ContentSource {
      * (non-Javadoc)
      * 
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String,
-     *      java.lang.String)
+     * java.lang.String)
      */
     public Session newSession(String userName, String password) {
-        return new com.marklogic.ps.Session(this, cs.newSession(userName,
-                password));
+        return new com.marklogic.ps.Session(this, getContentSource()
+                .newSession(userName, password));
     }
 
     /*
      * (non-Javadoc)
      * 
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String,
-     *      java.lang.String, java.lang.String)
+     * java.lang.String, java.lang.String)
      */
     public Session newSession(String userName, String password,
             String contentbaseId) {
-        return new com.marklogic.ps.Session(this, cs.newSession(userName,
-                password, contentbaseId));
+        return new com.marklogic.ps.Session(this, getContentSource()
+                .newSession(userName, password, contentbaseId));
     }
 
     /*
@@ -106,16 +142,18 @@ public class Connection implements ContentSource {
      * @see com.marklogic.xcc.ContentSource#getDefaultLogger()
      */
     public Logger getDefaultLogger() {
-        return cs.getDefaultLogger();
+        return getContentSource().getDefaultLogger();
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.marklogic.xcc.ContentSource#setDefaultLogger(java.util.logging.Logger)
+     * @see
+     * com.marklogic.xcc.ContentSource#setDefaultLogger(java.util.logging.Logger
+     * )
      */
     public void setDefaultLogger(Logger logger) {
-        cs.setDefaultLogger(logger);
+        getContentSource().setDefaultLogger(logger);
     }
 
 }

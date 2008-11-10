@@ -34,21 +34,25 @@ import com.marklogic.ps.timing.Timer;
  */
 public class Monitor extends Thread {
 
-    private static final int DISPLAY_MILLIS = 60 * 1000;
+    protected static final int DISPLAY_MILLIS = 60 * 1000;
 
-    private static final int SLEEP_MILLIS = 500;
+    protected static final int SLEEP_MILLIS = 500;
 
-    private static SimpleLogger logger;
+    protected static SimpleLogger logger;
 
-    private ThreadPoolExecutor pool;
+    protected ThreadPoolExecutor pool;
 
-    private static long lastDisplayMillis = 0;
+    protected static long lastDisplayMillis = 0;
 
-    private boolean running = true;
+    protected boolean running = true;
 
-    private CompletionService<TimedEvent> completionService;
+    protected CompletionService<TimedEvent> completionService;
 
-    private boolean fatalErrors = Configuration.FATAL_ERRORS_DEFAULT_BOOLEAN;
+    protected boolean fatalErrors = Configuration.FATAL_ERRORS_DEFAULT_BOOLEAN;
+
+    protected Timer timer;
+
+    protected long taskCount;
 
     /**
      * @param _logger
@@ -84,7 +88,8 @@ public class Monitor extends Thread {
         } finally {
             pool.shutdownNow();
         }
-        logger.info("exiting");
+        logger.info("exiting after " + timer.getEventCount() + "/"
+                + taskCount + ", " + timer.getProgressMessage());
     }
 
     /**
@@ -101,20 +106,19 @@ public class Monitor extends Thread {
      * @throws InterruptedException
      * 
      */
-    private void monitor() throws ExecutionException {
+    protected void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
         int sleepMillis = SLEEP_MILLIS;
         Future<TimedEvent> future = null;
         long currentMillis;
         TimedEvent lastEvent = null;
 
-        // if anything goes wrong, the manager knows how to stop us
-        long taskCount = pool.getTaskCount();
+        taskCount = pool.getTaskCount();
         logger.finest("looping every " + sleepMillis + ", core="
                 + pool.getCorePoolSize() + ", active="
                 + pool.getActiveCount() + ", tasks=" + taskCount);
 
-        Timer timer = new Timer();
+        timer = new Timer();
 
         // run until all futures have been checked
         while (running && !pool.isTerminated()) {
@@ -132,8 +136,15 @@ public class Monitor extends Thread {
                         // record result, or throw exception
                         try {
                             lastEvent = future.get();
-                            // reduce memory utilization by discarding events
-                            timer.add(lastEvent, false);
+                            if (null != lastEvent) {
+                                // discard events to reduce memory utilization
+                                timer.add(lastEvent, false);
+                            } else {
+                                // special - queuing is complete
+                                // accept no new tasks
+                                logger.fine("shutting down pool");
+                                pool.shutdown();
+                            }
                         } catch (ExecutionException e) {
                             if (fatalErrors) {
                                 throw e;
@@ -167,8 +178,6 @@ public class Monitor extends Thread {
             } while (null != future);
 
         }
-
-        logger.info(timer.getProgressMessage());
     }
 
     /**

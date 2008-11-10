@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2005-2007 Mark Logic Corporation
+ * Copyright (c)2005-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,7 +166,7 @@ public class SimpleLogger extends Logger implements
             }
 
             for (int i = 0; i < size; i++) {
-                if (i > newHandlers.length) {
+                if (i >= newHandlers.length) {
                     // nothing to do except remove the old one
                     removeHandler(oldHandlers[i]);
                     continue;
