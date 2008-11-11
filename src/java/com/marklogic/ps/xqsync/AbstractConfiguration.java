@@ -1,0 +1,153 @@
+/**
+ * Copyright (c) 2008 Mark Logic Corporation. All rights reserved.
+ */
+package com.marklogic.ps.xqsync;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+
+import com.marklogic.ps.SimpleLogger;
+
+/**
+ * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * 
+ */
+public class AbstractConfiguration {
+
+    protected static final String DEFAULT_SUFFIX = "_DEFAULT";
+
+    protected static final String KEY_SUFFIX = "_KEY";
+
+    protected static SimpleLogger logger;
+
+    protected Map<String, Object> defaults = new HashMap<String, Object>();
+
+    protected Properties properties = new Properties();
+
+    protected void setDefaults() throws IllegalArgumentException,
+            SecurityException, IllegalAccessException,
+            NoSuchFieldException {
+        Field[] fields = this.getClass().getFields();
+        String name, key;
+        for (int i = 0; i < fields.length; i++) {
+            name = fields[i].getName();
+            if (name.endsWith(KEY_SUFFIX)) {
+                key = (String) fields[i].get(this);
+                if (!defaults.containsKey(key)) {
+                    defaults.put(key, null);
+                    logger.fine(key + "=(null)");
+                }
+                continue;
+            }
+            if (name.endsWith(DEFAULT_SUFFIX)) {
+                // the true key is the value of the key-named field
+                key = (String) this.getClass().getField(
+                        name.substring(0, name.length()
+                                - DEFAULT_SUFFIX.length())
+                                + KEY_SUFFIX).get(this);
+                defaults.put(key, fields[i].get(this));
+                logger.fine(key + "=" + defaults.get(key));
+                continue;
+            }
+        }
+    }
+
+    /**
+     * @param _props
+     */
+    public void load(Properties _props) {
+        properties.putAll(_props);
+    }
+
+    /**
+     * @param _stream
+     * @throws IOException
+     */
+    public void load(InputStream _stream) throws IOException {
+        Properties newProperties = new Properties();
+        newProperties.load(_stream);
+        load(newProperties);
+    }
+
+    /**
+     * validate user-defined property names and apply defaults
+     */
+    protected void validateProperties() {
+        Properties validated = new Properties();
+        Enumeration<?> keys = properties.propertyNames();
+        // ignore known patterns from System properties
+        String ignorePatterns = "^(file|java|line|os|path|sun|user)\\..+";
+        String key, value;
+        while (keys.hasMoreElements()) {
+            key = (String) keys.nextElement();
+            // known jre pattern
+            if (key.matches(ignorePatterns)) {
+                logger.fine("known system key: ignoring " + key);
+                continue;
+            }
+            // key is unknown
+            if (!defaults.containsKey(key)) {
+                logger.warning("unknown key: skipping " + key);
+                continue;
+            }
+            // known key
+            value = properties.getProperty(key);
+            logger.info("using " + key + "=" + value);
+            validated.setProperty(key, value);
+        }
+
+        applyDefaults(validated);
+
+        // use the validated properties
+        properties = validated;
+    }
+
+    /**
+     * @param _props
+     */
+    private void applyDefaults(Properties _props) {
+        // apply default values to properties
+        Iterator<String> iter = defaults.keySet().iterator();
+        String key;
+        Object value;
+        while (iter.hasNext()) {
+            key = iter.next();
+            if (_props.containsKey(key)) {
+                continue;
+            }
+            value = defaults.get(key);
+            if (null != value) {
+                logger.fine("applying default " + key + "=" + value);
+                _props.setProperty(key.toString(), value.toString());
+            }
+        }
+    }
+
+    /**
+     * @return
+     */
+    public SimpleLogger getLogger() {
+        return logger;
+    }
+
+    /**
+     * @return
+     */
+    public Properties getProperties() {
+        return properties;
+    }
+
+    /**
+     * @param _logger
+     */
+    public void setLogger(SimpleLogger _logger) {
+        logger = _logger;
+    }
+
+}

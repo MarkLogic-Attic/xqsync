@@ -68,7 +68,7 @@ public class TaskFactory {
                             3);
                     logger.fine("new writer " + path);
                     writers[i] = new PackageWriter(configuration,
-                            new OutputPackage(new File(path)));
+                            new OutputPackage(new File(path), configuration));
                 }
             } catch (IOException e) {
                 throw new SyncException(e);

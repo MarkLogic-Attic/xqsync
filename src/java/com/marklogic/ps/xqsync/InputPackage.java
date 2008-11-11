@@ -31,14 +31,18 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
-import com.marklogic.ps.AbstractLoggableClass;
+import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  * 
  */
-public class InputPackage extends AbstractLoggableClass {
+public class InputPackage {
+
+    protected static SimpleLogger logger;
+
+    protected Configuration configuration;
 
     // number of entries overflows at 2^16 = 65536
     // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
@@ -55,12 +59,16 @@ public class InputPackage extends AbstractLoggableClass {
 
     /**
      * @param _path
+     * @param _config
      * @throws IOException
      */
-    public InputPackage(String _path) throws IOException {
+    public InputPackage(String _path, Configuration _config)
+            throws IOException {
         inputFile = new File(_path);
         inputZip = new ZipFile(inputFile);
         packagePath = inputFile.getCanonicalPath();
+        configuration = _config;
+        logger = configuration.getLogger();
     }
 
     /**
@@ -186,6 +194,7 @@ public class InputPackage extends AbstractLoggableClass {
      */
     public void addReference() {
         // TODO does this need to be synchronized? mutex?
+        //logger.info(inputZip.getName() + " (" + references + ")");
         references++;
     }
 
@@ -193,15 +202,23 @@ public class InputPackage extends AbstractLoggableClass {
      * 
      */
     public void closeReference() {
+
         // TODO does this need to be synchronized? mutex?
+        //logger.info(inputZip.getName() + " (" + references + ")");
         references--;
+
+        if (0 > references) {
+            throw new FatalException("bad reference count for "
+                    + inputZip.getName() + " : " + references);
+        }
 
         if (0 != references) {
             return;
         }
 
         // free the resources for the input zip package
-        logger.info("closing " + inputZip.getName());
+        logger.info("closing " + inputZip.getName() + " (" + references
+                + ")");
         try {
             inputZip.close();
         } catch (IOException e) {

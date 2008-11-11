@@ -27,9 +27,9 @@ import java.util.Collection;
 import java.util.Properties;
 import java.util.Vector;
 
-import com.marklogic.ps.AbstractLoggableClass;
 import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
+import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.exceptions.RequestException;
@@ -40,222 +40,129 @@ import com.marklogic.xcc.exceptions.XccException;
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
  */
-public class Configuration extends AbstractLoggableClass {
-
-    /**
-     * 
-     */
-    private static final String CSV_SCSV_SSV_REGEX = "[,;\\s]+";
-
-    /**
-     * 
-     */
-    public static final String COPY_PROPERTIES_KEY = "COPY_PROPERTIES";
-
-    /**
-     * 
-     */
-    public static final String COPY_PERMISSIONS_KEY = "COPY_PERMISSIONS";
-
-    /**
-     * 
-     */
-    public static final String COPY_COLLECTIONS_KEY = "COPY_COLLECTIONS";
-
-    /**
-     * 
-     */
-    public static final String COPY_QUALITY_KEY = "COPY_QUALITY";
-    /**
-     * 
-     */
-    public static final String SKIP_EXISTING_KEY = "SKIP_EXISTING";
-
-    /**
-     * 
-     */
-    public static final String FATAL_ERRORS_KEY = "FATAL_ERRORS";
-
-    public static final boolean FATAL_ERRORS_DEFAULT_BOOLEAN = true;
-
-    /**
-     * 
-     */
-    public static final String DELETE_COLLECTION_KEY = "DELETE_COLLECTION";
-
-    /**
-     * 
-     */
-    public static final String INPUT_START_POSITION_KEY = "INPUT_START_POSITION";
-
-    /**
-     * 
-     */
-    public static final String INPUT_QUERY_KEY = "INPUT_QUERY";
-
-    /**
-     * 
-     */
-    public static final String INPUT_DOCUMENT_URIS_KEY = "INPUT_DOCUMENT_URIS";
-
-    /**
-     * 
-     */
-    public static final String INPUT_CONNECTION_STRING_KEY = "INPUT_CONNECTION_STRING";
-
-    /**
-     * 
-     */
-    public static final String INPUT_PATH_KEY = "INPUT_PATH";
-
-    /**
-     * 
-     */
-    public static final String INPUT_PACKAGE_KEY = "INPUT_PACKAGE";
-
-    public static final String INPUT_DIRECTORY_URI_KEY = "INPUT_DIRECTORY_URI";
-
-    public static final String INPUT_COLLECTION_URI_KEY = "INPUT_COLLECTION_URI";
-
-    public static final String INPUT_TIMESTAMP_AUTO = "#AUTO";
-
-    public static final String INPUT_TIMESTAMP_KEY = "INPUT_TIMESTAMP";
-
-    public static final String URI_PREFIX_KEY = "URI_PREFIX";
-
-    private Properties properties;
-
-    private boolean copyPermissions = true;
-
-    private boolean copyProperties = true;
-
-    private boolean copyCollections = true;
-
-    private boolean copyQuality = true;
-
-    private boolean fatalErrors = true;
-
-    private Collection<ContentPermission> readRoles;
-
-    private boolean repairInputXml = false;
-
-    private String[] placeKeys = null;
-
-    private Connection outputConnection;
-
-    private String outputPath;
-
-    private boolean firstConfiguration = true;
-
-    private Connection inputConnection;
-
-    private String inputPath;
-
-    private String inputPackagePath;
-
-    protected static final int THREADS_DEFAULT_INT = 1;
-
-    /**
-     * 
-     */
-    protected static final String THREADS_DEFAULT = ""
-            + THREADS_DEFAULT_INT;
-
-    /**
-     * 
-     */
-    public static final String THREADS_KEY = "THREADS";
-
-    /**
-     * 
-     */
-    private static final String XCC_PREFIX = "xcc://";
-
-    /**
-     * 
-     */
-    private static final String XCC_PREFIX_OLD = "xdbc://";
-
-    /**
-     * 
-     */
-    private static final String OUTPUT_FORESTS_KEY = "OUTPUT_FORESTS";
-
-    /**
-     * 
-     */
-    private static final String READ_PERMISSION_ROLES_KEY = "READ_PERMISSION_ROLES";
-
-    /**
-     * 
-     */
-    private static final String REPAIR_INPUT_XML_KEY = "REPAIR_INPUT_XML";
-
-    /**
-     * 
-     */
-    private static final String REPAIR_INPUT_XML_DEFAULT = "false";
-
-    /**
-     * 
-     */
-    public static final String OUTPUT_PACKAGE_KEY = "OUTPUT_PACKAGE";
-
-    /**
-     * 
-     */
-    public static final String OUTPUT_CONNECTION_STRING_KEY = "OUTPUT_CONNECTION_STRING";
-
-    public static final String OUTPUT_COLLECTIONS_KEY = "OUTPUT_COLLECTIONS";
-
-    /**
-     * 
-     */
-    public static final String OUTPUT_PATH_KEY = "OUTPUT_PATH";
+public class Configuration extends AbstractConfiguration {
 
     public static final String ALLOW_EMPTY_METADATA_KEY = "ALLOW_EMPTY_METADATA";
 
     public static final String ALLOW_EMPTY_METADATA_DEFAULT = "false";
 
+    public static final String COPY_COLLECTIONS_KEY = "COPY_COLLECTIONS";
+
+    public static final String COPY_PROPERTIES_KEY = "COPY_PROPERTIES";
+
+    public static final String COPY_PERMISSIONS_KEY = "COPY_PERMISSIONS";
+
+    public static final String COPY_QUALITY_KEY = "COPY_QUALITY";
+
+    public static final String DELETE_COLLECTION_KEY = "DELETE_COLLECTION";
+
+    public static final String FATAL_ERRORS_KEY = "FATAL_ERRORS";
+
+    public static final boolean FATAL_ERRORS_DEFAULT_BOOLEAN = true;
+
     public static final String INPUT_CACHABLE_KEY = "INPUT_QUERY_CACHABLE";
 
-    private static final String INPUT_CACHABLE_DEFAULT = "" + false;
+    public static final String INPUT_CACHABLE_DEFAULT = "" + false;
 
-    public static final String INPUT_BUFFER_BYTES_KEY = "INPUT_QUERY_BUFFER_BYTES";
+    public static final String INPUT_CACHE_RESULTS_KEY = "INPUT_CACHE_RESULTS";
 
-    private static final String INPUT_BUFFER_BYTES_DEFAULT = "0";
+    public static final String INPUT_CACHE_RESULTS_DEFAULT = "false";
+
+    public static final String INPUT_COLLECTION_URI_KEY = "INPUT_COLLECTION_URI";
+
+    public static final String INPUT_CONNECTION_STRING_KEY = "INPUT_CONNECTION_STRING";
+
+    public static final String INPUT_DIRECTORY_URI_KEY = "INPUT_DIRECTORY_URI";
+
+    public static final String INPUT_DOCUMENT_URIS_KEY = "INPUT_DOCUMENT_URIS";
+
+    public static final String INPUT_MODULE_URI_KEY = "INPUT_MODULE_URI";
+
+    public static final String INPUT_PACKAGE_KEY = "INPUT_PACKAGE";
+
+    public static final String INPUT_PATH_KEY = "INPUT_PATH";
+
+    public static final String INPUT_QUERY_KEY = "INPUT_QUERY";
+
+    public static final String INPUT_QUERY_BUFFER_BYTES_KEY = "INPUT_QUERY_BUFFER_BYTES";
+
+    public static final String INPUT_QUERY_BUFFER_BYTES_DEFAULT = "0";
+
+    public static final String INPUT_RESULT_BUFFER_SIZE_KEY = "INPUT_RESULT_BUFFER_SIZE";
+
+    public static final String INPUT_RESULT_BUFFER_SIZE_DEFAULT = "0";
+
+    public static final String INPUT_START_POSITION_KEY = "INPUT_START_POSITION";
+
+    public static final String INPUT_TIMESTAMP_AUTO = "#AUTO";
+
+    public static final String INPUT_TIMESTAMP_KEY = "INPUT_TIMESTAMP";
+
+    public static final String OUTPUT_COLLECTIONS_KEY = "OUTPUT_COLLECTIONS";
+
+    public static final String OUTPUT_CONNECTION_STRING_KEY = "OUTPUT_CONNECTION_STRING";
+
+    public static final String OUTPUT_FILTER_FORMATS_KEY = "OUTPUT_FILTER_FORMATS";
+
+    public static final String OUTPUT_FORESTS_KEY = "OUTPUT_FORESTS";
+
+    public static final String OUTPUT_PACKAGE_KEY = "OUTPUT_PACKAGE";
+
+    public static final String OUTPUT_PATH_KEY = "OUTPUT_PATH";
 
     public static final String QUEUE_SIZE_KEY = "QUEUE_SIZE";
 
-    static final String OUTPUT_FILTER_FORMATS_KEY = "OUTPUT_FILTER_FORMATS";
+    public static final String READ_PERMISSION_ROLES_KEY = "READ_PERMISSION_ROLES";
 
-    static final String INPUT_MODULE_URI_KEY = "INPUT_MODULE_URI";
+    public static final String REPAIR_INPUT_XML_KEY = "REPAIR_INPUT_XML";
 
-    protected static final String INPUT_CACHE_RESULTS_KEY = "INPUT_CACHE_RESULTS";
+    public static final String REPAIR_INPUT_XML_DEFAULT = "false";
 
-    protected static final String INPUT_CACHE_RESULTS_DEFAULT = "false";
+    public static final String SKIP_EXISTING_KEY = "SKIP_EXISTING";
 
-    protected static final String INPUT_RESULT_BUFFER_SIZE_KEY = "INPUT_RESULT_BUFFER_SIZE";
+    public static final String THREADS_KEY = "THREADS";
 
-    protected static final String INPUT_RESULT_BUFFER_SIZE_DEFAULT = "0";
+    public static final String THREADS_DEFAULT = "1";
 
-    private String outputPackagePath;
+    public static final String URI_PREFIX_KEY = "URI_PREFIX";
 
-    private Long startPosition;
+    /* internal constants */
 
-    private boolean skipExisting = false;
+    protected static final String CSV_SCSV_SSV_REGEX = "[,;\\s]+";
 
-    private String uriPrefix = null;
+    protected static final String XCC_PREFIX = "xcc://";
 
-    private String[] outputCollections = null;
+    protected static final String XCC_PREFIX_OLD = "xdbc://";
 
-    private String[] outputFormatFilters;
+    /* fields */
 
-    private BigInteger timestamp = null;
+    protected Collection<ContentPermission> readRoles;
 
-    public Configuration() {
-        super();
-    }
+    protected String[] placeKeys = null;
+
+    protected Connection outputConnection;
+
+    protected String outputPath;
+
+    protected boolean firstConfiguration = true;
+
+    protected Connection inputConnection;
+
+    protected String inputPath;
+
+    protected String inputPackagePath;
+
+    protected String outputPackagePath;
+
+    protected Long startPosition;
+
+    protected String uriPrefix;
+
+    protected String[] outputCollections;
+
+    protected String[] outputFormatFilters;
+
+    protected BigInteger timestamp;
 
     /*
      * (non-Javadoc)
@@ -270,8 +177,10 @@ public class Configuration extends AbstractLoggableClass {
         properties = _properties;
 
         // we need a logger as soon as possible: keep this first
-        // logger config is hot
-        logger.setProperties(_properties);
+        if (null == logger) {
+            throw new NullPointerException("null logger");
+        }
+        logger.setProperties(properties);
 
         if (firstConfiguration) {
             logger.info("first-time setup");
@@ -280,12 +189,6 @@ public class Configuration extends AbstractLoggableClass {
 
         uriPrefix = properties.getProperty(URI_PREFIX_KEY);
 
-        // fatalErrors is hot
-        fatalErrors = Utilities.stringToBoolean(properties.getProperty(
-                FATAL_ERRORS_KEY, "" + FATAL_ERRORS_DEFAULT_BOOLEAN),
-                FATAL_ERRORS_DEFAULT_BOOLEAN);
-
-        // read-roles are hot
         String readRolesString = properties
                 .getProperty(READ_PERMISSION_ROLES_KEY);
         if (readRolesString != null) {
@@ -302,29 +205,6 @@ public class Configuration extends AbstractLoggableClass {
             }
         }
 
-        // copyPermissions is hot
-        copyPermissions = Utilities.stringToBoolean(properties
-                .getProperty(COPY_PERMISSIONS_KEY, "true"));
-
-        // copyProperties is hot
-        copyProperties = Utilities.stringToBoolean(properties
-                .getProperty(COPY_PROPERTIES_KEY, "true"));
-
-        copyCollections = Utilities.stringToBoolean(properties
-                .getProperty(COPY_COLLECTIONS_KEY, "true"));
-
-        copyQuality = Utilities.stringToBoolean(properties.getProperty(
-                COPY_QUALITY_KEY, "true"));
-
-        repairInputXml = Utilities.stringToBoolean(properties
-                .getProperty(REPAIR_INPUT_XML_KEY,
-                        REPAIR_INPUT_XML_DEFAULT));
-
-        // skipExisting is hot
-        skipExisting = Utilities.stringToBoolean(properties.getProperty(
-                SKIP_EXISTING_KEY, "false"));
-
-        // placeKeys are hot
         String placeKeysString = properties
                 .getProperty(OUTPUT_FORESTS_KEY);
         if (placeKeysString != null) {
@@ -374,6 +254,17 @@ public class Configuration extends AbstractLoggableClass {
         }
 
         firstConfiguration = false;
+        
+        logger = SimpleLogger.getSimpleLogger();
+        logger.configureLogger(properties);
+
+        try {
+            setDefaults();
+        } catch (Exception e) {
+            // crude, but this is a configuration-time error
+            throw new FatalException(e);
+        }
+        validateProperties();
 
         if (properties == null || !properties.keys().hasMoreElements()) {
             logger.warning("null or empty properties");
@@ -446,7 +337,7 @@ public class Configuration extends AbstractLoggableClass {
 
         outputPackagePath = properties.getProperty(OUTPUT_PACKAGE_KEY);
 
-        if (outputPackagePath == null) {
+        if (null == outputPackagePath) {
             outputPath = properties.getProperty(OUTPUT_PATH_KEY);
             if (outputPath != null) {
                 logger.info("output to path: " + outputPath);
@@ -477,20 +368,53 @@ public class Configuration extends AbstractLoggableClass {
         }
     }
 
+    /**
+     * @return
+     */
+    public boolean isCopyCollections() {
+        return Utilities.stringToBoolean(properties.getProperty(
+                COPY_COLLECTIONS_KEY, "true"));
+    }
+
+    /**
+     * @return
+     */
     public boolean isCopyPermissions() {
-        return copyPermissions;
+        return Utilities.stringToBoolean(properties.getProperty(
+                COPY_PERMISSIONS_KEY, "true"));
     }
 
+    /**
+     * @return
+     */
     public boolean isCopyProperties() {
-        return copyProperties;
+        return Utilities.stringToBoolean(properties.getProperty(
+                COPY_PROPERTIES_KEY, "true"));
     }
 
+    /**
+     * @return
+     */
+    public boolean isCopyQuality() {
+        return Utilities.stringToBoolean(properties.getProperty(
+                COPY_QUALITY_KEY, "true"));
+    }
+
+    /**
+     * @return
+     */
     public boolean isFatalErrors() {
-        return fatalErrors;
+        return Utilities.stringToBoolean(properties.getProperty(
+                FATAL_ERRORS_KEY, "" + FATAL_ERRORS_DEFAULT_BOOLEAN),
+                FATAL_ERRORS_DEFAULT_BOOLEAN);
     }
 
+    /**
+     * @return
+     */
     public boolean isRepairInputXml() {
-        return repairInputXml;
+        return Utilities.stringToBoolean(properties
+                .getProperty(REPAIR_INPUT_XML_KEY));
     }
 
     public String[] getPlaceKeys() {
@@ -653,7 +577,9 @@ public class Configuration extends AbstractLoggableClass {
      * @return
      */
     public boolean isSkipExisting() {
-        return skipExisting;
+        return Utilities.stringToBoolean(properties
+                .getProperty(SKIP_EXISTING_KEY));
+
     }
 
     /**
@@ -711,7 +637,8 @@ public class Configuration extends AbstractLoggableClass {
      */
     public int inputQueryBufferSize() {
         return Integer.parseInt(properties.getProperty(
-                INPUT_BUFFER_BYTES_KEY, INPUT_BUFFER_BYTES_DEFAULT));
+                INPUT_QUERY_BUFFER_BYTES_KEY,
+                INPUT_QUERY_BUFFER_BYTES_DEFAULT));
     }
 
     /**
@@ -787,19 +714,4 @@ public class Configuration extends AbstractLoggableClass {
                 INPUT_RESULT_BUFFER_SIZE_KEY,
                 INPUT_RESULT_BUFFER_SIZE_DEFAULT));
     }
-
-    /**
-     * @return
-     */
-    public boolean isCopyCollections() {
-        return copyCollections;
-    }
-
-    /**
-     * @return
-     */
-    public boolean isCopyQuality() {
-        return copyQuality;
-    }
-
 }

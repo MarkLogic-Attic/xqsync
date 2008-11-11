@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Properties;
 
-import com.marklogic.ps.AbstractLoggableClass;
+import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.Version;
 import com.marklogic.xcc.exceptions.XccException;
 
@@ -31,9 +31,9 @@ import com.marklogic.xcc.exceptions.XccException;
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  * 
  */
-public class XQSync extends AbstractLoggableClass {
+public class XQSync {
 
-    public static String VERSION = "2008-11-09.1";
+    public static String VERSION = "2008-11-10.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("
@@ -63,11 +63,17 @@ public class XQSync extends AbstractLoggableClass {
         props.putAll(System.getProperties());
         System.err.println("added system properties");
 
-        Configuration configuration = new Configuration();
+        SimpleLogger logger = SimpleLogger.getSimpleLogger();
+        logger.configureLogger(props);
+
         logger.info("XQSync starting: " + versionMessage);
         logger.info("XCC version = " + Version.getVersionString());
+
+        Configuration configuration = new Configuration();
+        configuration.setLogger(logger);
         configuration.setProperties(props);
-        // repeat, to log - and for emphasis
+
+        // repeat startup info to log - and for emphasis
         logger.info("XQSync starting: " + versionMessage);
         logger.info("XCC version = " + Version.getVersionString());
 

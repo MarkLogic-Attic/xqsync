@@ -41,12 +41,12 @@ import com.marklogic.xcc.types.XSInteger;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class Session implements com.marklogic.xcc.Session {
 
     /**
-     * 
+     *
      */
     public static final String XQUERY_VERSION_0_9_ML = "xquery version \"0.9-ml\"\n";
 
@@ -64,7 +64,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getContentSource()
      */
     public Connection getContentSource() {
@@ -73,7 +73,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getUserCredentials()
      */
     public UserCredentials getUserCredentials() {
@@ -82,7 +82,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getContentBaseName()
      */
     public String getContentBaseName() {
@@ -91,7 +91,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#setAutoCommit(boolean)
      */
     public void setAutoCommit(boolean newValue) {
@@ -100,7 +100,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getAutoCommit()
      */
     public boolean getAutoCommit() {
@@ -109,7 +109,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#commit()
      */
     public void commit() {
@@ -118,7 +118,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#rollback()
      */
     public void rollback() {
@@ -127,7 +127,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#close()
      */
     public void close() {
@@ -136,7 +136,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#isClosed()
      */
     public boolean isClosed() {
@@ -145,7 +145,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#submitRequest(com.marklogic.xcc.Request)
      */
     public ResultSequence submitRequest(Request request)
@@ -155,7 +155,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#newAdhocQuery(java.lang.String,
      * com.marklogic.xcc.RequestOptions)
      */
@@ -166,7 +166,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#newAdhocQuery(java.lang.String)
      */
     public AdhocQuery newAdhocQuery(String queryText) {
@@ -175,7 +175,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#newModuleInvoke(java.lang.String,
      * com.marklogic.xcc.RequestOptions)
      */
@@ -186,7 +186,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#newModuleInvoke(java.lang.String)
      */
     public ModuleInvoke newModuleInvoke(String moduleUri) {
@@ -195,7 +195,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#newModuleSpawn(java.lang.String,
      * com.marklogic.xcc.RequestOptions)
      */
@@ -206,7 +206,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#newModuleSpawn(java.lang.String)
      */
     public ModuleSpawn newModuleSpawn(String moduleUri) {
@@ -215,7 +215,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#insertContent(com.marklogic.xcc.Content)
      */
     public void insertContent(Content content) throws RequestException {
@@ -224,7 +224,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#insertContent(com.marklogic.xcc.Content[])
      */
     public void insertContent(Content[] content) throws RequestException {
@@ -233,7 +233,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getContentbaseMetaData()
      */
     public ContentbaseMetaData getContentbaseMetaData() {
@@ -242,7 +242,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.marklogic.xcc.Session#setDefaultRequestOptions(com.marklogic.xcc.
      * RequestOptions)
@@ -253,7 +253,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getDefaultRequestOptions()
      */
     public RequestOptions getDefaultRequestOptions() {
@@ -262,7 +262,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getEffectiveRequestOptions()
      */
     public RequestOptions getEffectiveRequestOptions() {
@@ -271,7 +271,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getCurrentServerPointInTime()
      */
     public BigInteger getCurrentServerPointInTime()
@@ -281,7 +281,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getLogger()
      */
     public Logger getLogger() {
@@ -290,7 +290,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#setLogger(java.util.logging.Logger)
      */
     public void setLogger(Logger logger) {
@@ -299,7 +299,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#setUserObject(java.lang.Object)
      */
     public void setUserObject(Object userObject) {
@@ -308,7 +308,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getUserObject()
      */
     public Object getUserObject() {
@@ -406,7 +406,7 @@ public class Session implements com.marklogic.xcc.Session {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.Session#getConnectionUri()
      */
     public URI getConnectionUri() {

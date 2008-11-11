@@ -31,7 +31,6 @@ public class PackageTaskFactory extends TaskFactory {
     public ReaderInterface getReader() throws SyncException {
         ReaderInterface reader = new PackageReader(configuration);
         ((PackageReader) reader).setPackage(inputPackage);
-        inputPackage.addReference();
         return reader;
     }
 

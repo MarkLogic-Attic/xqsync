@@ -33,9 +33,9 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.marklogic.ps.AbstractLoggableClass;
 import com.marklogic.ps.FileFinder;
 import com.marklogic.ps.Session;
+import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.timing.TimedEvent;
 import com.marklogic.xcc.ContentbaseMetaData;
 import com.marklogic.xcc.Request;
@@ -49,7 +49,9 @@ import com.marklogic.xcc.exceptions.XccException;
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  * 
  */
-public class XQSyncManager extends AbstractLoggableClass {
+public class XQSyncManager {
+
+    protected static SimpleLogger logger;
 
     /**
      * 
@@ -266,7 +268,7 @@ public class XQSyncManager extends AbstractLoggableClass {
         logger.info("listing package " + _path);
 
         InputPackage inputPackage = new InputPackage(_path
-                .getCanonicalPath());
+                .getCanonicalPath(), configuration);
         // ensure that the package won't close while queuing
         inputPackage.addReference();
 
@@ -282,6 +284,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             count++;
             path = iter.next();
             logger.finer("queuing " + count + ": " + path);
+            inputPackage.addReference();
             _cs.submit(factory.newTask(path));
         }
 
@@ -423,7 +426,7 @@ public class XQSyncManager extends AbstractLoggableClass {
             logger.info("count = " + count);
             logger.warning("Listing input URIs probably timed out:"
                     + " try setting " + Configuration.INPUT_CACHABLE_KEY
-                    + " or " + Configuration.INPUT_BUFFER_BYTES_KEY
+                    + " or " + Configuration.INPUT_QUERY_BUFFER_BYTES_KEY
                     + " or " + Configuration.QUEUE_SIZE_KEY);
             throw e;
         }

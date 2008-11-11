@@ -24,14 +24,18 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import com.marklogic.ps.AbstractLoggableClass;
+import com.marklogic.ps.SimpleLogger;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
  */
-public class OutputPackage extends AbstractLoggableClass {
+public class OutputPackage {
+    
+    protected static SimpleLogger logger;
 
+    protected Configuration configuration;
+    
     class CloseThread extends Thread {
 
         private ZipOutputStream zos;
@@ -89,9 +93,12 @@ public class OutputPackage extends AbstractLoggableClass {
 
     /**
      * @param _file
+     * @param _config
      */
-    public OutputPackage(File _file) {
+    public OutputPackage(File _file, Configuration _config) {
         constructorFile = _file;
+        configuration = _config;
+        logger = _config.getLogger();
     }
 
     /**
@@ -204,7 +211,6 @@ public class OutputPackage extends AbstractLoggableClass {
         } else {
             path = path + "-" + count;
         }
-        logger.fine("built " + path + " from " + canonicalPath);
         assert path.equals(canonicalPath);
         return path;
     }
