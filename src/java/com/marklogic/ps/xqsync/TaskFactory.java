@@ -68,7 +68,8 @@ public class TaskFactory {
                             3);
                     logger.fine("new writer " + path);
                     writers[i] = new PackageWriter(configuration,
-                            new OutputPackage(new File(path), configuration));
+                            new OutputPackage(new File(path),
+                                    configuration));
                 }
             } catch (IOException e) {
                 throw new SyncException(e);
@@ -77,25 +78,14 @@ public class TaskFactory {
     }
 
     /**
-     * @param file
+     * @param _uris
      * @return
      * @throws SyncException
      */
-    public Callable<TimedEvent> newTask(File file) throws SyncException {
-        try {
-            return newTask(file.getCanonicalPath());
-        } catch (IOException e) {
-            throw new SyncException(e);
-        }
-    }
-
-    /**
-     * @param _uri
-     * @return
-     * @throws SyncException
-     */
-    public Callable<TimedEvent> newTask(String _uri) throws SyncException {
-        return new CallableSync(this, _uri);
+    public Callable<TimedEvent[]> newTask(String[] _uris)
+            throws SyncException {
+        logger.fine(_uris.length + ", " + _uris[0]);
+        return new CallableSync(this, _uris);
     }
 
     /**

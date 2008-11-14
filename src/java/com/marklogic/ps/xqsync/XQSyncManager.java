@@ -114,6 +114,8 @@ public class XQSyncManager {
 
     private long itemsQueued;
 
+    private UriQueue completionServiceQueue;
+
     /**
      * @param _config
      */
@@ -142,8 +144,10 @@ public class XQSyncManager {
             RejectedExecutionHandler policy = new CallerBlocksPolicy();
             ThreadPoolExecutor pool = new ThreadPoolExecutor(threads,
                     threads, 16, TimeUnit.SECONDS, workQueue, policy);
-            CompletionService<TimedEvent> completionService = new ExecutorCompletionService<TimedEvent>(
+            CompletionService<TimedEvent[]> completionService = new ExecutorCompletionService<TimedEvent[]>(
                     pool);
+
+            factory = new TaskFactory(configuration);
 
             // to attempt to avoid starvation, run the monitor with higher
             // priority than the thread pool will have.
@@ -152,7 +156,12 @@ public class XQSyncManager {
             monitor.setPriority(1 + Thread.NORM_PRIORITY);
             monitor.start();
 
-            factory = new TaskFactory(configuration);
+            // to support large workloads we have an unbounded lightweight
+            // queue, which feeds the completion service
+            completionServiceQueue = new UriQueue(configuration,
+                    completionService, pool, factory, monitor,
+                    new LinkedBlockingQueue<String>());
+            completionServiceQueue.start();
 
             Session outputSession = configuration.newOutputSession();
             if (null != outputSession) {
@@ -169,26 +178,21 @@ public class XQSyncManager {
                 logger.info("input version info: client "
                         + meta.getDriverVersionString() + ", server "
                         + meta.getServerVersionString());
-                // extra thread, to avoid deadlock with 1 thread
-                logger.info("adding extra input queue thread");
-                pool.setMaximumPoolSize(1 + threads);
-                pool.setCorePoolSize(1 + threads);
-                itemsQueued = queueFromInputConnection(completionService);
-                // queueFromInputConnection will shut down the pool via monitor
-                inputSession.close();
+                itemsQueued = queueFromInputConnection();
             } else {
                 if (null != configuration.getInputPackagePath()) {
-                    itemsQueued = queueFromInputPackage(
-                            completionService, configuration
-                                    .getInputPackagePath());
+                    itemsQueued = queueFromInputPackage(configuration
+                            .getInputPackagePath());
                 } else {
-                    itemsQueued = queueFromInputPath(completionService,
-                            configuration.getInputPath());
+                    itemsQueued = queueFromInputPath(configuration
+                            .getInputPath());
                 }
-                pool.shutdown();
             }
 
+            monitor.setTaskCount(itemsQueued);
+
             // no more tasks to queue - now we just wait
+            completionServiceQueue.shutdown();
             logger.info("queued " + itemsQueued + " items");
 
             while (null != monitor && monitor.isAlive()) {
@@ -204,27 +208,30 @@ public class XQSyncManager {
 
         } catch (Throwable t) {
             logger.logException("fatal error", t);
-            if (monitor != null) {
+            // clean up
+            if (null != completionServiceQueue) {
+                completionServiceQueue.halt();
+            }
+            if (null != monitor) {
                 monitor.halt(t);
             }
         }
 
-        logger.info("exiting");
+        logger.fine("exiting");
     }
 
     /**
-     * @param _cs
      * @return
      * @throws IOException
      * @throws SyncException
      * 
      */
-    private long queueFromInputPackage(CompletionService<TimedEvent> _cs,
-            String _path) throws IOException, SyncException {
+    private long queueFromInputPackage(String _path) throws IOException,
+            SyncException {
         File file = new File(_path);
 
         if (file.isFile()) {
-            return queueFromInputPackage(_cs, file);
+            return queueFromInputPackage(file);
         }
 
         if (!file.isDirectory()) {
@@ -248,20 +255,19 @@ public class XQSyncManager {
         String childPath;
         for (int i = 0; i < children.length; i++) {
             childPath = children[i].getCanonicalPath();
-            total += queueFromInputPackage(_cs, childPath);
+            total += queueFromInputPackage(childPath);
         }
         return total;
     }
 
     /**
-     * @param _cs
+     * @param _path
      * @return
      * @throws IOException
      * @throws SyncException
-     * 
      */
-    private long queueFromInputPackage(CompletionService<TimedEvent> _cs,
-            File _path) throws IOException, SyncException {
+    private long queueFromInputPackage(File _path) throws IOException,
+            SyncException {
         // list contents of package
         logger.info("listing package " + _path);
 
@@ -270,9 +276,17 @@ public class XQSyncManager {
         // ensure that the package won't close while queuing
         inputPackage.addReference();
 
-        // create a new factory for each input package
-        PackageTaskFactory factory = new PackageTaskFactory(
-                configuration, inputPackage);
+        // create a new factory and queue for each input package
+        factory = new PackageTaskFactory(configuration, inputPackage);
+
+        while (true) {
+            try {
+                completionServiceQueue.setFactory(factory);
+                break;
+            } catch (InterruptedException e) {
+                logger.warning("interrupted, will continue");
+            }
+        }
 
         Iterator<String> iter = inputPackage.list().iterator();
         String path;
@@ -283,7 +297,7 @@ public class XQSyncManager {
             path = iter.next();
             logger.finer("queuing " + count + ": " + path);
             inputPackage.addReference();
-            _cs.submit(factory.newTask(path));
+            completionServiceQueue.add(path);
         }
 
         // clean up so that the package can be closed
@@ -292,16 +306,14 @@ public class XQSyncManager {
     }
 
     /**
-     * @param _cs
      * @throws XccException
      * @throws SyncException
      */
-    private long queueFromInputConnection(
-            CompletionService<TimedEvent> _cs) throws XccException,
+    private long queueFromInputConnection() throws XccException,
             SyncException {
         // use lexicon by default - this may throw an exception
         try {
-            return queueFromInputConnection(_cs, true);
+            return queueFromInputConnection(true);
         } catch (XQueryException e) {
             // check to see if the exception was XDMP-URILXCNNOTFOUND
             // for 3.1, check for missing cts:uris() function
@@ -313,7 +325,7 @@ public class XQSyncManager {
                         + inputSession.getContentBaseName()
                         + " to speed up synchronization.");
 
-                return queueFromInputConnection(_cs, false);
+                return queueFromInputConnection(false);
             }
             logger.logException("error queuing from input connection", e);
             throw e;
@@ -321,13 +333,11 @@ public class XQSyncManager {
     }
 
     /**
-     * @param _cs
      * @param _useLexicon
      * @throws XccException
      * @throws SyncException
      */
-    private long queueFromInputConnection(
-            CompletionService<TimedEvent> _cs, boolean _useLexicon)
+    private long queueFromInputConnection(boolean _useLexicon)
             throws XccException, SyncException {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
@@ -347,22 +357,16 @@ public class XQSyncManager {
         }
 
         long count = 0;
-        BlockingQueue<String> queue;
 
         if (null != documentUris) {
             // we don't need to touch the database to get the uris
-            queue = new ArrayBlockingQueue<String>(
-                    1 + documentUris.length);
-            _cs.submit(new CallableUriQueue(configuration, _cs, factory,
-                    queue));
             for (int i = 0; i < documentUris.length; i++) {
                 if (null != startPosition && i < startPosition) {
                     continue;
                 }
-                queue.add(documentUris[i]);
+                completionServiceQueue.add(documentUris[i]);
                 count++;
             }
-            queue.add(CallableUriQueue.POISON);
             return count;
         }
 
@@ -380,10 +384,6 @@ public class XQSyncManager {
         ResultSequence rs;
         Request request;
 
-        queue = new LinkedBlockingQueue<String>();
-        _cs.submit(new CallableUriQueue(configuration, _cs, factory,
-                queue));
-
         // support multiple collections or directories (but not both)
         // TODO find a way to avoid 1 request per collection or directory?
         int size = 1;
@@ -398,7 +398,7 @@ public class XQSyncManager {
          * limited queue size, to limit memory consumption, but we must retrieve
          * quickly so that XCC doesn't time out. The current solution is to read
          * all the results at once, but use an extra thread to queue them as
-         * CallableSync objects.
+         * CallableSync objects with a CallerBlocksPolicy.
          */
         try {
             for (int i = 0; i < size; i++) {
@@ -407,7 +407,7 @@ public class XQSyncManager {
                         : directoryUris[i], userQuery, startPosition,
                         _useLexicon);
                 request.setOptions(opts);
-                
+
                 rs = inputSession.submitRequest(request);
 
                 while (rs.hasNext()) {
@@ -416,7 +416,7 @@ public class XQSyncManager {
                         logger.info("queuing first task: " + uri);
                     }
                     logger.fine("queuing " + count + ": " + uri);
-                    queue.add(uri);
+                    completionServiceQueue.add(uri);
                     count++;
                 }
                 rs.close();
@@ -429,10 +429,6 @@ public class XQSyncManager {
                             + Configuration.INPUT_CACHABLE_KEY + " or "
                             + Configuration.INPUT_QUERY_BUFFER_BYTES_KEY);
             throw e;
-        } finally {
-            // signal end of queue, even if an exception is thrown.
-            // this is essential if uri lexicon is missing.
-            queue.add(CallableUriQueue.POISON);
         }
         return count;
     }
@@ -497,11 +493,12 @@ public class XQSyncManager {
     private Request getUrisRequest(boolean _hasStart, boolean _useLexicon) {
         String query = Session.XQUERY_VERSION_0_9_ML
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
-        logger.info("listing all documents");
         if (_useLexicon) {
+            logger.info("listing all documents (with uri lexicon)");
             query += "cts:uris('', 'document')"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
+            logger.info("listing all documents (no uri lexicon)");
             query += "for $i in doc()"
                     + (_hasStart ? START_POSITION_PREDICATE : "")
                     + " return string(xdmp:node-uri($i))";
@@ -563,14 +560,13 @@ public class XQSyncManager {
     }
 
     /**
-     * @param _cs
      * @param _inputPath
      * @return
-     * @throws IOException
      * @throws SyncException
+     * @throws IOException
      */
-    private long queueFromInputPath(CompletionService<TimedEvent> _cs,
-            String _inputPath) throws IOException, SyncException {
+    private long queueFromInputPath(String _inputPath)
+            throws SyncException, IOException {
         // build documentList from a filesystem path
         // exclude stuff that ends with '.metadata'
         logger.info("listing from " + _inputPath + ", excluding "
@@ -581,13 +577,14 @@ public class XQSyncManager {
 
         Iterator<File> iter = ff.list().iterator();
         File file;
+        String canonicalPath;
         long count = 0;
         while (iter.hasNext()) {
             count++;
             file = iter.next();
-            logger.finer("queuing " + count + ": "
-                    + file.getCanonicalPath());
-            _cs.submit(factory.newTask(file));
+            canonicalPath = file.getCanonicalPath();
+            logger.finer("queuing " + count + ": " + canonicalPath);
+            completionServiceQueue.add(canonicalPath);
         }
 
         return count;

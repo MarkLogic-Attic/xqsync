@@ -31,11 +31,11 @@ import com.marklogic.ps.SimpleLogger;
  * 
  */
 public class OutputPackage {
-    
+
     protected static SimpleLogger logger;
 
     protected Configuration configuration;
-    
+
     class CloseThread extends Thread {
 
         private ZipOutputStream zos;
@@ -110,8 +110,7 @@ public class OutputPackage {
                 return;
             }
             // flush can take several seconds, so do it in another thread
-            new CloseThread(outputStream, currentFile.getName())
-                    .start();
+            new CloseThread(outputStream, currentFile.getName()).start();
         }
     }
 
@@ -130,6 +129,15 @@ public class OutputPackage {
          * An exception-based mechanism would be tricky, here: we definitely
          * want the content and the meta entries to stay in the same zipfile.
          */
+        if (null == outputPath) {
+            throw new NullPointerException("null path");
+        }
+        if (null == bytes) {
+            throw new NullPointerException("null content bytes");
+        }
+        if (null == metadata) {
+            throw new NullPointerException("null metadata");
+        }
         byte[] metaBytes = metadata.toXML().getBytes();
         long total = bytes.length + metaBytes.length;
         ZipEntry entry = new ZipEntry(outputPath);

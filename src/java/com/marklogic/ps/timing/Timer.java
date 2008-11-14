@@ -284,7 +284,7 @@ public class Timer {
         return (rawValues ? getBytes() + " B in " + getDurationSeconds()
                 + " s, " : "")
                 + Math.round(getEventsPerSecond())
-                + " tps, "
+                + " events/s, "
                 + Math.round(getKilobytesPerSecond()) + " kB/s";
     }
 

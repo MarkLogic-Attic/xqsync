@@ -23,7 +23,7 @@ public class PackageReader extends FilePathReader {
         // superclass takes care of some configuration
         super(_configuration);
     }
-    
+
     /**
      * @param _pkg
      */
@@ -38,27 +38,38 @@ public class PackageReader extends FilePathReader {
      * com.marklogic.ps.xqsync.DocumentInterface)
      */
     @Override
-    public void read(String _uri, DocumentInterface _document)
+    public void read(String[] _uris, DocumentInterface _document)
             throws SyncException {
-
-        if (_uri == null) {
-            throw new SyncException("null path");
+        if (null == _uris) {
+            throw new SyncException("null paths");
         }
-        if (pkg == null) {
+        if (null == _uris[0]) {
+            throw new SyncException("empty paths");
+        }
+        if (null == pkg) {
             throw new SyncException("null input package");
         }
 
-        try {
-            // read the content: must work for bin or xml, so use bytes
-            _document.setContent(pkg.getContent(_uri));
+        String uri;
 
-            // read the metadata
-            MetadataInterface metadata = pkg.getMetadataEntry(_uri);
-            _document.setMetadata(metadata);
-        } catch (IOException e) {
-            throw new SyncException(e);
+        for (int i = 0; i < _uris.length; i++) {
+            uri = _uris[i];
+            
+            if (uri == null) {
+                continue;
+            }
+
+            try {
+                // read the content: must work for bin or xml, so use bytes
+                _document.setContent(i, pkg.getContent(uri));
+
+                // read the metadata
+                MetadataInterface metadata = pkg.getMetadataEntry(uri);
+                _document.setMetadata(i, metadata);
+            } catch (IOException e) {
+                throw new SyncException(e);
+            }
         }
-
     }
 
     /**

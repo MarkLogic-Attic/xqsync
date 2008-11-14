@@ -31,7 +31,7 @@ public abstract class AbstractReader implements ReaderInterface {
      * @see com.marklogic.ps.xqsync.ReaderInterface#read(java.lang.String,
      * com.marklogic.ps.xqsync.DocumentInterface)
      */
-    public abstract void read(String _uri, DocumentInterface _document)
+    public abstract void read(String[] _uris, DocumentInterface _document)
             throws SyncException;
 
     public void close() {

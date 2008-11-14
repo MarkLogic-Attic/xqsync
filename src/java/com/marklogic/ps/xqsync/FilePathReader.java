@@ -33,25 +33,36 @@ public class FilePathReader extends AbstractReader {
      * com.marklogic.ps.xqsync.DocumentInterface)
      */
     @Override
-    public void read(String _uri, DocumentInterface _document)
+    public void read(String[] _uris, DocumentInterface _document)
             throws SyncException {
-        File file = new File(_uri);
-
         try {
-            // read the content: must work for bin or xml, so use bytes
-            _document.setContent(new java.io.FileInputStream(file));
-
-            // read the metadata
-            File metaFile = XQSyncDocument.getMetadataFile(file);
-            if (!metaFile.exists()) {
-                if (allowEmptyMetadata) {
-                    XQSyncDocumentMetadata metadata = new XQSyncDocumentMetadata();
-                    _document.setMetadata(metadata);
-                } else {
-                    throw new SyncException("no metadata for " + _uri);
+            String uri;
+            File file;
+            for (int i = 0; i < _uris.length; i++) {
+                uri = _uris[i];
+                if (uri == null) {
+                    throw new SyncException("null path " + i);
                 }
+
+                file = new File(uri);
+
+                // read the content: must work for bin or xml, so use bytes
+                _document
+                        .setContent(i, new java.io.FileInputStream(file));
+
+                // read the metadata
+                File metaFile = XQSyncDocument.getMetadataFile(file);
+                if (!metaFile.exists()) {
+                    if (allowEmptyMetadata) {
+                        XQSyncDocumentMetadata metadata = new XQSyncDocumentMetadata();
+                        _document.setMetadata(i, metadata);
+                    } else {
+                        throw new SyncException("no metadata for " + uri);
+                    }
+                }
+                _document
+                        .setMetadata(i, new java.io.FileReader(metaFile));
             }
-            _document.setMetadata(new java.io.FileReader(metaFile));
         } catch (IOException e) {
             throw new SyncException(e);
         }

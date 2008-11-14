@@ -11,11 +11,11 @@ package com.marklogic.ps.xqsync;
 public interface ReaderInterface {
 
     /**
-     * @param _uri
+     * @param _uris
      * @param _document
      * @throws SyncException
      */
-    public void read(String _uri, DocumentInterface _document)
+    public void read(String[] _uris, DocumentInterface _document)
             throws SyncException;
     
     public void close();

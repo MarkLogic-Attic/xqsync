@@ -60,12 +60,12 @@ public class DocumentTest extends TestCase {
         config.setProperties(properties);
         FilePathReader reader = new FilePathReader(config);
         FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(testString, reader,
-                writer, config);
-        testString = doc.getOutputUri();
+        XQSyncDocument doc = new XQSyncDocument(
+                new String[] { testString }, reader, writer, config);
+        testString = doc.getOutputUri(0);
         assertEquals(testString, expected);
-        //testString = doc.getOutputUri(true);
-        //assertEquals(testString, expected);
+        // testString = doc.getOutputUri(true);
+        // assertEquals(testString, expected);
     }
 
     public void testPermissions() throws URISyntaxException,
@@ -105,16 +105,16 @@ public class DocumentTest extends TestCase {
         config.setProperties(props);
         SessionReader reader = new SessionReader(config);
         FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(documentUri, reader,
+        XQSyncDocument doc = new XQSyncDocument(new String[] { documentUri }, reader,
                 writer, config);
         doc.read();
-        String retrievedXml = new String(doc.getContent());
+        String retrievedXml = new String(doc.getContent(0));
 
         // test the round-trip of the XML
         assertEquals(documentString, retrievedXml);
 
         // test the permissions
-        ContentPermission[] permissions = doc.getMetadata()
+        ContentPermission[] permissions = doc.getMetadata(0)
                 .getPermissions();
         SimpleLogger logger = config.getLogger();
         logger.fine("found permissions " + permissions.length);

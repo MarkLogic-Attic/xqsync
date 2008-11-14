@@ -40,21 +40,19 @@ public class Monitor extends Thread {
 
     protected static SimpleLogger logger;
 
-    protected ThreadPoolExecutor pool;
-
     protected static long lastDisplayMillis = 0;
 
     protected boolean running = true;
 
-    protected CompletionService<TimedEvent> completionService;
+    protected ThreadPoolExecutor pool;
+
+    protected CompletionService<TimedEvent[]> completionService;
 
     protected boolean fatalErrors = Configuration.FATAL_ERRORS_DEFAULT_BOOLEAN;
 
     protected volatile Timer timer;
 
     protected volatile long taskCount = 0;
-
-    private int extraTasks = 0;
 
     /**
      * @param _logger
@@ -63,7 +61,7 @@ public class Monitor extends Thread {
      * @param _fatalErrors
      */
     public Monitor(SimpleLogger _logger, ThreadPoolExecutor _pool,
-            CompletionService<TimedEvent> _cs, boolean _fatalErrors) {
+            CompletionService<TimedEvent[]> _cs, boolean _fatalErrors) {
         completionService = _cs;
         pool = _pool;
         logger = _logger;
@@ -72,7 +70,7 @@ public class Monitor extends Thread {
 
     public void run() {
         try {
-            if (logger == null) {
+            if (null == logger) {
                 throw new NullPointerException("must call setLogger");
             }
             logger.info("starting");
@@ -91,10 +89,8 @@ public class Monitor extends Thread {
         } finally {
             pool.shutdownNow();
         }
-        taskCount = pool.getTaskCount() - extraTasks;
         logger.info("exiting after " + timer.getEventCount() + "/"
-                + taskCount + ", "
-                + timer.getProgressMessage());
+                + taskCount + ", " + timer.getProgressMessage());
     }
 
     /**
@@ -114,11 +110,10 @@ public class Monitor extends Thread {
     protected void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
         int sleepMillis = SLEEP_MILLIS;
-        Future<TimedEvent> future = null;
+        Future<TimedEvent[]> future = null;
         long currentMillis;
-        TimedEvent lastEvent = null;
+        TimedEvent[] lastEvent = null;
 
-        taskCount = pool.getTaskCount() - extraTasks;
         logger.finest("looping every " + sleepMillis + ", core="
                 + pool.getCorePoolSize() + ", active="
                 + pool.getActiveCount() + ", tasks=" + taskCount);
@@ -131,7 +126,7 @@ public class Monitor extends Thread {
             yield();
 
             // check completed tasks
-            // sometimes this goes so fast that we would never leave the loop,
+            // sometimes this goes so fast that we never leave the loop,
             // so progress is never displayed... so limit the number of loops.
             do {
                 try {
@@ -141,15 +136,15 @@ public class Monitor extends Thread {
                         // record result, or throw exception
                         try {
                             lastEvent = future.get();
-                            if (null != lastEvent) {
+                            if (null == lastEvent) {
+                                throw new FatalException(
+                                        "unexpected null event");
+                            }
+                            for (int i = 0; i < lastEvent.length; i++) {
                                 // discard events to reduce memory utilization
-                                timer.add(lastEvent, false);
-                            } else {
-                                // special - queuing is complete
-                                // accept no new tasks
-                                logger.fine("shutting down pool");
-                                extraTasks++;
-                                pool.shutdown();
+                                if (null != lastEvent[i]) {
+                                    timer.add(lastEvent[i], false);
+                                }
                             }
                         } catch (ExecutionException e) {
                             if (fatalErrors) {
@@ -168,7 +163,6 @@ public class Monitor extends Thread {
                 currentMillis = System.currentTimeMillis();
                 if (currentMillis - lastDisplayMillis > displayMillis) {
                     lastDisplayMillis = currentMillis;
-                    taskCount = pool.getTaskCount() - extraTasks;
                     logger.finer("thread count: core="
                             + pool.getCorePoolSize() + ", active="
                             + pool.getActiveCount() + ", tasks="
@@ -177,7 +171,7 @@ public class Monitor extends Thread {
                         logger.info("" + timer.getEventCount() + "/"
                                 + taskCount + ", "
                                 + timer.getProgressMessage() + ", "
-                                + lastEvent.getDescription());
+                                + lastEvent[0].getDescription());
                     }
                 }
 
@@ -198,6 +192,10 @@ public class Monitor extends Thread {
      */
     public void setPool(ThreadPoolExecutor _pool) {
         pool = _pool;
+    }
+
+    public void setTaskCount(long taskCount) {
+        this.taskCount = taskCount;
     }
 
 }

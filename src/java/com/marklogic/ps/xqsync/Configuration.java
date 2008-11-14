@@ -38,7 +38,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- *
+ * 
  */
 public class Configuration extends AbstractConfiguration {
 
@@ -59,6 +59,10 @@ public class Configuration extends AbstractConfiguration {
     public static final String FATAL_ERRORS_KEY = "FATAL_ERRORS";
 
     public static final boolean FATAL_ERRORS_DEFAULT_BOOLEAN = true;
+
+    public static final String INPUT_BATCH_SIZE_KEY = "INPUT_BATCH_SIZE";
+
+    public static final String INPUT_BATCH_SIZE_DEFAULT = "1";
 
     public static final String INPUT_CACHABLE_KEY = "INPUT_QUERY_CACHABLE";
 
@@ -162,7 +166,7 @@ public class Configuration extends AbstractConfiguration {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties
      * )
@@ -240,7 +244,7 @@ public class Configuration extends AbstractConfiguration {
      * @throws IOException
      * @throws URISyntaxException
      * @throws SyncException
-     *
+     * 
      */
     private void configure() throws XccException, IOException,
             URISyntaxException, SyncException {
@@ -397,9 +401,8 @@ public class Configuration extends AbstractConfiguration {
      * @return
      */
     public boolean isFatalErrors() {
-        return Utilities.stringToBoolean(properties.getProperty(
-                FATAL_ERRORS_KEY, "" + FATAL_ERRORS_DEFAULT_BOOLEAN),
-                FATAL_ERRORS_DEFAULT_BOOLEAN);
+        return Utilities.stringToBoolean(properties
+                .getProperty(FATAL_ERRORS_KEY));
     }
 
     /**
@@ -485,8 +488,7 @@ public class Configuration extends AbstractConfiguration {
      * @return
      */
     public int getThreadCount() {
-        return Integer.parseInt(properties.getProperty(THREADS_KEY,
-                THREADS_DEFAULT));
+        return Integer.parseInt(properties.getProperty(THREADS_KEY));
     }
 
     /**
@@ -606,8 +608,8 @@ public class Configuration extends AbstractConfiguration {
      * @return
      */
     public boolean isAllowEmptyMetadata() {
-        return Utilities.stringToBoolean(properties.getProperty(
-                ALLOW_EMPTY_METADATA_KEY, ALLOW_EMPTY_METADATA_DEFAULT));
+        return Utilities.stringToBoolean(properties
+                .getProperty(ALLOW_EMPTY_METADATA_KEY));
     }
 
     /**
@@ -621,17 +623,16 @@ public class Configuration extends AbstractConfiguration {
      * @return
      */
     public boolean isInputQueryCachable() {
-        return Boolean.parseBoolean(properties.getProperty(
-                INPUT_CACHABLE_KEY, INPUT_CACHABLE_DEFAULT));
+        return Boolean.parseBoolean(properties
+                .getProperty(INPUT_CACHABLE_KEY));
     }
 
     /**
      * @return
      */
     public int inputQueryBufferSize() {
-        return Integer.parseInt(properties.getProperty(
-                INPUT_QUERY_BUFFER_BYTES_KEY,
-                INPUT_QUERY_BUFFER_BYTES_DEFAULT));
+        return Integer.parseInt(properties
+                .getProperty(INPUT_QUERY_BUFFER_BYTES_KEY));
     }
 
     /**
@@ -659,7 +660,7 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @param _timestampString
      * @throws RequestException
-     *
+     * 
      */
     private void configureTimestamp(String _timestampString)
             throws RequestException {
@@ -695,8 +696,15 @@ public class Configuration extends AbstractConfiguration {
      * @return
      */
     public int inputResultBufferSize() {
-        return Integer.parseInt(properties.getProperty(
-                INPUT_RESULT_BUFFER_SIZE_KEY,
-                INPUT_RESULT_BUFFER_SIZE_DEFAULT));
+        return Integer.parseInt(properties
+                .getProperty(INPUT_RESULT_BUFFER_SIZE_KEY));
+    }
+
+    /**
+     * @return
+     */
+    public int getInputBatchSize() {
+        return Integer.parseInt(properties
+                .getProperty(INPUT_BATCH_SIZE_KEY));
     }
 }

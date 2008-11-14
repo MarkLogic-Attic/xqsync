@@ -14,6 +14,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.marklogic.ps.Session;
+import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.Request;
 import com.marklogic.xcc.RequestOptions;
 import com.marklogic.xcc.ResultItem;
@@ -27,7 +28,7 @@ import com.marklogic.xcc.types.XdmElement;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- *
+ * 
  */
 public class SessionReader extends AbstractReader {
 
@@ -44,6 +45,8 @@ public class SessionReader extends AbstractReader {
     protected boolean copyCollections;
 
     protected boolean copyQuality;
+
+    private int size = 1;
 
     /**
      * @param _configuration
@@ -62,6 +65,8 @@ public class SessionReader extends AbstractReader {
         timestamp = configuration.getTimestamp();
         inputModule = configuration.getInputModule();
 
+        size = configuration.getInputBatchSize();
+
         try {
             if (null == query) {
                 initQuery();
@@ -73,14 +78,18 @@ public class SessionReader extends AbstractReader {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.ReaderInterface#read(java.lang.String,
      * com.marklogic.ps.xqsync.DocumentInterface)
      */
-    public void read(String _uri, DocumentInterface _document)
+    public void read(String[] _uris, DocumentInterface _document)
             throws SyncException {
-        if (null == _uri) {
-            throw new SyncException("null uri");
+        if (null == _uris) {
+            throw new SyncException("null uris");
+        }
+        if (_uris.length != size) {
+            throw new SyncException("bad uris, " + _uris.length + " != "
+                    + size);
         }
         if (null == _document) {
             throw new SyncException("null document");
@@ -88,13 +97,18 @@ public class SessionReader extends AbstractReader {
 
         ResultSequence rs = null;
         Session session = null;
+        int urisIndex = 0;
         try {
-            // in case the server is unreliable, we try three times
+            // in case the server or network is unreliable, try three times
             int retries = 3;
             while (retries > 0) {
+                urisIndex = 0;
                 try {
                     // retry around all session-related objects
                     session = configuration.newInputSession();
+                    if (null == session) {
+                        throw new FatalException("null input session");
+                    }
                     RequestOptions opts = session
                             .getDefaultRequestOptions();
                     if (null != timestamp) {
@@ -103,7 +117,10 @@ public class SessionReader extends AbstractReader {
                     opts.setResultBufferSize(configuration
                             .inputResultBufferSize());
                     Request req = session.newAdhocQuery(query, opts);
-                    req.setNewStringVariable("URI", _uri);
+                    for (int i = 0; i < _uris.length; i++) {
+                        req.setNewStringVariable("URI-" + i,
+                                null != _uris[i] ? _uris[i] : "");
+                    }
                     req.setNewStringVariable("MODULE-URI",
                             (null == inputModule) ? "" : inputModule);
 
@@ -113,18 +130,20 @@ public class SessionReader extends AbstractReader {
                 } catch (XQueryException e) {
                     // probably an XQuery syntax error - do not retry
                     // we want to know what the uri and query were.
-                    logger.severe("error in document, uri = " + _uri);
+                    String uris = Utilities.join(_uris, "; ");
+                    logger.severe("error in document, uri = " + uris);
                     logger.severe("error in query: " + query);
-                    throw new SyncException(_uri, e);
+                    throw new SyncException(uris, e);
                 } catch (XccException e) {
                     retries--;
                     // we want to know which document it was
+                    String uris = Utilities.join(_uris, "; ");
                     if (retries < 1) {
-                        logger.severe("retries exhausted for " + _uri);
-                        throw new SyncException(_uri, e);
+                        logger.severe("retries exhausted for " + uris);
+                        throw new SyncException(uris, e);
                     }
                     logger.warning("error reading document: will retry ("
-                            + retries + "): " + _uri + " due to "
+                            + retries + "): " + uris + " due to "
                             + e.getMessage());
                     Thread.yield();
                     // if the session "went bad", we'll want a new one
@@ -137,63 +156,24 @@ public class SessionReader extends AbstractReader {
 
             if (!rs.hasNext()) {
                 throw new SyncException("unexpected empty document: "
-                        + _uri);
+                        + _uris[urisIndex]);
             }
 
-            MetadataInterface metadata = _document.newMetadata();
             ResultItem[] items = rs.toResultItemArray();
 
-            // handle node-kind, always present
-            String format = items[0].asString();
-            logger.finer("format = " + format);
-            metadata.setFormat(format);
+            int resultIndex = 0;
 
-            int index = 1;
-
-            // handle collections, may not be present
-            while (index < items.length
-                    && items[index].getItemType() == ValueType.XS_STRING) {
-                if (!copyCollections) {
-                    index++;
-                    continue;
+            while (resultIndex < items.length) {
+                logger.fine("resultIndex " + resultIndex + "/"
+                        + items.length);
+                if (null == _uris[urisIndex]) {
+                    logger.fine("uri at " + urisIndex + " is null");
+                    break;
                 }
-                metadata.addCollection(items[index].asString());
-                index++;
+                resultIndex = readDocument(_document, items, urisIndex,
+                        resultIndex);
+                urisIndex++;
             }
-
-            // handle permissions, may not be present
-            while (index < items.length
-                    && ValueType.ELEMENT == items[index].getItemType()) {
-                if (!copyPermissions) {
-                    index++;
-                    continue;
-                }
-                readPermission((XdmElement) items[index].getItem(),
-                        metadata);
-                index++;
-            }
-
-            // handle quality, always present even if not requested (barrier)
-            metadata.setQuality((XSInteger) items[index].getItem());
-            index++;
-
-            // handle document-node, always present
-            if (metadata.isBinary()) {
-                _document.setContent(items[index].asInputStream());
-            } else {
-                _document.setContent(items[index].asReader());
-            }
-            index++;
-
-            // handle prop:properties node, optional
-            if (copyProperties && index < items.length) {
-                String pString = items[index].asString();
-                if (pString != null) {
-                    metadata.setProperties(pString);
-                }
-            }
-
-            _document.setMetadata(metadata);
 
             // pre-empt the finally block
             cleanup(session, rs);
@@ -201,6 +181,80 @@ public class SessionReader extends AbstractReader {
         } finally {
             cleanup(session, rs);
         }
+    }
+
+    private int readDocument(DocumentInterface _document,
+            ResultItem[] _items, int _urisIndex, int _resultIndex)
+            throws SyncException {
+        MetadataInterface metadata = _document.newMetadata();
+
+        // handle node-kind, always present
+        String format = _items[_resultIndex].asString();
+        logger.finer("format = " + format);
+        metadata.setFormat(format);
+        _resultIndex++;
+
+        // handle collections, may not be present
+        while (_resultIndex < _items.length
+                && _items[_resultIndex].getItemType() == ValueType.XS_STRING) {
+            if (!copyCollections) {
+                _resultIndex++;
+                continue;
+            }
+            metadata.addCollection(_items[_resultIndex].asString());
+            _resultIndex++;
+        }
+
+        // handle permissions, may not be present
+        while (_resultIndex < _items.length
+                && ValueType.ELEMENT == _items[_resultIndex]
+                        .getItemType()) {
+            if (!copyPermissions) {
+                _resultIndex++;
+                continue;
+            }
+            readPermission((XdmElement) _items[_resultIndex].getItem(),
+                    metadata);
+            _resultIndex++;
+        }
+
+        // handle quality, always present even if not requested (barrier)
+        metadata.setQuality((XSInteger) _items[_resultIndex].getItem());
+        _resultIndex++;
+
+        // handle document-node, always present
+        if (metadata.isBinary()) {
+            _document.setContent(_urisIndex, _items[_resultIndex]
+                    .asInputStream());
+        } else {
+            _document.setContent(_urisIndex, _items[_resultIndex]
+                    .asReader());
+        }
+        _resultIndex++;
+
+        // handle prop:properties node, optional
+        // if not present, there will be a 0 as a marker
+        if (copyProperties
+                && ValueType.ELEMENT == _items[_resultIndex]
+                        .getItemType()) {
+            String pString = _items[_resultIndex].asString();
+            if (pString != null) {
+                metadata.setProperties(pString);
+            }
+            _resultIndex++;
+        }
+
+        // verify marker
+        if (ValueType.XS_INTEGER != _items[_resultIndex].getItemType()) {
+            throw new SyncException("unexpected "
+                    + _items[_resultIndex].getItemType() + " "
+                    + _items[_resultIndex].asString() + ", expected "
+                    + ValueType.XS_INTEGER + " 0");
+        }
+        _resultIndex++;
+
+        _document.setMetadata(_urisIndex, metadata);
+        return _resultIndex;
     }
 
     private void cleanup(Session session, ResultSequence rs) {
@@ -276,7 +330,7 @@ public class SessionReader extends AbstractReader {
 
     /**
      * @throws RequestException
-     *
+     * 
      */
     private synchronized void initQuery() throws RequestException {
         if (null != query) {
@@ -289,7 +343,7 @@ public class SessionReader extends AbstractReader {
         }
 
         // easy to distinguish the result-sets: metadata, data, properties
-        // first is node-kind
+        // first is node-kind as string
         // then collection strings (if requested and present)
         // then permission nodes (if requested and present)
         // then quality integer, always present (default 0)
@@ -301,64 +355,99 @@ public class SessionReader extends AbstractReader {
         //
         // normally I'd put this code in a module,
         // but I want this program to be self-contained
-        query = Session.XQUERY_VERSION_0_9_ML
-                + "define variable $URI as xs:string external\n"
-                + "define variable $MODULE-URI as xs:string external\n"
-                + "define variable $DOC as document-node() {\n"
-                + "  if ($MODULE-URI) then xdmp:invoke(\n"
-                + "    $MODULE-URI, (xs:QName('URI'), $URI))\n"
-                + "  else doc($URI)\n"
-                + "}\n"
-                // a document may contain multiple root nodes
-                // we will prefer the element(), if present
-                + "define variable $ROOT as node()? {\n"
-                // no need to check for document-node, attribute, namespace
-                + " (\n"
-                + "  $DOC/element(), $DOC/binary(), $DOC/comment(),\n"
-                + "  $DOC/processing-instruction(), $DOC/text()\n"
-                + " )[1] }\n"
-                // NB - empty document is equivalent to an empty text node
-                + "if ($ROOT) then node-kind($ROOT) else 'text',\n";
+        query = Session.XQUERY_VERSION_0_9_ML;
 
-        if (copyCollections) {
-            query += "xdmp:document-get-collections($URI),\n";
-        }
+        // prolog - some variables are per-input
+        query += "define variable $MODULE-URI as xs:string external\n";
 
-        // use node for permissions, since we walk the tree
-        if (copyPermissions) {
-            query += "let $list := xdmp:document-get-permissions($URI)\n"
-                    + "let $query := concat(\n"
-                    + "' import module ''http://marklogic.com/xdmp/security''"
-                    + " at ''/MarkLogic/security.xqy''',\n"
-                    + "' define variable $LIST as element(sec:permissions) external',\n"
-                    + "' for $p in $LIST/sec:permission',\n"
-                    + "' return element sec:permission {',\n"
-                    + "'  $p/@*, $p/node(), sec:get-role-names($p/sec:role-id)',\n"
-                    + "' }'\n"
+        for (int i = 0; i < size; i++) {
+            query += "define variable $URI-" + i
+                    + " as xs:string external\n"
+                    + "define variable $DOC-" + i
+                    + " as document-node() {\n" + "  if ($URI-" + i
+                    + " eq '') then document { () }\n"
+                    + "  else if ($MODULE-URI) then xdmp:invoke(\n"
+                    + "    $MODULE-URI, (xs:QName('URI'), $URI-"
+                    + i
+                    + "))\n"
+                    + "  else doc($URI-"
+                    + i
                     + ")\n"
-                    // TODO replace eval-in with eval, after 3.1 EOL
-                    // (2009-06-01)
-                    + "where exists($list)\n"
-                    + "return xdmp:eval-in(\n"
-                    + "  $query, xdmp:security-database(),\n"
-                    + "  (xs:QName('LIST'), element sec:permissions { $list })\n"
-                    + "),\n";
+                    + "}\n"
+                    // a document may contain multiple root nodes
+                    // we will prefer the element(), if present
+                    + "define variable $ROOT-"
+                    + i
+                    + " as node()? {\n"
+                    // no need to check for document-node, attribute, namespace
+                    + " (\n" + "  $DOC-" + i + "/element(), $DOC-" + i
+                    + "/binary(), $DOC-" + i + "/comment(),\n"
+                    + "  $DOC-" + i + "/processing-instruction(), $DOC-"
+                    + i + "/text()\n" + " )[1] }\n";
         }
 
-        // quality acts as a barrier between permissions and the node
-        if (copyQuality) {
-            query += "xdmp:document-get-quality($URI),\n";
-        } else {
-            query += "0,";
-        }
+        // body, once per input
+        for (int i = 0; i < size; i++) {
+            query += (0 == i ? "\n" : ",\n");
 
-        query += "$DOC,\n";
+            // NB - empty document is equivalent to an empty text node
+            query += "if ($ROOT-" + i + ") then node-kind($ROOT-" + i
+                    + ") else 'text',\n";
 
-        if (copyProperties) {
-            query += "xdmp:document-properties($URI)\n";
-        } else {
-            query += "()\n";
+            if (copyCollections) {
+                query += "if ($URI-" + i + " eq '') then ()\n"
+                        + "else xdmp:document-get-collections($URI-" + i
+                        + "),\n";
+            }
+
+            // use node for permissions, since we walk the tree
+            if (copyPermissions) {
+                query += "let $list := \n"
+                        + "  if ($URI-"
+                        + i
+                        + " eq '') then ()\n"
+                        + "else xdmp:document-get-permissions($URI-"
+                        + i
+                        + ")\n"
+                        + "let $query := concat(\n"
+                        + "' import module ''http://marklogic.com/xdmp/security''"
+                        + " at ''/MarkLogic/security.xqy''',\n"
+                        + "' define variable $LIST as element(sec:permissions) external',\n"
+                        + "' for $p in $LIST/sec:permission',\n"
+                        + "' return element sec:permission {',\n"
+                        + "'  $p/@*, $p/node(), sec:get-role-names($p/sec:role-id)',\n"
+                        + "' }'\n"
+                        + ")\n"
+                        // TODO replace eval-in with eval, after 3.1 EOL
+                        // (2009-06-01)
+                        + "where exists($list)\n"
+                        + "return xdmp:eval-in(\n"
+                        + "  $query, xdmp:security-database(),\n"
+                        + "  (xs:QName('LIST'), element sec:permissions { $list })\n"
+                        + "),\n";
+            }
+
+            // quality acts as a marker between permissions and the node
+            if (copyQuality) {
+                query += "if ($URI-" + i + " eq '') then 0\n"
+                        + "else xdmp:document-get-quality($URI-" + i
+                        + "),\n";
+            } else {
+                query += "0,";
+            }
+
+            query += "$DOC-" + i + ",\n";
+
+            if (copyProperties) {
+                query += "if ($URI-" + i + " eq '') then ()\n"
+                        + "else xdmp:document-properties($URI-" + i
+                        + "),\n";
+            } else {
+                query += "(),\n";
+            }
+
+            // end-of-record marker
+            query += "0\n";
         }
     }
-
 }

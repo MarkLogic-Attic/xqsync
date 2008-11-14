@@ -28,23 +28,19 @@ import com.marklogic.ps.timing.TimedEvent;
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
  */
-/**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
- */
-public class CallableSync implements Callable<TimedEvent> {
+public class CallableSync implements Callable<TimedEvent[]> {
 
-    protected String inputUri;
+    protected String[] inputUris;
 
     protected TaskFactory taskFactory;
 
     /**
      * @param _taskFactory
-     * @param _uri
+     * @param _uris
      */
-    public CallableSync(TaskFactory _taskFactory, String _uri) {
+    public CallableSync(TaskFactory _taskFactory, String[] _uris) {
         taskFactory = _taskFactory;
-        inputUri = _uri;
+        inputUris = _uris;
     }
 
     /*
@@ -52,10 +48,16 @@ public class CallableSync implements Callable<TimedEvent> {
      * 
      * @see java.util.concurrent.Callable#call()
      */
-    public TimedEvent call() throws Exception {
+    public TimedEvent[] call() throws Exception {
         initialize();
 
-        TimedEvent te = new TimedEvent();
+        TimedEvent te[] = new TimedEvent[inputUris.length];
+        for (int i = 0; i < inputUris.length; i++) {
+            if (null == inputUris[i]) {
+                continue;
+            }
+            te[i] = new TimedEvent();
+        }
 
         // lazy initialization, to reduce memory
         Configuration configuration = taskFactory.getConfiguration();
@@ -63,14 +65,21 @@ public class CallableSync implements Callable<TimedEvent> {
         ReaderInterface reader = taskFactory.getReader();
         WriterInterface writer = taskFactory.getWriter();
 
-        logger.fine("starting sync of " + inputUri);
+        logger.fine("starting sync of " + inputUris.length + ": "
+                + inputUris[0]);
 
         try {
-            DocumentInterface document = new XQSyncDocument(inputUri,
+            DocumentInterface document = new XQSyncDocument(inputUris,
                     reader, writer, configuration);
             int bytesWritten = document.sync();
-            te.setDescription(document.getOutputUri());
-            te.stop(bytesWritten);
+            for (int i = 0; i < te.length; i++) {
+                if (null == te[i]) {
+                    continue;
+                }
+                // all bytes go to the first event
+                te[i].stop(0 == i ? bytesWritten : 0);
+                te[i].setDescription(document.getOutputUri(i));
+            }
             return te;
         } catch (SyncException e) {
             if (reader instanceof PackageReader) {
@@ -96,7 +105,7 @@ public class CallableSync implements Callable<TimedEvent> {
     private void initialize() throws NoSuchMethodException,
             InstantiationException, IllegalAccessException,
             InvocationTargetException {
-        if (null == inputUri) {
+        if (null == inputUris) {
             throw new NullPointerException(
                     "missing required field: inputUri");
         }

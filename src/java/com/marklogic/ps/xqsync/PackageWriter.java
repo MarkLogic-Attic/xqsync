@@ -32,14 +32,20 @@ public class PackageWriter extends AbstractWriter {
      * @see com.marklogic.ps.xqsync.WriterInterface#write(java.lang.String,
      * byte[], com.marklogic.ps.xqsync.XQSyncDocumentMetadata)
      */
-    public int write(String uri, byte[] bytes,
+    public int write(String _uri, byte[] _bytes,
             XQSyncDocumentMetadata _metadata) throws SyncException {
         if (null == pkg) {
             throw new SyncException("null output package");
         }
+        if (null == _bytes) {
+            throw new SyncException("null output bytes");
+        }
+        if (null == _metadata) {
+            throw new SyncException("null output metadata");
+        }
         try {
             // bytes from one document should not overflow int
-            return (int) pkg.write(uri, bytes, _metadata);
+            return (int) pkg.write(_uri, _bytes, _metadata);
         } catch (IOException e) {
             throw new SyncException(e);
         }

@@ -30,6 +30,10 @@ import com.marklogic.ps.Utilities;
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  * 
  */
+/**
+ * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * 
+ */
 public class XQSyncDocument implements DocumentInterface {
 
     public static final String UTF_8 = "UTF-8";
@@ -41,9 +45,9 @@ public class XQSyncDocument implements DocumentInterface {
     public static final String METADATA_REGEX = "^.+\\"
             + XQSyncDocument.METADATA_EXT + "$";
 
-    protected byte[] contentBytes;
+    protected byte[][] contentBytes;
 
-    protected XQSyncDocumentMetadata metadata;
+    protected XQSyncDocumentMetadata[] metadata;
 
     protected SimpleLogger logger = null;
 
@@ -53,23 +57,23 @@ public class XQSyncDocument implements DocumentInterface {
 
     protected Configuration configuration;
 
-    protected String inputUri;
+    protected String[] inputUris;
 
-    protected String outputUri;
+    protected String[] outputUris;
 
     protected boolean copyPermissions;
 
     protected boolean copyProperties;
 
     /**
-     * @param _uri
+     * @param _uris
      * @param _reader
      * @param _writer
      * @param _configuration
      */
-    public XQSyncDocument(String _uri, ReaderInterface _reader,
+    public XQSyncDocument(String[] _uris, ReaderInterface _reader,
             WriterInterface _writer, Configuration _configuration) {
-        inputUri = _uri;
+        inputUris = _uris;
         reader = _reader;
         writer = _writer;
         configuration = _configuration;
@@ -78,17 +82,20 @@ public class XQSyncDocument implements DocumentInterface {
 
         copyPermissions = configuration.isCopyPermissions();
         copyProperties = configuration.isCopyProperties();
-        
-        outputUri = composeOutputUri(false);
+
+        metadata = new XQSyncDocumentMetadata[inputUris.length];
+        contentBytes = new byte[inputUris.length][];
+
+        composeOutputUris(false);
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(byte[])
+     * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int, byte[])
      */
-    public void setContent(byte[] _bytes) {
-        contentBytes = _bytes;
+    public void setContent(int _index, byte[] _bytes) {
+        contentBytes[_index] = _bytes;
     }
 
     /*
@@ -97,8 +104,8 @@ public class XQSyncDocument implements DocumentInterface {
      * @see
      * com.marklogic.ps.xqsync.DocumentInterface#setMetadata(java.io.Reader)
      */
-    public void setMetadata(Reader _reader) {
-        metadata = XQSyncDocumentMetadata.fromXML(_reader);
+    public void setMetadata(int _index, Reader _reader) {
+        metadata[_index] = XQSyncDocumentMetadata.fromXML(_reader);
     }
 
     /*
@@ -125,26 +132,52 @@ public class XQSyncDocument implements DocumentInterface {
      * @throws SyncException
      */
     private int write() throws SyncException {
-        return writer.write(outputUri, contentBytes, metadata);
+        int len = 0;
+        for (int i = 0; i < outputUris.length; i++) {
+            if (null == inputUris[i]) {
+                continue;
+            }
+            if (null == contentBytes[i]) {
+                throw new NullPointerException("null content bytes at "
+                        + i);
+            }
+            if (null == metadata[i]) {
+                throw new NullPointerException("null metadata at " + i);
+            }
+            len += writer.write(outputUris[i], contentBytes[i],
+                    metadata[i]);
+        }
+        return len;
     }
 
     /**
      * @throws SyncException
      */
     public void read() throws SyncException {
-        if (contentBytes != null) {
+        if (null != contentBytes[0]) {
             return;
         }
-        
-        reader.read(inputUri, this);
+
+        reader.read(inputUris, this);
 
         // implement any configuration-mandated changes
-        metadata.addCollections(configuration.getOutputCollections());
-        if (!copyPermissions) {
-            clearPermissions();
-        }
-        if (!copyProperties) {
-            clearProperties();
+        for (int i = 0; i < metadata.length; i++) {
+            if (null == inputUris[i]) {
+                continue;
+            }
+            if (null == metadata[i]) {
+                throw new NullPointerException(
+                        "unexpected empty metadata at " + i + ", "
+                                + inputUris[i]);
+            }
+            metadata[i].addCollections(configuration
+                    .getOutputCollections());
+            if (!copyPermissions) {
+                metadata[i].clearPermissions();
+            }
+            if (!copyProperties) {
+                metadata[i].clearProperties();
+            }
         }
     }
 
@@ -170,51 +203,56 @@ public class XQSyncDocument implements DocumentInterface {
         return _file.getCanonicalPath() + METADATA_EXT;
     }
 
-    private String composeOutputUri(boolean _isEscaped) {
+    private void composeOutputUris(boolean _isEscaped) {
         String outputPathPrefix = configuration.getUriPrefix();
+        String uri;
+        outputUris = new String[inputUris.length];
+        for (int i = 0; i < inputUris.length; i++) {
+            uri = inputUris[i];
+            if (null != outputPathPrefix && !outputPathPrefix.equals("")
+                    && !outputPathPrefix.endsWith("/")
+                    && !uri.startsWith("/")) {
+                outputPathPrefix += "/";
+            }
 
-        if (null != outputPathPrefix && !outputPathPrefix.equals("")
-                && !outputPathPrefix.endsWith("/")
-                && !inputUri.startsWith("/")) {
-            outputPathPrefix += "/";
+            String outputUri = (null == outputPathPrefix ? ""
+                    : outputPathPrefix)
+                    + uri;
+            // TODO optionally escape outputUri
+            // note that some constructors will need to un-escape the inputUri
+            if (_isEscaped) {
+                // NTFS: The period (.) cannot be the first character
+                // NTFS: Illegal Characters: / \ : * ? " < > |
+                // TODO note that this is a dummy at present.
+                // it's unclear when and what needs to be escaped.
+                // outputUri = URLEncoder.encode(outputUri, ENCODING);
+                throw new FatalException("UNIMPLEMENTED");
+            }
+            logger.finer("copying " + uri + " to " + outputUri);
+            outputUris[i] = outputUri;
         }
-
-        String outputUri = (null == outputPathPrefix ? ""
-                : outputPathPrefix)
-                + inputUri;
-        // TODO optionally escape outputUri
-        // note that some constructors will need to un-escape the inputUri
-        if (_isEscaped) {
-            // NTFS: The period (.) cannot be the first character
-            // NTFS: Illegal Characters: / \ : * ? " < > |
-            // TODO note that this is a dummy at present.
-            // it's unclear when and what needs to be escaped.
-            // outputUri = URLEncoder.encode(outputUri, ENCODING);
-        }
-        logger.finer("copying " + inputUri + " to " + outputUri);
-        return outputUri;
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.marklogic.ps.xqsync.DocumentInterface#setMetadata(com.marklogic.ps
-     * .xqsync.MetadataInterface)
+     * @see com.marklogic.ps.xqsync.DocumentInterface#setMetadata(int,
+     * com.marklogic.ps.xqsync.MetadataInterface)
      */
-    public void setMetadata(MetadataInterface _metadata) {
-        metadata = (XQSyncDocumentMetadata) _metadata;
+    public void setMetadata(int _index, MetadataInterface _metadata) {
+        metadata[_index] = (XQSyncDocumentMetadata) _metadata;
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see
-     * com.marklogic.ps.xqsync.DocumentInterface#setContent(java.io.InputStream)
+     * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int,
+     * java.io.InputStream)
      */
-    public void setContent(InputStream _is) throws SyncException {
+    public void setContent(int _index, InputStream _is)
+            throws SyncException {
         try {
-            contentBytes = Utilities.cat(_is);
+            contentBytes[_index] = Utilities.cat(_is);
         } catch (IOException e) {
             throw new SyncException(e);
         }
@@ -223,11 +261,13 @@ public class XQSyncDocument implements DocumentInterface {
     /*
      * (non-Javadoc)
      * 
-     * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(java.io.Reader)
+     * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int,
+     * java.io.Reader)
      */
-    public void setContent(Reader _reader) throws SyncException {
+    public void setContent(int _index, Reader _reader)
+            throws SyncException {
         try {
-            contentBytes = Utilities.cat(_reader).getBytes();
+            contentBytes[_index] = Utilities.cat(_reader).getBytes();
         } catch (IOException e) {
             throw new SyncException(e);
         }
@@ -238,36 +278,42 @@ public class XQSyncDocument implements DocumentInterface {
      * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#getOutputUri()
      */
-    public String getOutputUri() {
-        return outputUri;
+    public String getOutputUri(int _index) {
+        return outputUris[_index];
     }
 
-    /* (non-Javadoc)
-     * @see com.marklogic.ps.xqsync.DocumentInterface#clearPermissions()
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.marklogic.ps.xqsync.DocumentInterface#clearPermissions(int)
      */
-    public void clearPermissions() {
-        metadata.clearPermissions();
+    public void clearPermissions(int _index) {
+        metadata[_index].clearPermissions();
     }
 
-    /* (non-Javadoc)
-     * @see com.marklogic.ps.xqsync.DocumentInterface#clearProperties()
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.marklogic.ps.xqsync.DocumentInterface#clearProperties(int)
      */
-    public void clearProperties() {
-        metadata.clearProperties();
-    }
-
-    /**
-     * @return
-     */
-    public byte[] getContent() {
-        return contentBytes;
+    public void clearProperties(int _index) {
+        metadata[_index].clearProperties();
     }
 
     /**
+     * @param _index
      * @return
      */
-    public XQSyncDocumentMetadata getMetadata() {
-        return metadata;
+    public byte[] getContent(int _index) {
+        return contentBytes[_index];
+    }
+
+    /**
+     * @param _index
+     * @return
+     */
+    public XQSyncDocumentMetadata getMetadata(int _index) {
+        return metadata[_index];
     }
 
 }

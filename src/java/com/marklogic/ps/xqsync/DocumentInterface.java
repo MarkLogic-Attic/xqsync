@@ -13,16 +13,20 @@ import java.io.Reader;
 public interface DocumentInterface {
 
     /**
+     * @param _index
+     * @param _bytes
      * @throws SyncException
-     * 
      */
-    public void setContent(byte[] _bytes) throws SyncException;
+    public void setContent(int _index, byte[] _bytes)
+            throws SyncException;
 
     /**
+     * @param _index
+     * @param _metadata
      * @throws SyncException
-     * 
      */
-    public void setMetadata(Reader _metadata) throws SyncException;
+    public void setMetadata(int _index, Reader _metadata)
+            throws SyncException;
 
     /**
      * @throws SyncException
@@ -31,9 +35,10 @@ public interface DocumentInterface {
     public int sync() throws SyncException;
 
     /**
+     * @param _index
      * @param _metadata
      */
-    public void setMetadata(MetadataInterface _metadata);
+    public void setMetadata(int _index, MetadataInterface _metadata);
 
     /**
      * @return
@@ -41,30 +46,35 @@ public interface DocumentInterface {
     public MetadataInterface newMetadata();
 
     /**
+     * @param _index
      * @param _is
-     * @throws SyncException 
+     * @throws SyncException
      */
-    public void setContent(InputStream _is) throws SyncException;
+    public void setContent(int _index, InputStream _is)
+            throws SyncException;
 
     /**
+     * @param _index
      * @param _reader
-     * @throws SyncException 
+     * @throws SyncException
      */
-    public void setContent(Reader _reader) throws SyncException;
+    public void setContent(int _index, Reader _reader)
+            throws SyncException;
 
     /**
+     * @param _index
      * @return
      */
-    public String getOutputUri();
+    public String getOutputUri(int _index);
 
     /**
-     * 
+     * @param _index
      */
-    public void clearPermissions();
+    public void clearPermissions(int _index);
 
     /**
-     * 
+     * @param _index
      */
-    public void clearProperties();
+    public void clearProperties(int _index);
 
 }

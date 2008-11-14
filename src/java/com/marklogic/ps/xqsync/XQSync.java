@@ -33,7 +33,7 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync {
 
-    public static String VERSION = "2008-11-14.1";
+    public static String VERSION = "2008-11-14.2";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("
@@ -87,6 +87,6 @@ public class XQSync {
         long itemsQueued = xqm.getItemsQueued();
         logger.info("completed " + itemsQueued + " in " + duration
                 + " ms (" + (int) (1000 * itemsQueued / duration)
-                + " tps)");
+                + " docs/s)");
     }
 }
