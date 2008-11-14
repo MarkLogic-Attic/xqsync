@@ -29,11 +29,11 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- * 
+ *
  */
 public class XQSync {
 
-    public static String VERSION = "2008-11-10.1";
+    public static String VERSION = "2008-11-14.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("

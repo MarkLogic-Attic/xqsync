@@ -38,7 +38,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class Configuration extends AbstractConfiguration {
 
@@ -63,10 +63,6 @@ public class Configuration extends AbstractConfiguration {
     public static final String INPUT_CACHABLE_KEY = "INPUT_QUERY_CACHABLE";
 
     public static final String INPUT_CACHABLE_DEFAULT = "" + false;
-
-    public static final String INPUT_CACHE_RESULTS_KEY = "INPUT_CACHE_RESULTS";
-
-    public static final String INPUT_CACHE_RESULTS_DEFAULT = "false";
 
     public static final String INPUT_COLLECTION_URI_KEY = "INPUT_COLLECTION_URI";
 
@@ -166,7 +162,7 @@ public class Configuration extends AbstractConfiguration {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties
      * )
@@ -244,7 +240,7 @@ public class Configuration extends AbstractConfiguration {
      * @throws IOException
      * @throws URISyntaxException
      * @throws SyncException
-     * 
+     *
      */
     private void configure() throws XccException, IOException,
             URISyntaxException, SyncException {
@@ -254,7 +250,7 @@ public class Configuration extends AbstractConfiguration {
         }
 
         firstConfiguration = false;
-        
+
         logger = SimpleLogger.getSimpleLogger();
         logger.configureLogger(properties);
 
@@ -326,9 +322,6 @@ public class Configuration extends AbstractConfiguration {
             }
             inputConnection = new Connection(inputUri);
 
-            if (isInputCacheResults()) {
-                logger.info(INPUT_CACHE_RESULTS_KEY + "=true");
-            }
         }
     }
 
@@ -666,7 +659,7 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @param _timestampString
      * @throws RequestException
-     * 
+     *
      */
     private void configureTimestamp(String _timestampString)
             throws RequestException {
@@ -696,14 +689,6 @@ public class Configuration extends AbstractConfiguration {
                 logger.info("using timestamp " + timestamp);
             }
         }
-    }
-
-    /**
-     * @return
-     */
-    public boolean isInputCacheResults() {
-        return Boolean.parseBoolean(properties.getProperty(
-                INPUT_CACHE_RESULTS_KEY, INPUT_CACHE_RESULTS_DEFAULT));
     }
 
     /**

@@ -27,7 +27,7 @@ import com.marklogic.xcc.types.XdmElement;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class SessionReader extends AbstractReader {
 
@@ -73,7 +73,7 @@ public class SessionReader extends AbstractReader {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.ReaderInterface#read(java.lang.String,
      * com.marklogic.ps.xqsync.DocumentInterface)
      */
@@ -100,8 +100,6 @@ public class SessionReader extends AbstractReader {
                     if (null != timestamp) {
                         opts.setEffectivePointInTime(timestamp);
                     }
-                    opts.setCacheResult(configuration
-                            .isInputCacheResults());
                     opts.setResultBufferSize(configuration
                             .inputResultBufferSize());
                     Request req = session.newAdhocQuery(query, opts);
@@ -166,7 +164,6 @@ public class SessionReader extends AbstractReader {
             // handle permissions, may not be present
             while (index < items.length
                     && ValueType.ELEMENT == items[index].getItemType()) {
-                logger.fine("copyPermissions = " + copyPermissions);
                 if (!copyPermissions) {
                     index++;
                     continue;
@@ -198,13 +195,20 @@ public class SessionReader extends AbstractReader {
 
             _document.setMetadata(metadata);
 
+            // pre-empt the finally block
+            cleanup(session, rs);
+
         } finally {
-            if (null != rs && !rs.isClosed()) {
-                rs.close();
-            }
-            if (null != session && !session.isClosed()) {
-                session.close();
-            }
+            cleanup(session, rs);
+        }
+    }
+
+    private void cleanup(Session session, ResultSequence rs) {
+        if (null != rs && !rs.isClosed()) {
+            rs.close();
+        }
+        if (null != session && !session.isClosed()) {
+            session.close();
         }
     }
 
@@ -272,9 +276,13 @@ public class SessionReader extends AbstractReader {
 
     /**
      * @throws RequestException
-     * 
+     *
      */
     private synchronized void initQuery() throws RequestException {
+        if (null != query) {
+            return;
+        }
+
         if (null != inputModule) {
             logger.info("using " + Configuration.INPUT_MODULE_URI_KEY
                     + "=" + inputModule);
@@ -303,11 +311,14 @@ public class SessionReader extends AbstractReader {
                 + "}\n"
                 // a document may contain multiple root nodes
                 // we will prefer the element(), if present
-                + "define variable $ROOT as node() {\n"
+                + "define variable $ROOT as node()? {\n"
                 // no need to check for document-node, attribute, namespace
-                + " ($DOC/element(), $DOC/binary(), $DOC/comment(),\n"
-                + "  $DOC/processing-instruction(), $DOC/text() )[1] }\n"
-                + "node-kind($ROOT),\n";
+                + " (\n"
+                + "  $DOC/element(), $DOC/binary(), $DOC/comment(),\n"
+                + "  $DOC/processing-instruction(), $DOC/text()\n"
+                + " )[1] }\n"
+                // NB - empty document is equivalent to an empty text node
+                + "if ($ROOT) then node-kind($ROOT) else 'text',\n";
 
         if (copyCollections) {
             query += "xdmp:document-get-collections($URI),\n";

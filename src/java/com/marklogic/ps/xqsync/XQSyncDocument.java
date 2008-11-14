@@ -78,6 +78,8 @@ public class XQSyncDocument implements DocumentInterface {
 
         copyPermissions = configuration.isCopyPermissions();
         copyProperties = configuration.isCopyProperties();
+        
+        outputUri = composeOutputUri(false);
     }
 
     /*
@@ -123,7 +125,7 @@ public class XQSyncDocument implements DocumentInterface {
      * @throws SyncException
      */
     private int write() throws SyncException {
-        return writer.write(getOutputUri(), contentBytes, metadata);
+        return writer.write(outputUri, contentBytes, metadata);
     }
 
     /**
@@ -237,7 +239,7 @@ public class XQSyncDocument implements DocumentInterface {
      * @see com.marklogic.ps.xqsync.DocumentInterface#getOutputUri()
      */
     public String getOutputUri() {
-        return composeOutputUri(false);
+        return outputUri;
     }
 
     /* (non-Javadoc)
@@ -252,14 +254,6 @@ public class XQSyncDocument implements DocumentInterface {
      */
     public void clearProperties() {
         metadata.clearProperties();
-    }
-
-    /**
-     * @param _isEscaped
-     * @return
-     */
-    public String getOutputUri(boolean _isEscaped) {
-        return composeOutputUri(_isEscaped);
     }
 
     /**

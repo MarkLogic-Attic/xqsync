@@ -66,11 +66,14 @@ public class CallableUriQueue implements Callable<TimedEvent> {
             } catch (InterruptedException e) {
                 logger.warning("take interrupted: continuing after "
                         + e.getMessage());
-            }
-            if (null == uri) {
                 continue;
             }
+            //logger.fine("uri = " + uri);
+            if (null == uri) {
+                throw new NullPointerException("null uri");
+            }
             if (POISON.equals(uri)) {
+                logger.fine("uri = POISON");
                 active = false;
                 break;
             }

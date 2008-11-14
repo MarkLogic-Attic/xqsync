@@ -54,7 +54,7 @@ public class XQSyncManager {
     protected static SimpleLogger logger;
 
     /**
-     * 
+     *
      */
     private static final String ERROR_CODE_MISSING_URI_LEXICON = "XDMP-URILXCNNOTFOUND";
 
@@ -170,11 +170,9 @@ public class XQSyncManager {
                         + meta.getDriverVersionString() + ", server "
                         + meta.getServerVersionString());
                 // extra thread, to avoid deadlock with 1 thread
-                if (1 == threads) {
-                    logger.info("adding extra input queue thread");
-                    pool.setMaximumPoolSize(1 + threads);
-                    pool.setCorePoolSize(1 + threads);
-                }
+                logger.info("adding extra input queue thread");
+                pool.setMaximumPoolSize(1 + threads);
+                pool.setCorePoolSize(1 + threads);
                 itemsQueued = queueFromInputConnection(completionService);
                 // queueFromInputConnection will shut down the pool via monitor
                 inputSession.close();
@@ -353,7 +351,8 @@ public class XQSyncManager {
 
         if (null != documentUris) {
             // we don't need to touch the database to get the uris
-            queue = new ArrayBlockingQueue<String>(documentUris.length);
+            queue = new ArrayBlockingQueue<String>(
+                    1 + documentUris.length);
             _cs.submit(new CallableUriQueue(configuration, _cs, factory,
                     queue));
             for (int i = 0; i < documentUris.length; i++) {
@@ -408,6 +407,7 @@ public class XQSyncManager {
                         : directoryUris[i], userQuery, startPosition,
                         _useLexicon);
                 request.setOptions(opts);
+                
                 rs = inputSession.submitRequest(request);
 
                 while (rs.hasNext()) {
@@ -421,14 +421,18 @@ public class XQSyncManager {
                 }
                 rs.close();
             }
-            queue.add(CallableUriQueue.POISON);
         } catch (StreamingResultException e) {
             logger.info("count = " + count);
-            logger.warning("Listing input URIs probably timed out:"
-                    + " try setting " + Configuration.INPUT_CACHABLE_KEY
-                    + " or " + Configuration.INPUT_QUERY_BUFFER_BYTES_KEY
-                    + " or " + Configuration.QUEUE_SIZE_KEY);
+            logger
+                    .warning("Listing input URIs probably timed out:"
+                            + " try setting "
+                            + Configuration.INPUT_CACHABLE_KEY + " or "
+                            + Configuration.INPUT_QUERY_BUFFER_BYTES_KEY);
             throw e;
+        } finally {
+            // signal end of queue, even if an exception is thrown.
+            // this is essential if uri lexicon is missing.
+            queue.add(CallableUriQueue.POISON);
         }
         return count;
     }
@@ -495,13 +499,14 @@ public class XQSyncManager {
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         logger.info("listing all documents");
         if (_useLexicon) {
-            query += "cts:uris('', 'document')\n"
+            query += "cts:uris('', 'document')"
                     + (_hasStart ? START_POSITION_PREDICATE : "");
         } else {
-            query += "for $i in doc()\n"
+            query += "for $i in doc()"
                     + (_hasStart ? START_POSITION_PREDICATE : "")
-                    + "return string(xdmp:node-uri($i))";
+                    + " return string(xdmp:node-uri($i))";
         }
+        logger.fine(query);
         return inputSession.newAdhocQuery(query);
     }
 

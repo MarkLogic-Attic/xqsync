@@ -50,9 +50,11 @@ public class Monitor extends Thread {
 
     protected boolean fatalErrors = Configuration.FATAL_ERRORS_DEFAULT_BOOLEAN;
 
-    protected Timer timer;
+    protected volatile Timer timer;
 
-    protected long taskCount;
+    protected volatile long taskCount = 0;
+
+    private int extraTasks = 0;
 
     /**
      * @param _logger
@@ -75,6 +77,7 @@ public class Monitor extends Thread {
             }
             logger.info("starting");
             monitor();
+            yield();
         } catch (Exception e) {
             if (e instanceof ExecutionException) {
                 logger
@@ -88,8 +91,10 @@ public class Monitor extends Thread {
         } finally {
             pool.shutdownNow();
         }
+        taskCount = pool.getTaskCount() - extraTasks;
         logger.info("exiting after " + timer.getEventCount() + "/"
-                + taskCount + ", " + timer.getProgressMessage());
+                + taskCount + ", "
+                + timer.getProgressMessage());
     }
 
     /**
@@ -113,7 +118,7 @@ public class Monitor extends Thread {
         long currentMillis;
         TimedEvent lastEvent = null;
 
-        taskCount = pool.getTaskCount();
+        taskCount = pool.getTaskCount() - extraTasks;
         logger.finest("looping every " + sleepMillis + ", core="
                 + pool.getCorePoolSize() + ", active="
                 + pool.getActiveCount() + ", tasks=" + taskCount);
@@ -143,6 +148,7 @@ public class Monitor extends Thread {
                                 // special - queuing is complete
                                 // accept no new tasks
                                 logger.fine("shutting down pool");
+                                extraTasks++;
                                 pool.shutdown();
                             }
                         } catch (ExecutionException e) {
@@ -162,7 +168,7 @@ public class Monitor extends Thread {
                 currentMillis = System.currentTimeMillis();
                 if (currentMillis - lastDisplayMillis > displayMillis) {
                     lastDisplayMillis = currentMillis;
-                    taskCount = pool.getTaskCount();
+                    taskCount = pool.getTaskCount() - extraTasks;
                     logger.finer("thread count: core="
                             + pool.getCorePoolSize() + ", active="
                             + pool.getActiveCount() + ", tasks="
