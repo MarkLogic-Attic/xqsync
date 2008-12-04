@@ -36,6 +36,7 @@ import com.thoughtworks.xstream.io.xml.DomDriver;
  * 
  */
 public class XQSyncDocumentMetadata implements MetadataInterface {
+
     private DocumentFormat format = null;
 
     List<String> collectionsList = new Vector<String>();
@@ -125,6 +126,9 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
      * @return
      */
     public ContentPermission[] getPermissions() {
+        if (permissionsList.size() < 1) {
+            return null;
+        }
         return permissionsList.toArray(new ContentPermission[0]);
     }
 
@@ -151,20 +155,22 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
     }
 
     /**
-     * 
+     *
      */
     public void clearPermissions() {
         permissionsList.clear();
     }
 
     /**
-     * 
+     *
      */
     public void clearProperties() {
         properties = null;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.marklogic.ps.xqsync.MetadataInterface#getFormatName()
      */
     public String getFormatName() {
@@ -176,8 +182,7 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
      */
     public void setFormat(String _format) {
         if (_format.equals(DocumentFormat.XML)
-                || _format.equals("element")
-                || _format.equals("comment")
+                || _format.equals("element") || _format.equals("comment")
                 || _format.equals("processing-instruction")) {
             setFormat(DocumentFormat.XML);
             return;

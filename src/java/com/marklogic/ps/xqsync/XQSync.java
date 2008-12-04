@@ -33,7 +33,7 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class XQSync {
 
-    public static String VERSION = "2008-11-14.2";
+    public static String VERSION = "2008-12-03.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("

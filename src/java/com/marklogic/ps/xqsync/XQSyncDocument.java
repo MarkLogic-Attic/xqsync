@@ -144,6 +144,18 @@ public class XQSyncDocument implements DocumentInterface {
             if (null == metadata[i]) {
                 throw new NullPointerException("null metadata at " + i);
             }
+            // check for and strip BOM
+            if (contentBytes[i].length > 2 && !metadata[i].isBinary()
+                    && (byte) 0xEF == contentBytes[i][0]
+                    && (byte) 0xBB == contentBytes[i][1]
+                    && (byte) 0xBF == contentBytes[i][2]) {
+                logger.finer("stripping BOM from " + outputUris[i]);
+                byte[] copy = new byte[contentBytes[i].length - 3];
+                System
+                        .arraycopy(contentBytes[i], 3, copy, 0,
+                                copy.length);
+                contentBytes[i] = copy;
+            }
             len += writer.write(outputUris[i], contentBytes[i],
                     metadata[i]);
         }

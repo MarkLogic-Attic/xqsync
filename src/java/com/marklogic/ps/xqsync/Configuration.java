@@ -48,11 +48,19 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String COPY_COLLECTIONS_KEY = "COPY_COLLECTIONS";
 
+    public static final String COPY_COLLECTIONS_DEFAULT = "true";
+
     public static final String COPY_PROPERTIES_KEY = "COPY_PROPERTIES";
+
+    public static final String COPY_PROPERTIES_DEFAULT = "true";
 
     public static final String COPY_PERMISSIONS_KEY = "COPY_PERMISSIONS";
 
+    public static final String COPY_PERMISSIONS_DEFAULT = "true";
+
     public static final String COPY_QUALITY_KEY = "COPY_QUALITY";
+
+    public static final String COPY_QUALITY_DEFAULT = "true";
 
     public static final String DELETE_COLLECTION_KEY = "DELETE_COLLECTION";
 
@@ -369,32 +377,32 @@ public class Configuration extends AbstractConfiguration {
      * @return
      */
     public boolean isCopyCollections() {
-        return Utilities.stringToBoolean(properties.getProperty(
-                COPY_COLLECTIONS_KEY, "true"));
+        return Utilities.stringToBoolean(properties
+                .getProperty(COPY_COLLECTIONS_KEY));
     }
 
     /**
      * @return
      */
     public boolean isCopyPermissions() {
-        return Utilities.stringToBoolean(properties.getProperty(
-                COPY_PERMISSIONS_KEY, "true"));
+        return Utilities.stringToBoolean(properties
+                .getProperty(COPY_PERMISSIONS_KEY));
     }
 
     /**
      * @return
      */
     public boolean isCopyProperties() {
-        return Utilities.stringToBoolean(properties.getProperty(
-                COPY_PROPERTIES_KEY, "true"));
+        return Utilities.stringToBoolean(properties
+                .getProperty(COPY_PROPERTIES_KEY));
     }
 
     /**
      * @return
      */
     public boolean isCopyQuality() {
-        return Utilities.stringToBoolean(properties.getProperty(
-                COPY_QUALITY_KEY, "true"));
+        return Utilities.stringToBoolean(properties
+                .getProperty(COPY_QUALITY_KEY));
     }
 
     /**
@@ -707,4 +715,5 @@ public class Configuration extends AbstractConfiguration {
         return Integer.parseInt(properties
                 .getProperty(INPUT_BATCH_SIZE_KEY));
     }
+
 }

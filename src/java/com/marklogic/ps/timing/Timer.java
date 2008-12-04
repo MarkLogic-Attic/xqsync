@@ -281,8 +281,8 @@ public class Timer {
     }
 
     public String getProgressMessage(boolean rawValues) {
-        return (rawValues ? getBytes() + " B in " + getDurationSeconds()
-                + " s, " : "")
+        return (rawValues ? eventCount + " events, " + getBytes()
+                + " B in " + getDurationSeconds() + " s, " : "")
                 + Math.round(getEventsPerSecond())
                 + " events/s, "
                 + Math.round(getKilobytesPerSecond()) + " kB/s";

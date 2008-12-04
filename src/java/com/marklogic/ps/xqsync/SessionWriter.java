@@ -17,7 +17,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
@@ -104,7 +104,9 @@ public class SessionWriter extends AbstractWriter {
                 }
 
                 options.setResolveEntities(resolveEntities);
-                options.setPermissions(permissions);
+                if (null != permissions) {
+                    options.setPermissions(permissions);
+                }
                 options.setCollections(collections);
                 options.setQuality(_metadata.getQuality());
                 options.setNamespace(namespace);
@@ -120,6 +122,7 @@ public class SessionWriter extends AbstractWriter {
                 // handle prop:properties node, optional
                 // TODO do this in the same transaction
                 if (copyProperties) {
+                    // logger.info("copying properties for " + _outputUri);
                     String properties = _metadata.getProperties();
                     if (null != properties) {
                         session.setDocumentProperties(_outputUri,

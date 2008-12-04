@@ -167,10 +167,10 @@ public class Monitor extends Thread {
                             + pool.getCorePoolSize() + ", active="
                             + pool.getActiveCount() + ", tasks="
                             + taskCount);
-                    if (lastEvent != null) {
+                    if (null != lastEvent) {
                         logger.info("" + timer.getEventCount() + "/"
                                 + taskCount + ", "
-                                + timer.getProgressMessage() + ", "
+                                + timer.getProgressMessage(false) + ", "
                                 + lastEvent[0].getDescription());
                     }
                 }
