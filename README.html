@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 /*
- * Copyright (c)2005-2007 Mark Logic Corporation
+ * Copyright (c)2005-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -214,7 +214,8 @@ lc(doc($URI))
 <tr>
   <td>INPUT_QUERY</td>
   <td>null</td>
-  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
+  <td>
+    <p>In combination with <code>INPUT_CONNECTION_STRING</code>,
     all uris returned by the query will be transferred.
     This sample query would transfer the first 100 documents,
     in document order:
@@ -226,6 +227,11 @@ lc(doc($URI))
     <code>cts:uris('', 'document')[1 to 100]</code>
     <br/>
     to transfer the first 100 documents, sorted by document URI.
+    </p>
+    <p>If the query contains any repeated semicolons (";;"),
+      it will be split into multiple queries and run separately.
+      This permits faster start-up with complex queries.
+    </p>
   </td>
 </tr>
 <tr>

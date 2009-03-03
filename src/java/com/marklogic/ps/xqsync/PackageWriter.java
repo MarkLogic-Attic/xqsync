@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2009 Mark Logic Corporation. All rights reserved.
  */
 package com.marklogic.ps.xqsync;
 
@@ -15,7 +15,7 @@ public class PackageWriter extends AbstractWriter {
 
     /**
      * @param _configuration
-     * @param _pkg 
+     * @param _pkg
      * @throws SyncException
      */
     public PackageWriter(Configuration _configuration, OutputPackage _pkg)
@@ -53,7 +53,7 @@ public class PackageWriter extends AbstractWriter {
     }
 
     /**
-     * @throws SyncException 
+     * @throws SyncException
      * 
      */
     public void close() throws SyncException {

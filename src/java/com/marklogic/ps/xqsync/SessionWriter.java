@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2009 Mark Logic Corporation. All rights reserved.
  */
 package com.marklogic.ps.xqsync;
 
@@ -37,6 +37,9 @@ public class SessionWriter extends AbstractWriter {
         super(_configuration);
 
         session = configuration.newOutputSession();
+        if (null == session) {
+            throw new FatalException("null output session");
+        }
     }
 
     /*
@@ -50,6 +53,10 @@ public class SessionWriter extends AbstractWriter {
 
         if (matchesFilters(_outputUri, _metadata)) {
             return 0;
+        }
+        
+        if (null == session) {
+            throw new FatalException("null session");
         }
 
         logger.finest("placeKeys = " + Utilities.join(placeKeys, ","));

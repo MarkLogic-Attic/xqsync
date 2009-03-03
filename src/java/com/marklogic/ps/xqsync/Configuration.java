@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -148,7 +148,7 @@ public class Configuration extends AbstractConfiguration {
 
     protected String[] placeKeys = null;
 
-    protected Connection outputConnection;
+    protected Connection outputConnection = null;
 
     protected String outputPath;
 
@@ -537,15 +537,25 @@ public class Configuration extends AbstractConfiguration {
 
     /**
      * @param _key
+     * @param _pattern
+     * @return
+     */
+    private String[] getDelimitedPropertyValues(String _key,
+            String _pattern) {
+        String property = properties.getProperty(_key);
+        logger.fine(_key + "=" + property + " using " + _pattern);
+        if (null == property) {
+            return null;
+        }
+        return property.split(_pattern);
+    }
+
+    /**
+     * @param _key
      * @return
      */
     private String[] getDelimitedPropertyValues(String _key) {
-        String property = properties.getProperty(_key);
-        logger.fine(_key + "=" + property);
-        if (property == null) {
-            return null;
-        }
-        return property.split("\\s+");
+        return getDelimitedPropertyValues(_key, "\\s+");
     }
 
     /**
@@ -572,8 +582,9 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return
      */
-    public String getInputQuery() {
-        return properties.getProperty(INPUT_QUERY_KEY);
+    public String[] getInputQuery() {
+        // handle multiple queries, delimited by repeated semicolons
+        return getDelimitedPropertyValues(INPUT_QUERY_KEY, ";;+");
     }
 
     /**
@@ -648,7 +659,8 @@ public class Configuration extends AbstractConfiguration {
      */
     public int getQueueSize() {
         return Integer.parseInt(properties.getProperty(QUEUE_SIZE_KEY, ""
-                + (100 * 1000)));
+                + (100 * 1000)))
+                / getInputBatchSize();
     }
 
     /**
@@ -714,6 +726,13 @@ public class Configuration extends AbstractConfiguration {
     public int getInputBatchSize() {
         return Integer.parseInt(properties
                 .getProperty(INPUT_BATCH_SIZE_KEY));
+    }
+
+    /**
+     * @return
+     */
+    public boolean isOutputConnection() {
+        return null != outputConnection;
     }
 
 }

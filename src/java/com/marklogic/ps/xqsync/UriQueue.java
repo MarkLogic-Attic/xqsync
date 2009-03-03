@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2009 Mark Logic Corporation. All rights reserved.
  */
 package com.marklogic.ps.xqsync;
 
@@ -115,8 +115,7 @@ public class UriQueue extends Thread {
                 updateCount--;
                 if (updateCount < 1) {
                     updateCount = MONITOR_UPDATE_COUNT;
-                    monitor.setTaskCount(count
-                            + (null == queue ? 0 : queue.size()));
+                    monitor.incrementTaskCount(MONITOR_UPDATE_COUNT);
                 }
             }
 
@@ -127,6 +126,7 @@ public class UriQueue extends Thread {
                     buffer[i] = null;
                 }
                 completionService.submit(factory.newTask(buffer));
+                monitor.incrementTaskCount(buffer.length);
             }
             pool.shutdown();
 
@@ -165,15 +165,31 @@ public class UriQueue extends Thread {
     }
 
     /**
-     * @param _factory
-     * @throws InterruptedException
+     * @return
      */
-    public void setFactory(TaskFactory _factory)
-            throws InterruptedException {
-        while (queue.size() > 0) {
-            Thread.sleep(SLEEP_MILLIS);
-        }
-        factory = _factory;
+    public CompletionService<TimedEvent[]> getCompletionService() {
+        return completionService;
+    }
+
+    /**
+     * @return
+     */
+    public ThreadPoolExecutor getPool() {
+        return pool;
+    }
+
+    /**
+     * @return
+     */
+    public Monitor getMonitor() {
+        return monitor;
+    }
+
+    /**
+     * @return
+     */
+    public int getQueueSize() {
+        return queue.size();
     }
 
 }

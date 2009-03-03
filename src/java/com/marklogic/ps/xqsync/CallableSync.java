@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,13 @@ public class CallableSync implements Callable<TimedEvent[]> {
         Configuration configuration = taskFactory.getConfiguration();
         SimpleLogger logger = configuration.getLogger();
         ReaderInterface reader = taskFactory.getReader();
+        if (null == reader) {
+            throw new FatalException("null reader");
+        }
         WriterInterface writer = taskFactory.getWriter();
+        if (null == writer) {
+            throw new FatalException("null writer");
+        }
 
         logger.fine("starting sync of " + inputUris.length + ": "
                 + inputUris[0]);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -121,6 +121,7 @@ public class TaskFactory {
      * @throws SyncException
      */
     public ReaderInterface getReader() throws SyncException {
+        // TODO do we need to support other Reader types?
         return new SessionReader(configuration);
     }
 
@@ -135,8 +136,10 @@ public class TaskFactory {
             // simple balancer, to keep threads from contending for packages
             writer = writers[count % writers.length];
             count++;
-        } else {
+        } else if (configuration.isOutputConnection()) {
             writer = new SessionWriter(configuration);
+        } else {
+            writer = new FilePathWriter(configuration);
         }
         return writer;
     }

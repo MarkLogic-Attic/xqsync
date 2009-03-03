@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,13 +108,13 @@ public class XQSyncManager {
 
     private com.marklogic.ps.Session inputSession;
 
-    private TaskFactory factory;
-
     private Configuration configuration;
 
     private long itemsQueued;
 
-    private UriQueue completionServiceQueue;
+    private UriQueue uriQueue;
+
+    private UriQueue lastUriQueue;
 
     /**
      * @param _config
@@ -147,7 +147,7 @@ public class XQSyncManager {
             CompletionService<TimedEvent[]> completionService = new ExecutorCompletionService<TimedEvent[]>(
                     pool);
 
-            factory = new TaskFactory(configuration);
+            TaskFactory factory = new TaskFactory(configuration);
 
             // to attempt to avoid starvation, run the monitor with higher
             // priority than the thread pool will have.
@@ -158,10 +158,7 @@ public class XQSyncManager {
 
             // to support large workloads we have an unbounded lightweight
             // queue, which feeds the completion service
-            completionServiceQueue = new UriQueue(configuration,
-                    completionService, pool, factory, monitor,
-                    new LinkedBlockingQueue<String>());
-            completionServiceQueue.start();
+            newUriQueue(completionService, pool, factory, monitor);
 
             Session outputSession = configuration.newOutputSession();
             if (null != outputSession) {
@@ -189,10 +186,10 @@ public class XQSyncManager {
                 }
             }
 
-            monitor.setTaskCount(itemsQueued);
+            monitor.incrementTaskCount(itemsQueued);
 
             // no more tasks to queue - now we just wait
-            completionServiceQueue.shutdown();
+            uriQueue.shutdown();
             logger.info("queued " + itemsQueued + " items");
 
             while (null != monitor && monitor.isAlive()) {
@@ -209,8 +206,8 @@ public class XQSyncManager {
         } catch (Throwable t) {
             logger.logException("fatal error", t);
             // clean up
-            if (null != completionServiceQueue) {
-                completionServiceQueue.halt();
+            if (null != uriQueue) {
+                uriQueue.halt();
             }
             if (null != monitor) {
                 monitor.halt(t);
@@ -218,6 +215,21 @@ public class XQSyncManager {
         }
 
         logger.fine("exiting");
+    }
+
+    /**
+     * @param _completionService
+     * @param _pool
+     * @param _factory
+     * @param _monitor
+     */
+    private void newUriQueue(
+            CompletionService<TimedEvent[]> _completionService,
+            ThreadPoolExecutor _pool, TaskFactory _factory,
+            Monitor _monitor) {
+        uriQueue = new UriQueue(configuration, _completionService, _pool,
+                _factory, _monitor, new LinkedBlockingQueue<String>());
+        uriQueue.start();
     }
 
     /**
@@ -271,22 +283,24 @@ public class XQSyncManager {
         // list contents of package
         logger.info("listing package " + _path);
 
+        // allow up to two active uriQueues
+        while (null != lastUriQueue && 0 != lastUriQueue.getQueueSize()) {
+            try {
+                Thread.sleep(125);
+            } catch (InterruptedException e) {
+                logger.warning("interrupted, will continue");
+            }
+        }
+
         InputPackage inputPackage = new InputPackage(_path
                 .getCanonicalPath(), configuration);
         // ensure that the package won't close while queuing
         inputPackage.addReference();
 
         // create a new factory and queue for each input package
-        factory = new PackageTaskFactory(configuration, inputPackage);
-
-        while (true) {
-            try {
-                completionServiceQueue.setFactory(factory);
-                break;
-            } catch (InterruptedException e) {
-                logger.warning("interrupted, will continue");
-            }
-        }
+        lastUriQueue = uriQueue;
+        newUriQueue(uriQueue, new PackageTaskFactory(configuration,
+                inputPackage));
 
         Iterator<String> iter = inputPackage.list().iterator();
         String path;
@@ -297,12 +311,22 @@ public class XQSyncManager {
             path = iter.next();
             logger.finer("queuing " + count + ": " + path);
             inputPackage.addReference();
-            completionServiceQueue.add(path);
+            uriQueue.add(path);
         }
 
         // clean up so that the package can be closed
         inputPackage.closeReference();
         return count;
+    }
+
+    /**
+     * @param _old
+     * @param _factory
+     */
+    private void newUriQueue(UriQueue _old, TaskFactory _factory) {
+        // copy from old to new
+        newUriQueue(_old.getCompletionService(), _old.getPool(),
+                _factory, _old.getMonitor());
     }
 
     /**
@@ -342,7 +366,7 @@ public class XQSyncManager {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
-        String userQuery = configuration.getInputQuery();
+        String[] userQuery = configuration.getInputQuery();
         if (null != collectionUris && null != directoryUris) {
             logger.warning("conflicting properties: using "
                     + Configuration.INPUT_COLLECTION_URI_KEY + ", not "
@@ -364,7 +388,7 @@ public class XQSyncManager {
                 if (null != startPosition && i < startPosition) {
                     continue;
                 }
-                completionServiceQueue.add(documentUris[i]);
+                uriQueue.add(documentUris[i]);
                 count++;
             }
             return count;
@@ -391,6 +415,8 @@ public class XQSyncManager {
             size = collectionUris.length;
         } else if (null != directoryUris && directoryUris.length > size) {
             size = directoryUris.length;
+        } else if (null != userQuery && userQuery.length > size) {
+            size = userQuery.length;
         }
 
         /*
@@ -404,8 +430,8 @@ public class XQSyncManager {
             for (int i = 0; i < size; i++) {
                 request = getRequest(null == collectionUris ? null
                         : collectionUris[i], null == directoryUris ? null
-                        : directoryUris[i], userQuery, startPosition,
-                        _useLexicon);
+                        : directoryUris[i], null == userQuery ? null
+                        : userQuery[i], startPosition, _useLexicon);
                 request.setOptions(opts);
 
                 rs = inputSession.submitRequest(request);
@@ -416,7 +442,7 @@ public class XQSyncManager {
                         logger.info("queuing first task: " + uri);
                     }
                     logger.fine("queuing " + count + ": " + uri);
-                    completionServiceQueue.add(uri);
+                    uriQueue.add(uri);
                     count++;
                 }
                 rs.close();
@@ -448,6 +474,7 @@ public class XQSyncManager {
         boolean hasStart = (_startPosition != null && _startPosition
                 .longValue() > 1);
         Request request;
+        // TODO allow limit by forest names? would only work with cts:uris()
         if (_collectionUri != null) {
             request = getCollectionRequest(_collectionUri, hasStart,
                     _useLexicon);
@@ -584,7 +611,7 @@ public class XQSyncManager {
             file = iter.next();
             canonicalPath = file.getCanonicalPath();
             logger.finer("queuing " + count + ": " + canonicalPath);
-            completionServiceQueue.add(canonicalPath);
+            uriQueue.add(canonicalPath);
         }
 
         return count;

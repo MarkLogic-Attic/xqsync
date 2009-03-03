@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2006-2008 Mark Logic Corporation
+ * Copyright (c)2006-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -150,6 +150,11 @@ public class Monitor extends Thread {
                             if (fatalErrors) {
                                 throw e;
                             }
+                            Throwable cause = e.getCause();
+                            if (null != cause
+                                    && cause instanceof FatalException) {
+                                throw (FatalException) cause;
+                            }
                             logger.logException("non-fatal", e);
                             timer.incrementEventCount(false);
                         }
@@ -194,8 +199,18 @@ public class Monitor extends Thread {
         pool = _pool;
     }
 
-    public void setTaskCount(long taskCount) {
-        this.taskCount = taskCount;
+    /**
+     * 
+     */
+    public void incrementTaskCount() {
+        taskCount++;
+    }
+
+    /**
+     * @param _increment
+     */
+    public void incrementTaskCount(long _increment) {
+        taskCount += _increment;
     }
 
 }
