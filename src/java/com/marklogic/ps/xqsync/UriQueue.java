@@ -19,8 +19,6 @@ public class UriQueue extends Thread {
 
     protected static final long SLEEP_MILLIS = 125;
 
-    public static final int MONITOR_UPDATE_COUNT = 10000;
-
     protected Configuration configuration;
 
     protected volatile BlockingQueue<String> queue;
@@ -66,7 +64,6 @@ public class UriQueue extends Thread {
     public void run() {
         SimpleLogger logger = configuration.getLogger();
         long count = 0;
-        int updateCount = MONITOR_UPDATE_COUNT;
 
         active = true;
         String[] buffer = new String[configuration.getInputBatchSize()];
@@ -111,12 +108,7 @@ public class UriQueue extends Thread {
                     bufferIndex = 0;
                 }
                 count++;
-
-                updateCount--;
-                if (updateCount < 1) {
-                    updateCount = MONITOR_UPDATE_COUNT;
-                    monitor.incrementTaskCount(MONITOR_UPDATE_COUNT);
-                }
+                monitor.incrementTaskCount();
             }
 
             // handle any buffered uris
@@ -124,9 +116,9 @@ public class UriQueue extends Thread {
             if (bufferIndex > 0) {
                 for (int i = bufferIndex; i < buffer.length; i++) {
                     buffer[i] = null;
+                    monitor.incrementTaskCount();
                 }
                 completionService.submit(factory.newTask(buffer));
-                monitor.incrementTaskCount(buffer.length);
             }
             pool.shutdown();
 

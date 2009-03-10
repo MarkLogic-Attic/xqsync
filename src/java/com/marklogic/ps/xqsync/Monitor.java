@@ -213,4 +213,10 @@ public class Monitor extends Thread {
         taskCount += _increment;
     }
 
+    /**
+     * @param _count
+     */
+    public void setTaskCount(long _count) {
+        taskCount = _count;
+    }
 }

@@ -186,7 +186,7 @@ public class XQSyncManager {
                 }
             }
 
-            monitor.incrementTaskCount(itemsQueued);
+            monitor.setTaskCount(itemsQueued);
 
             // no more tasks to queue - now we just wait
             uriQueue.shutdown();
@@ -315,6 +315,7 @@ public class XQSyncManager {
         }
 
         // clean up so that the package can be closed
+        uriQueue.shutdown();
         inputPackage.closeReference();
         return count;
     }
