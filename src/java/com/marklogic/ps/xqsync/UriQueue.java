@@ -88,11 +88,12 @@ public class UriQueue extends Thread {
                     }
                 }
                 if (null == uri) {
-                    if (active) {
-                        continue;
+                    logger.fine(this + " uri null, active " + active);
+                    if (!active) {
+                        // queue is empty
+                        break;
                     }
-                    // queue is empty
-                    break;
+                    continue;
                 }
                 if (0 == count) {
                     logger.fine("took first uri: " + uri);
@@ -120,7 +121,6 @@ public class UriQueue extends Thread {
                 }
                 completionService.submit(factory.newTask(buffer));
             }
-            pool.shutdown();
 
         } catch (SyncException e) {
             // stop the world
@@ -132,8 +132,12 @@ public class UriQueue extends Thread {
     }
 
     public void shutdown() {
+        // ignore multiple calls
+        if (!active) {
+            return;
+        }
         // graceful shutdown, draining the queue
-        logger.info("closing queue");
+        logger.info("closing queue " + this);
         active = false;
     }
 

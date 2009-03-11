@@ -192,6 +192,8 @@ public class XQSyncManager {
             uriQueue.shutdown();
             logger.info("queued " + itemsQueued + " items");
 
+            pool.shutdown();
+
             while (null != monitor && monitor.isAlive()) {
                 try {
                     monitor.join();
@@ -298,9 +300,16 @@ public class XQSyncManager {
         inputPackage.addReference();
 
         // create a new factory and queue for each input package
+        // shutdown may be called multiple times - that is ok
+        if (null != uriQueue) {
+            uriQueue.shutdown();
+        }
         lastUriQueue = uriQueue;
         newUriQueue(uriQueue, new PackageTaskFactory(configuration,
                 inputPackage));
+        logger
+                .fine("uriQueue = " + uriQueue + ", last = "
+                        + lastUriQueue);
 
         Iterator<String> iter = inputPackage.list().iterator();
         String path;

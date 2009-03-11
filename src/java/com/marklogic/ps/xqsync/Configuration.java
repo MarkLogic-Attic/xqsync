@@ -217,6 +217,7 @@ public class Configuration extends AbstractConfiguration {
                 .getProperty(OUTPUT_FORESTS_KEY);
         if (placeKeysString != null) {
             placeKeys = placeKeysString.split(CSV_SCSV_SSV_REGEX);
+            logger.info("placeKeys = " + placeKeysString);
         }
 
         String outputFormatFilterString = properties

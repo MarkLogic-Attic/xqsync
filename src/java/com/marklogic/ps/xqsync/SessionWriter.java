@@ -54,7 +54,7 @@ public class SessionWriter extends AbstractWriter {
         if (matchesFilters(_outputUri, _metadata)) {
             return 0;
         }
-        
+
         if (null == session) {
             throw new FatalException("null session");
         }
@@ -118,7 +118,10 @@ public class SessionWriter extends AbstractWriter {
                 options.setQuality(_metadata.getQuality());
                 options.setNamespace(namespace);
                 options.setRepairLevel(repair);
-                options.setPlaceKeys(session.forestNamesToIds(placeKeys));
+                if (null != placeKeys) {
+                    options.setPlaceKeys(session
+                            .forestNamesToIds(placeKeys));
+                }
 
                 Content content = ContentFactory.newContent(_outputUri,
                         _contentBytes, options);
