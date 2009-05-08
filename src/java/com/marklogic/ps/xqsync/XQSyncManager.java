@@ -47,7 +47,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- * 
+ *
  */
 public class XQSyncManager {
 
@@ -62,7 +62,7 @@ public class XQSyncManager {
 
     /**
      * @author Michael Blakeley, michael.blakeley@marklogic.com
-     * 
+     *
      */
     public class CallerBlocksPolicy implements RejectedExecutionHandler {
 
@@ -72,7 +72,7 @@ public class XQSyncManager {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see
          * java.util.concurrent.RejectedExecutionHandler#rejectedExecution(java
          * .lang.Runnable, java.util.concurrent.ThreadPoolExecutor)
@@ -186,13 +186,17 @@ public class XQSyncManager {
                 }
             }
 
-            monitor.setTaskCount(itemsQueued);
-
             // no more tasks to queue - now we just wait
             uriQueue.shutdown();
             logger.info("queued " + itemsQueued + " items");
 
             pool.shutdown();
+
+            while (uriQueue.getQueueSize() > 0) {
+                Thread.sleep(125);
+            }
+
+            monitor.setTaskCount(itemsQueued);
 
             while (null != monitor && monitor.isAlive()) {
                 try {
@@ -238,7 +242,7 @@ public class XQSyncManager {
      * @return
      * @throws IOException
      * @throws SyncException
-     * 
+     *
      */
     private long queueFromInputPackage(String _path) throws IOException,
             SyncException {
@@ -316,11 +320,11 @@ public class XQSyncManager {
         long count = 0;
 
         while (iter.hasNext()) {
-            count++;
             path = iter.next();
-            logger.finer("queuing " + count + ": " + path);
+            logger.fine("queuing " + count + ": " + path);
             inputPackage.addReference();
             uriQueue.add(path);
+            count++;
         }
 
         // clean up so that the package can be closed

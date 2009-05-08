@@ -20,6 +20,8 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
 import com.marklogic.ps.SimpleLogger;
@@ -40,6 +42,8 @@ public class TaskFactory {
     protected String outputPackagePath;
 
     protected volatile int count = 0;
+
+    private Constructor<? extends SessionReader> sessionReaderConstructor;
 
     /**
      * @param _config
@@ -75,6 +79,21 @@ public class TaskFactory {
                 throw new SyncException(e);
             }
         }
+
+        // allow alternative subclass for SessionReader
+        try {
+            Class<? extends SessionReader> cls = Class.forName(
+                    configuration.getSessionReaderClassName())
+                    .asSubclass(SessionReader.class);
+            sessionReaderConstructor = cls
+                    .getConstructor(new Class[] { Configuration.class });
+            logger.info("session reader = " + cls.getCanonicalName());
+        } catch (NoSuchMethodException e) {
+            throw new SyncException(e);
+        } catch (ClassNotFoundException e) {
+            throw new SyncException(e);
+        }
+
     }
 
     /**
@@ -121,8 +140,17 @@ public class TaskFactory {
      * @throws SyncException
      */
     public ReaderInterface getReader() throws SyncException {
-        // TODO do we need to support other Reader types?
-        return new SessionReader(configuration);
+        try {
+            return sessionReaderConstructor.newInstance(configuration);
+        } catch (IllegalArgumentException e) {
+            throw new SyncException(e);
+        } catch (InstantiationException e) {
+            throw new SyncException(e);
+        } catch (IllegalAccessException e) {
+            throw new SyncException(e);
+        } catch (InvocationTargetException e) {
+            throw new SyncException(e);
+        }
     }
 
     /**

@@ -28,11 +28,11 @@ import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- * 
+ *
  */
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class XQSyncDocument implements DocumentInterface {
 
@@ -91,7 +91,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int, byte[])
      */
     public void setContent(int _index, byte[] _bytes) {
@@ -100,7 +100,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.marklogic.ps.xqsync.DocumentInterface#setMetadata(java.io.Reader)
      */
@@ -110,7 +110,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#newMetadata()
      */
     public MetadataInterface newMetadata() {
@@ -119,7 +119,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#sync()
      */
     public int sync() throws SyncException {
@@ -221,6 +221,9 @@ public class XQSyncDocument implements DocumentInterface {
         outputUris = new String[inputUris.length];
         for (int i = 0; i < inputUris.length; i++) {
             uri = inputUris[i];
+            if (null == uri) {
+                continue;
+            }
             if (null != outputPathPrefix && !outputPathPrefix.equals("")
                     && !outputPathPrefix.endsWith("/")
                     && !uri.startsWith("/")) {
@@ -247,7 +250,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#setMetadata(int,
      * com.marklogic.ps.xqsync.MetadataInterface)
      */
@@ -257,7 +260,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int,
      * java.io.InputStream)
      */
@@ -272,7 +275,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int,
      * java.io.Reader)
      */
@@ -287,7 +290,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#getOutputUri()
      */
     public String getOutputUri(int _index) {
@@ -296,7 +299,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#clearPermissions(int)
      */
     public void clearPermissions(int _index) {
@@ -305,7 +308,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.DocumentInterface#clearProperties(int)
      */
     public void clearProperties(int _index) {

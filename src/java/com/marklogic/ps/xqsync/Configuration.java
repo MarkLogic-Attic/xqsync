@@ -126,6 +126,11 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String REPAIR_INPUT_XML_DEFAULT = "false";
 
+    public static final String SESSION_READER_CLASS_KEY = "SESSION_READER_CLASS";
+
+    public static final String SESSION_READER_CLASS_DEFAULT = SessionReader.class
+            .getCanonicalName();
+
     public static final String SKIP_EXISTING_KEY = "SKIP_EXISTING";
 
     public static final String THREADS_KEY = "THREADS";
@@ -148,7 +153,7 @@ public class Configuration extends AbstractConfiguration {
 
     protected String[] placeKeys = null;
 
-    protected Connection outputConnection = null;
+    protected Connection[] outputConnection = null;
 
     protected String outputPath;
 
@@ -171,6 +176,8 @@ public class Configuration extends AbstractConfiguration {
     protected String[] outputFormatFilters;
 
     protected BigInteger timestamp;
+
+    private int outputConnectionCount = 0;
 
     /*
      * (non-Javadoc)
@@ -343,9 +350,12 @@ public class Configuration extends AbstractConfiguration {
 
         outputPackagePath = properties.getProperty(OUTPUT_PACKAGE_KEY);
 
-        if (null == outputPackagePath) {
+        if (null != outputPackagePath) {
+            logger.info("output to package: " + outputPackagePath);
+        } else {
+
             outputPath = properties.getProperty(OUTPUT_PATH_KEY);
-            if (outputPath != null) {
+            if (null != outputPath) {
                 logger.info("output to path: " + outputPath);
                 // not a zip file
                 File outputFile = new File(outputPath);
@@ -364,13 +374,16 @@ public class Configuration extends AbstractConfiguration {
                             "unsupported connection string: "
                                     + outputConnectionString);
                 }
-                logger.info("output to connection: "
-                        + outputConnectionString);
-                URI outputUri = new URI(outputConnectionString);
-                outputConnection = new Connection(outputUri);
+                String[] outputConnectionStrings = outputConnectionString
+                        .split(CSV_SCSV_SSV_REGEX);
+                outputConnection = new Connection[outputConnectionStrings.length];
+                for (int i = 0; i < outputConnection.length; i++) {
+                    logger.info("output to connection: "
+                            + outputConnectionStrings[i]);
+                    outputConnection[i] = new Connection(new URI(
+                            outputConnectionStrings[i]));
+                }
             }
-        } else {
-            logger.info("output to package: " + outputPackagePath);
         }
     }
 
@@ -441,19 +454,14 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return
      */
-    public URI getOutputConnectionUri() {
-        return outputConnection.getUri();
-    }
-
-    /**
-     * @return
-     */
     public com.marklogic.ps.Session newOutputSession() {
         if (null == outputConnection) {
             return null;
         }
+        // support round-robin across multiple outputs
         synchronized (outputConnection) {
-            return (Session) outputConnection.newSession();
+            int x = (outputConnectionCount++ % outputConnection.length);
+            return (Session) outputConnection[x].newSession();
         }
     }
 
@@ -734,6 +742,13 @@ public class Configuration extends AbstractConfiguration {
      */
     public boolean isOutputConnection() {
         return null != outputConnection;
+    }
+
+    /**
+     * @return
+     */
+    public String getSessionReaderClassName() {
+        return properties.getProperty(SESSION_READER_CLASS_KEY);
     }
 
 }

@@ -36,7 +36,7 @@ import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- * 
+ *
  */
 public class InputPackage {
 
@@ -190,7 +190,7 @@ public class InputPackage {
     }
 
     /**
-     * 
+     *
      */
     public void addReference() {
         // TODO does this need to be synchronized? mutex?
@@ -199,7 +199,7 @@ public class InputPackage {
     }
 
     /**
-     * 
+     *
      */
     public void closeReference() {
 

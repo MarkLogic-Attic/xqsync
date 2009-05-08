@@ -46,7 +46,7 @@ public class SessionReader extends AbstractReader {
 
     protected boolean copyQuality;
 
-    private int size = 1;
+    protected int size = 1;
 
     /**
      * @param _configuration
@@ -257,7 +257,7 @@ public class SessionReader extends AbstractReader {
         return _resultIndex;
     }
 
-    private void cleanup(Session session, ResultSequence rs) {
+    protected void cleanup(Session session, ResultSequence rs) {
         if (null != rs && !rs.isClosed()) {
             rs.close();
         }

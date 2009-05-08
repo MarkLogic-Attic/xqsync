@@ -30,7 +30,7 @@ import com.marklogic.ps.timing.Timer;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class Monitor extends Thread {
 
@@ -94,7 +94,7 @@ public class Monitor extends Thread {
     }
 
     /**
-     * 
+     *
      */
     public void halt(Throwable t) {
         logger.logException("halting", t);
@@ -105,7 +105,7 @@ public class Monitor extends Thread {
     /**
      * @throws ExecutionException
      * @throws InterruptedException
-     * 
+     *
      */
     protected void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
@@ -200,9 +200,10 @@ public class Monitor extends Thread {
     }
 
     /**
-     * 
+     *
      */
     public void incrementTaskCount() {
+        //logger.info("incrementing " + taskCount);
         taskCount++;
     }
 
@@ -210,13 +211,15 @@ public class Monitor extends Thread {
      * @param _increment
      */
     public void incrementTaskCount(long _increment) {
+        //logger.info("incrementing " + taskCount + " by " + _increment);
         taskCount += _increment;
     }
 
     /**
      * @param _count
      */
-    public void setTaskCount(long _count) {
+    public synchronized void setTaskCount(long _count) {
+        logger.fine("setting " + _count);
         taskCount = _count;
     }
 }

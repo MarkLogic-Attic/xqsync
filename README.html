@@ -97,7 +97,10 @@ using <code>-Xmx</code>.
 </tr>
 <tr>
   <td>COPY_PROPERTIES</td><td>true</td>
-  <td>If true, document properties are copied.</td>
+  <td>If true, document properties are copied.
+    When targeting an output connection that has CPF enabled,
+    it is a good idea to disable this setting.
+  </td>
 </tr>
 <tr>
   <td>COPY_QUALITY</td><td>true</td>
@@ -110,6 +113,18 @@ using <code>-Xmx</code>.
     If true, all exceptions are fatal.
     If false, exceptions will still be logged,
     but in most cases XQSync will proceed.
+  </td>
+</tr>
+
+<tr>
+  <td>INPUT_BATCH_SIZE</td>
+  <td>1</td>
+  <td>
+    Process documents in batches of N documents.
+    When exporting many small documents from an input database,
+    increasing this setting can improve performance.
+    Note that the right setting will vary according to document size:
+    if the batch size is too large, poor performance or errors may result.
   </td>
 </tr>
 <tr>
@@ -358,6 +373,17 @@ lc(doc($URI))
   <td>REPAIR_INPUT_XML</td><td>false</td>
   <td>Should MarkLogic Server try to repair malformed input XML?</td>
 </tr>
+
+<tr>
+  <td>SESSION_READER_CLASS</td>
+  <td>com.marklogic.ps.xqsync.SessionReader</td>
+  <td>Class to be used for new session reader instances.
+    This is an experimental feature, allowing plug-in of
+    any subclass of the default SessionReader class.
+    A sample subclass is provided as
+    <code>com.marklogic.ps.tests.SessionReaderTest</code>.
+  </td>
+</tr>
 <tr>
   <td>SKIP_EXISTING</td><td>false</td>
   <td>If true, documents that already exist in OUTPUT_CONNECTION
@@ -367,6 +393,7 @@ lc(doc($URI))
     then all documents will be overwritten.
   </td>
 </tr>
+
 <tr>
   <td>THREADS</td><td>1</td>
   <td>Number of worker threads to spawn.</td>
