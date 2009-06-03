@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,17 +37,17 @@ import com.thoughtworks.xstream.io.xml.DomDriver;
  */
 public class XQSyncDocumentMetadata implements MetadataInterface {
 
-    private DocumentFormat format = null;
+    static XStream xstream = new XStream(new DomDriver());
+
+    DocumentFormat format = DocumentFormat.XML;
 
     List<String> collectionsList = new Vector<String>();
 
     List<ContentPermission> permissionsList = new Vector<ContentPermission>();
 
-    private int quality = 0;
+    int quality = 0;
 
-    private String properties = null;
-
-    private static XStream xstream = new XStream(new DomDriver());
+    String properties = null;
 
     /**
      * @param reader

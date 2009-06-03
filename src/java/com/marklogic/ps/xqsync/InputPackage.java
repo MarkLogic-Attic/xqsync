@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *
+ * 
  */
 public class InputPackage {
 
@@ -57,6 +57,8 @@ public class InputPackage {
 
     protected volatile int references = 0;
 
+    private boolean allowEmptyMetadata;
+
     /**
      * @param _path
      * @param _config
@@ -69,6 +71,8 @@ public class InputPackage {
         packagePath = inputFile.getCanonicalPath();
         configuration = _config;
         logger = configuration.getLogger();
+
+        allowEmptyMetadata = configuration.isAllowEmptyMetadata();
     }
 
     /**
@@ -85,8 +89,13 @@ public class InputPackage {
      */
     public XQSyncDocumentMetadata getMetadataEntry(String _path)
             throws IOException {
+        InputStream entryStream = getEntryStream(XQSyncDocument
+                .getMetadataPath(_path));
+        if (allowEmptyMetadata && null == entryStream) {
+            return new XQSyncDocumentMetadata();
+        }
         return XQSyncDocumentMetadata.fromXML(new InputStreamReader(
-                getEntryStream(XQSyncDocument.getMetadataPath(_path))));
+                entryStream));
     }
 
     /**
@@ -95,7 +104,7 @@ public class InputPackage {
      */
     private InputStream getEntryStream(String _path) throws IOException {
         ZipEntry entry = inputZip.getEntry(_path);
-        if (entry != null) {
+        if (null != entry) {
             return inputZip.getInputStream(entry);
         }
 
@@ -112,6 +121,11 @@ public class InputPackage {
                 // loop until the path matches, or we hit the end
             }
             return zis;
+        }
+
+        if (allowEmptyMetadata
+                && _path.endsWith(XQSyncDocument.METADATA_EXT)) {
+            return null;
         }
 
         // otherwise there's no hope: something went very wrong
@@ -194,7 +208,7 @@ public class InputPackage {
      */
     public void addReference() {
         // TODO does this need to be synchronized? mutex?
-        //logger.info(inputZip.getName() + " (" + references + ")");
+        // logger.info(inputZip.getName() + " (" + references + ")");
         references++;
     }
 
@@ -204,7 +218,7 @@ public class InputPackage {
     public void closeReference() {
 
         // TODO does this need to be synchronized? mutex?
-        //logger.info(inputZip.getName() + " (" + references + ")");
+        // logger.info(inputZip.getName() + " (" + references + ")");
         references--;
 
         if (0 > references) {
