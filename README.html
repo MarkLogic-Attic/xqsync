@@ -144,6 +144,10 @@ using <code>-Xmx</code>.
     XQSync uses <code>cts:uris()</code>.
     If the document URI lexicon is not available,
     it will fall back to a slower technique.
+    <br/>
+    If the connection string uses the <code>xccs://</code> scheme,
+    XQSync will attempt to use SSL for server communications.
+    This requires MarkLogic Server 4.1 or later.
   </td>
 </tr>
 <tr>
@@ -318,7 +322,13 @@ lc(doc($URI))
 <tr>
   <td>OUTPUT_CONNECTION_STRING</td>
   <td>null</td>
-  <td>Documents will be written to this XCC connection.</td>
+  <td>
+    Documents will be written to this XCC connection.
+    <br/>
+    If the connection string uses the <code>xccs://</code> scheme,
+    XQSync will attempt to use SSL for server communications.
+    This requires MarkLogic Server 4.1 or later.
+  </td>
 </tr>
 <tr>
   <td>OUTPUT_DELETE_COLLECTION</td>

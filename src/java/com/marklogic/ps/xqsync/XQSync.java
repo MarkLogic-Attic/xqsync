@@ -20,27 +20,24 @@ package com.marklogic.ps.xqsync;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Properties;
 
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.Version;
-import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- *
+ * 
  */
 public class XQSync {
 
-    public static String VERSION = "2009-06-03.1";
+    public static String VERSION = "2009-06-19.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("
             + System.getProperty("java.runtime.name") + ")";
 
-    public static void main(String[] args) throws IOException,
-            XccException, URISyntaxException, SyncException {
+    public static void main(String[] args) throws Exception {
 
         // make sure the environment is healthy
         String encoding = System.getProperty("file.encoding");

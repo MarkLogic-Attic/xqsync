@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007-2008 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2007-2009 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ package com.marklogic.ps.tests;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 
 import junit.framework.TestCase;
@@ -49,7 +51,8 @@ import com.marklogic.xcc.exceptions.XccException;
 public class DocumentTest extends TestCase {
 
     public void testEscaping() throws SyncException, XccException,
-            IOException, URISyntaxException {
+            IOException, URISyntaxException, KeyManagementException,
+            NoSuchAlgorithmException {
         String testString = "http://foo.com/bar baz/";
         String expected = testString;
         Configuration config = new Configuration();
@@ -69,7 +72,8 @@ public class DocumentTest extends TestCase {
     }
 
     public void testPermissions() throws URISyntaxException,
-            XccException, SyncException, IOException {
+            XccException, SyncException, IOException,
+            KeyManagementException, NoSuchAlgorithmException {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
         props.setProperty(SimpleLogger.LOG_HANDLER, "CONSOLE");
@@ -105,8 +109,8 @@ public class DocumentTest extends TestCase {
         config.setProperties(props);
         SessionReader reader = new SessionReader(config);
         FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(new String[] { documentUri }, reader,
-                writer, config);
+        XQSyncDocument doc = new XQSyncDocument(
+                new String[] { documentUri }, reader, writer, config);
         doc.read();
         String retrievedXml = new String(doc.getContent(0));
 

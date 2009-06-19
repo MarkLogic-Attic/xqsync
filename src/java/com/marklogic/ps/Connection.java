@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,19 @@
 package com.marklogic.ps;
 
 import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.logging.Logger;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import com.marklogic.xcc.ContentSource;
 import com.marklogic.xcc.ContentSourceFactory;
+import com.marklogic.xcc.SecurityOptions;
 import com.marklogic.xcc.Session;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XccConfigException;
@@ -40,19 +49,40 @@ public class Connection implements ContentSource {
 
     protected volatile int count = 0;
 
+    private Object securityOptionsMutex = new Object();
+
+    protected static SecurityOptions securityOptions = null;
+
     /**
      * @param _uri
      * @throws XccException
+     * @throws NoSuchAlgorithmException
+     * @throws KeyManagementException
      */
-    public Connection(URI _uri) throws XccException {
+    public Connection(URI _uri) throws XccException,
+            KeyManagementException, NoSuchAlgorithmException {
         init(new URI[] { _uri });
+    }
+
+    /**
+     * @param _uri
+     * @throws XccException
+     * @throws NoSuchAlgorithmException
+     * @throws KeyManagementException
+     */
+    public Connection(URI[] _uris) throws XccException,
+            KeyManagementException, NoSuchAlgorithmException {
+        init(_uris);
     }
 
     /**
      * @param _uris
      * @throws XccConfigException
+     * @throws NoSuchAlgorithmException
+     * @throws KeyManagementException
      */
-    private void init(URI[] _uris) throws XccConfigException {
+    private void init(URI[] _uris) throws XccConfigException,
+            KeyManagementException, NoSuchAlgorithmException {
         if (null == _uris || 1 > _uris.length) {
             throw new NullPointerException("must supply uris");
         }
@@ -65,16 +95,31 @@ public class Connection implements ContentSource {
                         "bad URI: cannot parse host from " + _uris[i]);
             }
             uri[i] = _uris[i];
-            cs[i] = ContentSourceFactory.newContentSource(uri[i]);
+            // support SSL
+            boolean ssl = uri[i].getScheme().equals("xccs");
+            cs[i] = ssl ? ContentSourceFactory.newContentSource(uri[i],
+                    getSecurityOptions()) : ContentSourceFactory
+                    .newContentSource(uri[i]);
         }
     }
 
     /**
-     * @param _uri
-     * @throws XccException
+     * @return
+     * @throws NoSuchAlgorithmException
+     * @throws KeyManagementException
      */
-    public Connection(URI[] _uris) throws XccException {
-        init(_uris);
+    private SecurityOptions getSecurityOptions()
+            throws KeyManagementException, NoSuchAlgorithmException {
+        if (null != securityOptions) {
+            return securityOptions;
+        }
+        synchronized (securityOptionsMutex) {
+            if (null != securityOptions) {
+                return securityOptions;
+            }
+            securityOptions = newTrustAnyoneOptions();
+            return securityOptions;
+        }
     }
 
     /**
@@ -154,6 +199,35 @@ public class Connection implements ContentSource {
      */
     public void setDefaultLogger(Logger logger) {
         getContentSource().setDefaultLogger(logger);
+    }
+
+    protected static SecurityOptions newTrustAnyoneOptions()
+            throws KeyManagementException, NoSuchAlgorithmException {
+        TrustManager[] trust = new TrustManager[] { new X509TrustManager() {
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+
+            /**
+             * @throws CertificateException
+             */
+            public void checkClientTrusted(X509Certificate[] certs,
+                    String authType) throws CertificateException {
+                // no exception means it's okay
+            }
+
+            /**
+             * @throws CertificateException
+             */
+            public void checkServerTrusted(X509Certificate[] certs,
+                    String authType) throws CertificateException {
+                // no exception means it's okay
+            }
+        } };
+
+        SSLContext sslContext = SSLContext.getInstance("SSLv3");
+        sslContext.init(null, trust, null);
+        return new SecurityOptions(sslContext);
     }
 
 }

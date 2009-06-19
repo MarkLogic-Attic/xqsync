@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.Vector;
@@ -145,6 +147,8 @@ public class Configuration extends AbstractConfiguration {
 
     protected static final String XCC_PREFIX = "xcc://";
 
+    protected static final String XCCS_PREFIX = "xccs://";
+
     protected static final String XCC_PREFIX_OLD = "xdbc://";
 
     /* fields */
@@ -188,7 +192,8 @@ public class Configuration extends AbstractConfiguration {
      */
     public synchronized void setProperties(Properties _properties)
             throws XccException, IOException, URISyntaxException,
-            SyncException {
+            SyncException, KeyManagementException,
+            NoSuchAlgorithmException {
         properties = _properties;
 
         // we need a logger as soon as possible: keep this first
@@ -260,10 +265,13 @@ public class Configuration extends AbstractConfiguration {
      * @throws IOException
      * @throws URISyntaxException
      * @throws SyncException
+     * @throws NoSuchAlgorithmException
+     * @throws KeyManagementException
      * 
      */
     private void configure() throws XccException, IOException,
-            URISyntaxException, SyncException {
+            URISyntaxException, SyncException, KeyManagementException,
+            NoSuchAlgorithmException {
         // cold configuration
         if (!firstConfiguration) {
             return;
@@ -307,7 +315,8 @@ public class Configuration extends AbstractConfiguration {
     }
 
     private void configureInput() throws IOException, URISyntaxException,
-            XccException, SyncException {
+            XccException, SyncException, KeyManagementException,
+            NoSuchAlgorithmException {
         inputPackagePath = properties.getProperty(INPUT_PACKAGE_KEY);
 
         if (null != inputPackagePath) {
@@ -325,8 +334,7 @@ public class Configuration extends AbstractConfiguration {
                 throw new IOException("missing required property: "
                         + INPUT_CONNECTION_STRING_KEY);
             }
-            if (!(inputConnectionString.startsWith(XCC_PREFIX) || inputConnectionString
-                    .startsWith(XCC_PREFIX_OLD))) {
+            if (!(isValidConnectionString(inputConnectionString))) {
                 throw new SyncException("unsupported connection string: "
                         + inputConnectionString);
             }
@@ -346,7 +354,8 @@ public class Configuration extends AbstractConfiguration {
     }
 
     private void configureOutput() throws IOException,
-            URISyntaxException, XccException {
+            URISyntaxException, XccException, KeyManagementException,
+            NoSuchAlgorithmException {
 
         outputPackagePath = properties.getProperty(OUTPUT_PACKAGE_KEY);
 
@@ -368,8 +377,7 @@ public class Configuration extends AbstractConfiguration {
                     throw new IOException("missing required property: "
                             + OUTPUT_CONNECTION_STRING_KEY);
                 }
-                if (!(outputConnectionString.startsWith(XCC_PREFIX) || outputConnectionString
-                        .startsWith(XCC_PREFIX_OLD))) {
+                if (!(isValidConnectionString(outputConnectionString))) {
                     throw new UnimplementedFeatureException(
                             "unsupported connection string: "
                                     + outputConnectionString);
@@ -385,6 +393,16 @@ public class Configuration extends AbstractConfiguration {
                 }
             }
         }
+    }
+
+    /**
+     * @param _connectionString
+     * @return
+     */
+    protected boolean isValidConnectionString(String _connectionString) {
+        return _connectionString.startsWith(XCC_PREFIX)
+                || _connectionString.startsWith(XCCS_PREFIX)
+                || _connectionString.startsWith(XCC_PREFIX_OLD);
     }
 
     /**
