@@ -30,7 +30,7 @@ import com.marklogic.ps.timing.Timer;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- *
+ * 
  */
 public class Monitor extends Thread {
 
@@ -105,7 +105,7 @@ public class Monitor extends Thread {
     /**
      * @throws ExecutionException
      * @throws InterruptedException
-     *
+     * 
      */
     protected void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
@@ -121,7 +121,7 @@ public class Monitor extends Thread {
         timer = new Timer();
 
         // run until all futures have been checked
-        while (running && !pool.isTerminated()) {
+        do {
             // try to avoid thread starvation
             yield();
 
@@ -181,8 +181,10 @@ public class Monitor extends Thread {
                 }
 
             } while (null != future);
-
-        }
+            
+            logger.finer("running = " + running + ", terminated = "
+                    + pool.isTerminated());
+        } while (running && !pool.isTerminated());
     }
 
     /**
@@ -203,7 +205,7 @@ public class Monitor extends Thread {
      *
      */
     public void incrementTaskCount() {
-        //logger.info("incrementing " + taskCount);
+        // logger.info("incrementing " + taskCount);
         taskCount++;
     }
 
@@ -211,7 +213,7 @@ public class Monitor extends Thread {
      * @param _increment
      */
     public void incrementTaskCount(long _increment) {
-        //logger.info("incrementing " + taskCount + " by " + _increment);
+        // logger.info("incrementing " + taskCount + " by " + _increment);
         taskCount += _increment;
     }
 
