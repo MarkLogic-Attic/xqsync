@@ -187,13 +187,14 @@ public class XQSyncManager {
             }
 
             // no more tasks to queue - now we just wait
-            uriQueue.shutdown();
             logger.info("queued " + itemsQueued + " items");
+            uriQueue.shutdown();
 
+            logger.fine("queue size " + uriQueue.getQueueSize());
             while (uriQueue.getQueueSize() > 0) {
                 Thread.sleep(125);
             }
-
+            
             monitor.setTaskCount(itemsQueued);
 
             /*
@@ -241,6 +242,10 @@ public class XQSyncManager {
         uriQueue = new UriQueue(configuration, _completionService, _pool,
                 _factory, _monitor, new LinkedBlockingQueue<String>());
         uriQueue.start();
+        // do not proceed until the uriQueue is running - fixes race
+        while (!uriQueue.isActive()) {
+            Thread.yield();
+        }
     }
 
     /**

@@ -77,10 +77,10 @@ public class UriQueue extends Thread {
      * @see java.lang.Thread#run()
      */
     public void run() {
-        SimpleLogger logger = configuration.getLogger();
-        long count = 0;
-
         active = true;
+        long count = 0;
+        SimpleLogger logger = configuration.getLogger();
+
         String[] buffer = new String[configuration.getInputBatchSize()];
         int bufferIndex = 0;
 
@@ -103,7 +103,7 @@ public class UriQueue extends Thread {
                     }
                 }
                 if (null == uri) {
-                    logger.fine(this + " uri null, active " + active);
+                    logger.finer(this + " uri null, active " + active);
                     if (!active) {
                         // queue is empty
                         break;
@@ -146,13 +146,12 @@ public class UriQueue extends Thread {
         logger.fine("finished queuing " + count + " uris");
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
         // ignore multiple calls
-        if (!active) {
-            return;
+        if (active) {
+            logger.info("closing queue " + this);
         }
         // graceful shutdown, draining the queue
-        logger.info("closing queue " + this);
         active = false;
     }
 
@@ -201,6 +200,13 @@ public class UriQueue extends Thread {
      */
     public int getQueueSize() {
         return queue.size();
+    }
+
+    /**
+     * @return
+     */
+    public boolean isActive() {
+        return active;
     }
 
 }
