@@ -88,11 +88,19 @@ public class CallableSync implements Callable<TimedEvent[]> {
             }
             return te;
         } catch (SyncException e) {
+            // we want to know which URI was at fault
+            logger.warning("error in sync of " + inputUris.length + ": "
+                    + inputUris[0]);
             if (reader instanceof PackageReader) {
                 logger.warning("error in input package "
                         + ((PackageReader) reader).getPath());
             }
             throw e;
+        } catch (Throwable t) {
+            // we want to know which URI was at fault
+            logger.warning("error in sync of " + inputUris.length + ": "
+                    + inputUris[0]);
+            throw new FatalException(t);
         } finally {
             if (null != reader) {
                 reader.close();
