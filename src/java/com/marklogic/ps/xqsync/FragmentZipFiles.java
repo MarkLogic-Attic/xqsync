@@ -40,14 +40,6 @@ import com.marklogic.ps.Utilities;
  * 
  */
 public class FragmentZipFiles {
-    // number of entries overflows at 2^16 = 65536
-    // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
-    // (supposed to be fixed, but isn't)
-    private static final int MAX_ENTRIES = 65536 - 1;
-
-    // we use a lower limit, to allow for extra metadata crossovers
-    private static final int MAX_ENTRIES_SOFT = MAX_ENTRIES - 3;
-
     private static SimpleLogger logger = SimpleLogger.getSimpleLogger();
 
     class FragmentTask implements Runnable {
@@ -100,8 +92,10 @@ public class FragmentZipFiles {
             ZipEntry srcEntry, dstEntry;
             ZipOutputStream output = null;
             long entries = 0;
+            long size, compressedSize;
             String lastEntryName = null;
             String thisEntryName;
+            long bytes;
 
             // iterate over all available entries,
             // copying to the current archive file.
@@ -113,7 +107,8 @@ public class FragmentZipFiles {
                 entries++;
 
                 logger.finer("output " + output + ", entries=" + entries);
-                if (null == output || entries >= MAX_ENTRIES_SOFT) {
+                if (null == output
+                        || entries >= OutputPackage.MAX_ENTRIES) {
                     logger.fine("new output needed");
                     // ensure that we keep metadata and content together
                     if (areRelated(lastEntryName, thisEntryName)) {
@@ -138,14 +133,19 @@ public class FragmentZipFiles {
                 lastEntryName = thisEntryName;
 
                 // duplicate the entry
+                size = srcEntry.getSize();
+                compressedSize = srcEntry.getCompressedSize();
                 logger.finer("duplicating entry " + thisEntryName
-                        + " in " + path);
+                        + " in " + path + ": " + size + "; "
+                        + compressedSize);
                 // we must force recalc of the compressed size
                 dstEntry = new ZipEntry(srcEntry);
                 dstEntry.setCompressedSize(-1);
                 output.putNextEntry(dstEntry);
-                if (! srcEntry.isDirectory() && srcEntry.getCompressedSize() > 0) {
-                    Utilities.copy(zis, output);
+                if (!srcEntry.isDirectory()) {
+                    bytes = Utilities.copy(zis, output);
+                    logger.finer("copied " + thisEntryName + ": " + bytes
+                            + " Bytes");
                 }
                 output.closeEntry();
                 output.flush();

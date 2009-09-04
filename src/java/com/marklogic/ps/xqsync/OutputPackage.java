@@ -72,7 +72,8 @@ public class OutputPackage {
     // number of entries overflows at 2^16 = 65536
     // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
     // (supposed to be fixed, but isn't)
-    private static final int MAX_ENTRIES = 65536 - 1;
+    // subtract 2, to allow for metadata entries
+    static final int MAX_ENTRIES = 65536 - 2;
 
     public static String EXTENSION = ".zip";
 

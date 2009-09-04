@@ -82,12 +82,14 @@ public class TaskFactory {
 
         // allow alternative subclass for SessionReader
         try {
+            String sessionReaderClassName = configuration
+                    .getSessionReaderClassName();
             Class<? extends SessionReader> cls = Class.forName(
-                    configuration.getSessionReaderClassName())
-                    .asSubclass(SessionReader.class);
+                    sessionReaderClassName).asSubclass(
+                    SessionReader.class);
             sessionReaderConstructor = cls
                     .getConstructor(new Class[] { Configuration.class });
-            logger.info("session reader = " + cls.getCanonicalName());
+            logger.fine("session reader = " + cls.getCanonicalName());
         } catch (NoSuchMethodException e) {
             throw new SyncException(e);
         } catch (ClassNotFoundException e) {

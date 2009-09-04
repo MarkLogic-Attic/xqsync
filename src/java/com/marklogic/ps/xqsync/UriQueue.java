@@ -149,7 +149,7 @@ public class UriQueue extends Thread {
     public synchronized void shutdown() {
         // ignore multiple calls
         if (active) {
-            logger.info("closing queue " + this);
+            logger.fine("closing queue " + this);
         }
         // graceful shutdown, draining the queue
         active = false;

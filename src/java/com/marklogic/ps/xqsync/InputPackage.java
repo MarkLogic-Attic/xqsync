@@ -146,8 +146,14 @@ public class InputPackage {
      * @return
      */
     public List<String> list() throws IOException {
+        if (null == inputZip) {
+            throw new NullPointerException("no input zip file");
+        }
         int size = inputZip.size();
         logger.fine("expecting " + size + " entries");
+        if (0 == size) {
+            logger.warning("0 entries found in " + packagePath);
+        }
 
         ZipEntry entry;
         long entries = 0;

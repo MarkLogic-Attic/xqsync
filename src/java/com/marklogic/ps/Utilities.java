@@ -96,7 +96,7 @@ public class Utilities {
         long totalBytes = 0;
         int len = 0;
         byte[] buf = new byte[BUFFER_SIZE];
-        int available = _in.available();
+        //int available = _in.available();
         // System.err.println("DEBUG: " + _in + ": available " + available);
         while ((len = _in.read(buf, 0, BUFFER_SIZE)) > -1) {
             _out.write(buf, 0, len);
@@ -107,11 +107,6 @@ public class Utilities {
         // System.err.println("DEBUG: " + _in + ": last read " + len);
 
         // caller MUST close the stream for us
-
-        // check to see if we copied enough data
-        if (available > totalBytes)
-            throw new IOException("expected at least " + available
-                    + " Bytes, copied only " + totalBytes);
 
         return totalBytes;
     }
