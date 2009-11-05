@@ -54,7 +54,7 @@ public class PackageReader extends FilePathReader {
 
         for (int i = 0; i < _uris.length; i++) {
             uri = _uris[i];
-            
+
             if (uri == null) {
                 continue;
             }
@@ -85,5 +85,4 @@ public class PackageReader extends FilePathReader {
         pkg.closeReference();
         super.close();
     }
-
 }

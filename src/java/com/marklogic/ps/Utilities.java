@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2008 Mark Logic Corporation
+ * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import java.util.List;
 
 /**
  * @author mike.blakeley@marklogic.com
- *
+ * 
  */
 public class Utilities {
 
@@ -96,7 +96,7 @@ public class Utilities {
         long totalBytes = 0;
         int len = 0;
         byte[] buf = new byte[BUFFER_SIZE];
-        //int available = _in.available();
+        // int available = _in.available();
         // System.err.println("DEBUG: " + _in + ": available " + available);
         while ((len = _in.read(buf, 0, BUFFER_SIZE)) > -1) {
             _out.write(buf, 0, len);

@@ -57,7 +57,9 @@ public class InputPackage {
 
     protected volatile int references = 0;
 
-    private boolean allowEmptyMetadata;
+    protected boolean allowEmptyMetadata;
+
+    protected Object referenceMutex = new Object();
 
     /**
      * @param _path
@@ -185,8 +187,14 @@ public class InputPackage {
     }
 
     private int addEntry(ZipEntry entry, HashSet<String> documentList) {
-        // ignore directories
-        if (entry.isDirectory()) {
+        // do *not* simply ignore directories
+        // javadoc says: "defined to be one whose name ends with a '/'"
+        // but that's a lousy test here - "/" is a legal document uri
+        // instead, skip only if zero-length (even that may be too much)
+        if (entry.isDirectory() && entry.getSize() == 0) {
+            // really there shouldn't be anything like this in a package
+            logger.warning("skipping zero-length directory "
+                    + entry.getName());
             return 0;
         }
 
@@ -213,38 +221,49 @@ public class InputPackage {
      *
      */
     public void addReference() {
-        // TODO does this need to be synchronized? mutex?
-        // logger.info(inputZip.getName() + " (" + references + ")");
-        references++;
+        synchronized (referenceMutex) {
+            // logger.info(inputZip.getName() + " (" + references + ")");
+            references++;
+        }
     }
 
     /**
      *
      */
     public void closeReference() {
+        synchronized (referenceMutex) {
+            // if (references < 2) {
+            // logger.info(inputZip.getName() + " (" + references + ")");
+            // Thread.dumpStack();
+            // }
+            references--;
 
-        // TODO does this need to be synchronized? mutex?
-        // logger.info(inputZip.getName() + " (" + references + ")");
-        references--;
+            if (0 > references) {
+                throw new FatalException("bad reference count for "
+                        + inputZip.getName() + " : " + references);
+            }
 
-        if (0 > references) {
-            throw new FatalException("bad reference count for "
-                    + inputZip.getName() + " : " + references);
+            if (0 != references) {
+                return;
+            }
+
+            // free the resources for the input zip package
+            logger.info("closing " + inputZip.getName() + " ("
+                    + references + ")");
+            try {
+                inputZip.close();
+            } catch (IOException e) {
+                // should not happen - log it and proceed
+                logger.logException(inputZip.getName(), e);
+            }
         }
+    }
 
-        if (0 != references) {
-            return;
-        }
-
-        // free the resources for the input zip package
-        logger.info("closing " + inputZip.getName() + " (" + references
-                + ")");
-        try {
-            inputZip.close();
-        } catch (IOException e) {
-            // should not happen - log it and proceed
-            logger.logException(inputZip.getName(), e);
-        }
+    /**
+     * @return
+     */
+    public int size() {
+        return inputZip.size();
     }
 
 }

@@ -31,10 +31,12 @@
         <fileset dir="${java.library.user}">
             <include name="xcc.jar"/>
             <include name="xstream-1.1.2.jar"/>
+            <include name="xpp3.jar"/>
         </fileset>
         <fileset dir="${java.library.system}">
             <include name="xcc.jar"/>
             <include name="xstream-1.1.2.jar"/>
+            <include name="xpp3.jar"/>
         </fileset>
         <pathelement path="${build.dir}"/>
     </path>

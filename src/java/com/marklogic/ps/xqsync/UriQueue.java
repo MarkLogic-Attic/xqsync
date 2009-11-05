@@ -124,15 +124,14 @@ public class UriQueue extends Thread {
                     bufferIndex = 0;
                 }
                 count++;
-                monitor.incrementTaskCount();
             }
 
             // handle any buffered uris
             logger.fine("cleaning up " + bufferIndex);
             if (bufferIndex > 0) {
+                // make sure we don't queue anything twice
                 for (int i = bufferIndex; i < buffer.length; i++) {
                     buffer[i] = null;
-                    monitor.incrementTaskCount();
                 }
                 completionService.submit(factory.newTask(buffer));
             }
@@ -172,6 +171,7 @@ public class UriQueue extends Thread {
      */
     public void add(String _uri) {
         queue.add(_uri);
+        monitor.incrementTaskCount();
     }
 
     /**

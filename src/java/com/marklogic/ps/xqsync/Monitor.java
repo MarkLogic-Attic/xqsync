@@ -50,9 +50,11 @@ public class Monitor extends Thread {
 
     protected boolean fatalErrors = Configuration.FATAL_ERRORS_DEFAULT_BOOLEAN;
 
-    protected volatile Timer timer;
+    protected Timer timer;
 
-    protected volatile long taskCount = 0;
+    protected long taskCount = 0;
+
+    protected boolean taskCountFinal = false;
 
     /**
      * @param _logger
@@ -181,7 +183,7 @@ public class Monitor extends Thread {
                 }
 
             } while (null != future);
-            
+
             logger.finer("running = " + running + ", terminated = "
                     + pool.isTerminated());
         } while (running && !pool.isTerminated());
@@ -206,22 +208,27 @@ public class Monitor extends Thread {
      */
     public void incrementTaskCount() {
         // logger.info("incrementing " + taskCount);
+        if (taskCountFinal) {
+            // get the stack trace to track this down
+            logger.logException("BUG!", new SyncException(
+                    "increment to final task count"));
+            return;
+        }
         taskCount++;
-    }
-
-    /**
-     * @param _increment
-     */
-    public void incrementTaskCount(long _increment) {
-        // logger.info("incrementing " + taskCount + " by " + _increment);
-        taskCount += _increment;
     }
 
     /**
      * @param _count
      */
     public synchronized void setTaskCount(long _count) {
+        if (taskCountFinal) {
+            // get the stack trace to track this down
+            logger.logException("BUG!", new SyncException(
+                    "setter on final task count " + _count));
+            return;
+        }
         logger.fine("setting " + _count);
         taskCount = _count;
+        taskCountFinal = true;
     }
 }

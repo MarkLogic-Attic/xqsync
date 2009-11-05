@@ -29,7 +29,6 @@ import com.marklogic.xcc.DocumentFormat;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.types.XSInteger;
 import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.xml.DomDriver;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
@@ -37,7 +36,7 @@ import com.thoughtworks.xstream.io.xml.DomDriver;
  */
 public class XQSyncDocumentMetadata implements MetadataInterface {
 
-    static XStream xstream = new XStream(new DomDriver());
+    static XStream xstream = new XStream();
 
     DocumentFormat format = DocumentFormat.XML;
 

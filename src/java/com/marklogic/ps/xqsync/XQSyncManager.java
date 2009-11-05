@@ -187,6 +187,7 @@ public class XQSyncManager {
             }
 
             // no more tasks to queue - now we just wait
+            monitor.setTaskCount(itemsQueued);
             logger.info("queued " + itemsQueued + " items");
             uriQueue.shutdown();
 
@@ -194,8 +195,8 @@ public class XQSyncManager {
             while (uriQueue.getQueueSize() > 0) {
                 Thread.sleep(125);
             }
-            
-            monitor.setTaskCount(itemsQueued);
+
+            //monitor.setTaskCount(itemsQueued);
 
             /*
              * shut down the pool after queuing is complete and task count has
@@ -297,7 +298,7 @@ public class XQSyncManager {
     private long queueFromInputPackage(File _path) throws IOException,
             SyncException {
         // list contents of package
-        logger.info("listing package " + _path);
+        logger.fine("listing package " + _path);
 
         // allow up to two active uriQueues
         while (null != lastUriQueue && 0 != lastUriQueue.getQueueSize()) {
@@ -312,6 +313,8 @@ public class XQSyncManager {
                 .getCanonicalPath(), configuration);
         // ensure that the package won't close while queuing
         inputPackage.addReference();
+        logger.info("listing package " + _path + " ("
+                + inputPackage.size() + ")");
 
         // create a new factory and queue for each input package
         // shutdown may be called multiple times - that is ok
@@ -340,6 +343,7 @@ public class XQSyncManager {
         // clean up so that the package can be closed
         uriQueue.shutdown();
         inputPackage.closeReference();
+        logger.info("queued " + count + " from " + _path);
         return count;
     }
 
