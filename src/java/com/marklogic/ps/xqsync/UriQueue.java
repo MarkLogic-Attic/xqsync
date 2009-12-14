@@ -122,6 +122,7 @@ public class UriQueue extends Thread {
                     completionService.submit(factory.newTask(buffer));
                     buffer = new String[buffer.length];
                     bufferIndex = 0;
+                    yield();
                 }
                 count++;
             }
@@ -134,6 +135,7 @@ public class UriQueue extends Thread {
                     buffer[i] = null;
                 }
                 completionService.submit(factory.newTask(buffer));
+                yield();
             }
 
         } catch (SyncException e) {
@@ -172,6 +174,7 @@ public class UriQueue extends Thread {
     public void add(String _uri) {
         queue.add(_uri);
         monitor.incrementTaskCount();
+        yield();
     }
 
     /**

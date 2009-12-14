@@ -194,9 +194,8 @@ public class XQSyncManager {
             logger.fine("queue size " + uriQueue.getQueueSize());
             while (uriQueue.getQueueSize() > 0) {
                 Thread.sleep(125);
+                Thread.yield();
             }
-
-            //monitor.setTaskCount(itemsQueued);
 
             /*
              * shut down the pool after queuing is complete and task count has
@@ -207,6 +206,7 @@ public class XQSyncManager {
 
             while (null != monitor && monitor.isAlive()) {
                 try {
+                    Thread.yield();
                     monitor.join();
                 } catch (InterruptedException e) {
                     logger.logException("interrupted", e);
@@ -257,10 +257,11 @@ public class XQSyncManager {
      */
     private long queueFromInputPackage(String _path) throws IOException,
             SyncException {
+        logger.info(_path);
         File file = new File(_path);
 
         if (file.isFile()) {
-            return queueFromInputPackage(file);
+            return queueFromInputPackageFile(file);
         }
 
         if (!file.isDirectory()) {
@@ -273,8 +274,8 @@ public class XQSyncManager {
         final String extension = Configuration.getPackageFileExtension();
         FileFilter filter = new FileFilter() {
             public boolean accept(File pathname) {
-                return (pathname.isFile() && pathname.getName().endsWith(
-                        extension));
+                return (pathname.isDirectory() || (pathname.isFile() && pathname
+                        .getName().endsWith(extension)));
             }
         };
 
@@ -295,8 +296,8 @@ public class XQSyncManager {
      * @throws IOException
      * @throws SyncException
      */
-    private long queueFromInputPackage(File _path) throws IOException,
-            SyncException {
+    private long queueFromInputPackageFile(File _path)
+            throws IOException, SyncException {
         // list contents of package
         logger.fine("listing package " + _path);
 
