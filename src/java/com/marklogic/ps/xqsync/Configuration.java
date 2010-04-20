@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2009 Mark Logic Corporation
+ * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,6 +140,12 @@ public class Configuration extends AbstractConfiguration {
     public static final String THREADS_DEFAULT = "1";
 
     public static final String URI_PREFIX_KEY = "URI_PREFIX";
+
+    public static final String URI_SUFFIX_KEY = "URI_SUFFIX";
+
+    public static final String URI_PREFIX_STRIP_KEY = "URI_PREFIX_STRIP";
+
+    public static final String URI_SUFFIX_STRIP_KEY = "URI_SUFFIX_STRIP";
 
     /* internal constants */
 
@@ -767,6 +773,27 @@ public class Configuration extends AbstractConfiguration {
      */
     public String getSessionReaderClassName() {
         return properties.getProperty(SESSION_READER_CLASS_KEY);
+    }
+
+    /**
+     * @return
+     */
+    public String getUriPrefixStrip() {
+        return properties.getProperty(URI_PREFIX_STRIP_KEY);
+    }
+
+    /**
+     * @return
+     */
+    public String getUriSuffixStrip() {
+        return properties.getProperty(URI_SUFFIX_STRIP_KEY);
+    }
+
+    /**
+     * @return
+     */
+    public String getUriSuffix() {
+        return properties.getProperty(URI_SUFFIX_KEY);
     }
 
 }

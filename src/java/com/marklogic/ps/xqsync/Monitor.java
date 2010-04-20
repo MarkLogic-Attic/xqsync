@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2006-2009 Mark Logic Corporation
+ * Copyright (c)2006-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,8 @@ public class Monitor extends Thread {
     protected long taskCount = 0;
 
     protected boolean taskCountFinal = false;
+
+    protected Object taskCountMutex = new Object();
 
     /**
      * @param _logger
@@ -217,18 +219,28 @@ public class Monitor extends Thread {
         taskCount++;
     }
 
+    public long getTaskCount() {
+        return taskCount;
+    }
+
     /**
      * @param _count
      */
-    public synchronized void setTaskCount(long _count) {
-        if (taskCountFinal) {
-            // get the stack trace to track this down
-            logger.logException("BUG!", new SyncException(
-                    "setter on final task count " + _count));
-            return;
+    public void setFinalTaskCount(long _count) {
+        synchronized (taskCountMutex) {
+            if (taskCountFinal) {
+                // get the stack trace to track this down
+                throw new FatalException("BUG!", new SyncException(
+                        "setter on final task count " + _count));
+            }
+            if (_count != taskCount) {
+                // get the stack trace to track this down
+                throw new FatalException("BUG!", new SyncException(
+                        "setter on final task count " + _count + " != "
+                                + taskCount));
+            }
+            logger.fine("setting " + _count);
+            taskCountFinal = true;
         }
-        logger.fine("setting " + _count);
-        taskCount = _count;
-        taskCountFinal = true;
     }
 }

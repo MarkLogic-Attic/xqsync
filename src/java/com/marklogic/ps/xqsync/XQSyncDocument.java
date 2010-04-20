@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2009 Mark Logic Corporation
+ * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import com.marklogic.ps.Utilities;
  */
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- *
+ * 
  */
 public class XQSyncDocument implements DocumentInterface {
 
@@ -91,7 +91,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int, byte[])
      */
     public void setContent(int _index, byte[] _bytes) {
@@ -100,7 +100,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see
      * com.marklogic.ps.xqsync.DocumentInterface#setMetadata(java.io.Reader)
      */
@@ -110,7 +110,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#newMetadata()
      */
     public MetadataInterface newMetadata() {
@@ -119,7 +119,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#sync()
      */
     public int sync() throws SyncException {
@@ -132,32 +132,36 @@ public class XQSyncDocument implements DocumentInterface {
      * @throws SyncException
      */
     private int write() throws SyncException {
+        String uri = null;
         int len = 0;
         for (int i = 0; i < outputUris.length; i++) {
             if (null == inputUris[i]) {
                 continue;
             }
+            uri = outputUris[i];
             if (null == contentBytes[i]) {
                 throw new NullPointerException("null content bytes at "
-                        + i);
+                        + i + " (" + uri + "(");
             }
             if (null == metadata[i]) {
-                throw new NullPointerException("null metadata at " + i);
+                throw new NullPointerException("null metadata at " + i
+                        + " (" + uri + "(");
             }
+
             // check for and strip BOM
             if (contentBytes[i].length > 2 && !metadata[i].isBinary()
                     && (byte) 0xEF == contentBytes[i][0]
                     && (byte) 0xBB == contentBytes[i][1]
                     && (byte) 0xBF == contentBytes[i][2]) {
-                logger.finer("stripping BOM from " + outputUris[i]);
+                logger.finer("stripping BOM from " + uri);
                 byte[] copy = new byte[contentBytes[i].length - 3];
                 System
                         .arraycopy(contentBytes[i], 3, copy, 0,
                                 copy.length);
                 contentBytes[i] = copy;
             }
-            len += writer.write(outputUris[i], contentBytes[i],
-                    metadata[i]);
+
+            len += writer.write(uri, contentBytes[i], metadata[i]);
         }
         return len;
     }
@@ -216,7 +220,10 @@ public class XQSyncDocument implements DocumentInterface {
     }
 
     private void composeOutputUris(boolean _isEscaped) {
-        String outputPathPrefix = configuration.getUriPrefix();
+        String uriPrefix = configuration.getUriPrefix();
+        String uriSuffix = configuration.getUriSuffix();
+        String prefixStrip = configuration.getUriPrefixStrip();
+        String suffixStrip = configuration.getUriSuffixStrip();
         String uri;
         outputUris = new String[inputUris.length];
         for (int i = 0; i < inputUris.length; i++) {
@@ -224,15 +231,24 @@ public class XQSyncDocument implements DocumentInterface {
             if (null == uri) {
                 continue;
             }
-            if (null != outputPathPrefix && !outputPathPrefix.equals("")
-                    && !outputPathPrefix.endsWith("/")
-                    && !uri.startsWith("/")) {
-                outputPathPrefix += "/";
+
+            // strip prefix and suffix as needed
+            if (null != prefixStrip && uri.startsWith(prefixStrip)) {
+                uri = uri.substring(prefixStrip.length() - 1);
+            }
+            if (null != suffixStrip && uri.endsWith(suffixStrip)) {
+                uri = uri.substring(0, uri.length()
+                        - suffixStrip.length() - 1);
             }
 
-            String outputUri = (null == outputPathPrefix ? ""
-                    : outputPathPrefix)
-                    + uri;
+            // add extra prefix and suffix as needed
+            if (null != uriPrefix && !uriPrefix.equals("")
+                    && !uriPrefix.endsWith("/") && !uri.startsWith("/")) {
+                uriPrefix += "/";
+            }
+            String outputUri = (null == uriPrefix ? "" : uriPrefix) + uri
+                    + (null == uriSuffix ? "" : uriSuffix);
+
             // TODO optionally escape outputUri
             // note that some constructors will need to un-escape the inputUri
             if (_isEscaped) {
@@ -243,6 +259,7 @@ public class XQSyncDocument implements DocumentInterface {
                 // outputUri = URLEncoder.encode(outputUri, ENCODING);
                 throw new FatalException("UNIMPLEMENTED");
             }
+
             logger.finer("copying " + uri + " to " + outputUri);
             outputUris[i] = outputUri;
         }
@@ -250,7 +267,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#setMetadata(int,
      * com.marklogic.ps.xqsync.MetadataInterface)
      */
@@ -260,7 +277,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int,
      * java.io.InputStream)
      */
@@ -275,7 +292,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#setContent(int,
      * java.io.Reader)
      */
@@ -290,7 +307,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#getOutputUri()
      */
     public String getOutputUri(int _index) {
@@ -299,7 +316,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#clearPermissions(int)
      */
     public void clearPermissions(int _index) {
@@ -308,7 +325,7 @@ public class XQSyncDocument implements DocumentInterface {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.marklogic.ps.xqsync.DocumentInterface#clearProperties(int)
      */
     public void clearProperties(int _index) {

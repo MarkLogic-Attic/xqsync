@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2009 Mark Logic Corporation
+ * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -187,31 +187,47 @@ public class XQSyncManager {
             }
 
             // no more tasks to queue - now we just wait
-            monitor.setTaskCount(itemsQueued);
-            logger.info("queued " + itemsQueued + " items");
-            uriQueue.shutdown();
-
-            logger.fine("queue size " + uriQueue.getQueueSize());
-            while (uriQueue.getQueueSize() > 0) {
+            while (monitor.getTaskCount() != itemsQueued) {
                 Thread.sleep(125);
                 Thread.yield();
+                if (monitor.getTaskCount() > itemsQueued) {
+                    throw new FatalException("task count mismatch: "
+                            + itemsQueued + " < "
+                            + monitor.getTaskCount());
+                }
             }
+            monitor.setFinalTaskCount(itemsQueued);
+            logger.info("final queue count " + itemsQueued);
+            uriQueue.shutdown();
+
+            logger.fine("queue is shutdown with queue size "
+                    + uriQueue.getQueueSize());
+            // give the queue a chance before testing it
+            do {
+                Thread.sleep(125);
+                Thread.yield();
+            } while (uriQueue.getQueueSize() > 0);
 
             /*
              * shut down the pool after queuing is complete and task count has
              * been set, not before then - to avoid races.
              */
-            logger.fine("pool ready to shutdown");
+            logger.fine("pool ready to shutdown, queue size "
+                    + uriQueue.getQueueSize());
             pool.shutdown();
 
-            while (null != monitor && monitor.isAlive()) {
+            do {
+                logger.finest("waiting for monitor " + monitor + " "
+                        + (null != monitor) + " " + monitor.isAlive());
                 try {
                     Thread.yield();
                     monitor.join();
                 } catch (InterruptedException e) {
                     logger.logException("interrupted", e);
                 }
-            }
+                logger.finest("waiting for monitor " + monitor + " "
+                        + (null != monitor) + " " + monitor.isAlive());
+            } while (null != monitor && monitor.isAlive());
 
             factory.close();
             factory = null;

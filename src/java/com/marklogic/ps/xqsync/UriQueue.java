@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2009 Mark Logic Corporation
+ * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import com.marklogic.ps.timing.TimedEvent;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- *
+ * 
  */
 public class UriQueue extends Thread {
 
@@ -49,6 +49,8 @@ public class UriQueue extends Thread {
     protected SimpleLogger logger;
 
     protected Monitor monitor;
+
+    private Object mutex = new Object();
 
     /**
      * @param _configuration
@@ -73,7 +75,7 @@ public class UriQueue extends Thread {
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see java.lang.Thread#run()
      */
     public void run() {
@@ -172,8 +174,11 @@ public class UriQueue extends Thread {
      * @param _uri
      */
     public void add(String _uri) {
-        queue.add(_uri);
-        monitor.incrementTaskCount();
+        yield();
+        synchronized (mutex) {
+            queue.add(_uri);
+            monitor.incrementTaskCount();
+        }
         yield();
     }
 
