@@ -1,0 +1,439 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!--
+/*
+ * Copyright (c)2005-2010 Mark Logic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * The use of the Apache License does not indicate that this project is
+ * affiliated with the Apache Software Foundation.
+ */
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>XQSync README</title>
+<style type="text/css">
+tr {
+  vertical-align: top;
+}
+</style>
+</head>
+<body>
+<h1>XQSync</h1>
+
+<p>
+To get started using XQSync, try the
+<a href="http://developer.marklogic.com/howto/tutorials/2006-08-xqsync.xqy">tutorial</a>.
+</p>
+
+<h2>Running XQSync</h2>
+<p>The entry point is the main method in the
+ com.marklogic.ps.xqsync.XQSync class.
+It takes zero or more property files as its arguments.
+Any specified system properties will override file-based properties,
+and properties found in later files may override properties
+specified in earlier files on the command line.
+See src/xqsync.sh for a sample shell script.
+</p>
+
+<p>
+<b>Note:</b>
+XQSync needs a lot of heap space for large synchronization tasks.
+Be prepared to increase the Java VM heap space limit,
+using <code>-Xmx</code>.
+</p>
+
+<h2>Required libraries:</h2>
+<ul>
+  <li>MarkLogic <a href="http://developer.marklogic.com/">XCC</a></li>
+  <li>Codehaus <a href="http://xstream.codehaus.org/">XStream</a></li>
+  <li><a href="http://www.extreme.indiana.edu/xgws/xsoap/xpp/">XPP3</a>
+  XML Pull-Parser
+  (here's a link to the
+  <a href="http://www.extreme.indiana.edu/dist/java-repository/xpp3/jars/">jar
+  files</a> - be sure to use xpp3-1.1.4c.jar or later)
+  </li>
+</ul>
+
+<h2>Required properties:</h2>
+<ul>
+<li>
+  one of:
+  <code>INPUT_PACKAGE</code>,
+  <code>INPUT_CONNECTION_STRING</code>
+  </li>
+<li>
+  one of:
+  <code>OUTPUT_PACKAGE</code>,
+  <code>OUTPUT_CONNECTION_STRING</code>
+  </li>
+</ul>
+
+<h2>Available properties:</h2>
+<table border="1" summary="properties">
+<tr><th>Property</th><th>default value</th><th>notes</th></tr>
+<tr>
+  <td>ALLOW_EMPTY_METADATA</td>
+  <td>false</td>
+  <td>
+    If true, missing metadata files
+    in <code>INPUT_PACKAGE</code> will be ignored.
+  </td>
+</tr>
+
+<tr>
+  <td>COPY_COLLECTIONS</td><td>true</td>
+  <td>If true, all document collections are copied.</td>
+</tr>
+<tr>
+  <td>COPY_PERMISSIONS</td><td>true</td>
+  <td>If true, all document permissions are copied.</td>
+</tr>
+<tr>
+  <td>COPY_PROPERTIES</td><td>true</td>
+  <td>If true, document properties are copied.
+    When targeting an output connection that has CPF enabled,
+    it is a good idea to disable this setting.
+  </td>
+</tr>
+<tr>
+  <td>COPY_QUALITY</td><td>true</td>
+  <td>If true, document quality is copied.</td>
+</tr>
+
+<tr>
+  <td>FATAL_ERRORS</td><td>true</td>
+  <td>
+    If true, all exceptions are fatal.
+    If false, exceptions will still be logged,
+    but in most cases XQSync will proceed.
+  </td>
+</tr>
+
+<tr>
+  <td>INPUT_BATCH_SIZE</td>
+  <td>1</td>
+  <td>
+    Process documents in batches of N documents.
+    When exporting many small documents from an input database,
+    increasing this setting can improve performance.
+    Note that the right setting will vary according to document size:
+    if the batch size is too large, poor performance or errors may result.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_CONNECTION_STRING</td>
+  <td>null</td>
+  <td>
+    Input documents will come from this XCC connection.
+    By default, every document in the input database will be transferred.
+    To change this behavior, use one of the related properties:
+    <ul>
+      <li><code>INPUT_COLLECTION_URI</code></li>
+      <li><code>INPUT_DIRECTORY_URI</code></li>
+      <li><code>INPUT_DOCUMENT_URIS</code></li>
+      <li><code>INPUT_QUERY</code></li>
+    </ul>
+    NB - to list all input documents, or to list a collection or a directory,
+    XQSync uses <code>cts:uris()</code>.
+    If the document URI lexicon is not available,
+    it will fall back to a slower technique.
+    <br/>
+    If the connection string uses the <code>xccs://</code> scheme,
+    XQSync will attempt to use SSL for server communications.
+    This requires MarkLogic Server 4.1 or later.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_COLLECTION_URI</td>
+  <td>null</td>
+  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
+  all documents in the named collection(s) will be transferred.
+  If whitespace is present, <code>INPUT_COLLECTION_URI</code>
+  will be treated as a whitespace-delimited sequence;
+  e.g., <code>INPUT_COLLECTION_URI=a b</code> would transfer all documents
+  in either collection <code>a</code> or collection <code>b</code>.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_DIRECTORY_URI</td>
+  <td>null</td>
+  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
+  all documents in the named directory will be transferred.
+  If whitespace is present, <code>INPUT_DIRECTORY_URI</code>
+  will be treated as a whitespace-delimited sequence;
+  e.g., <code>INPUT_DIRECTORY_URI=a/ b/</code> would transfer all documents
+  whose URIs begin with <code>a/</code> or <code>b/</code>.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_DOCUMENT_URIS</td>
+  <td>null</td>
+  <td>In combination with <code>INPUT_CONNECTION_STRING</code>,
+  all documents named by the (whitespace-delimited) uris will be transferred.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_MODULE_URI</td>
+  <td>null</td>
+  <td>
+    <p>In combination with <code>INPUT_CONNECTION_STRING</code>,
+    the named module will be used to process each document
+    as it is read from the input database.
+    The module must define a module variable
+    <code>$URI as xs:string external</code>.
+    If null, no module will be used.
+    </p>
+    <p>Here is a simple example module, which recursively transforms
+      the input document to lower-case all element names.
+    </p>
+    <pre>
+xquery version "0.9-ml"
+
+define variable $URI as xs:string external
+
+define function lc($list as node()*)
+ as node()*
+{
+  for $n in $list
+  return typeswitch($n)
+  case document-node() return document { lc($n/node()) }
+  case element() return element {
+    expanded-QName(namespace-uri($n), lower-case(local-name($n)))
+  } {
+    $n/@*, lc($n/node())
+  }
+  default return $n
+}
+
+lc(doc($URI))
+      </pre>
+  </td>
+</tr>
+<tr>
+  <td>INPUT_PACKAGE</td>
+  <td>null</td>
+  <td>Input documents will come from this zip file path.
+    If the path is a directory, any "*.zip" children will be used.
+  </td>
+</tr>
+<!--
+<tr>
+  <td>INPUT_PATH</td>
+  <td>null</td>
+  <td>Input documents will come from this filesystem path.</td>
+</tr>
+-->
+<tr>
+  <td>INPUT_QUERY</td>
+  <td>null</td>
+  <td>
+    <p>In combination with <code>INPUT_CONNECTION_STRING</code>,
+    all uris returned by the query will be transferred.
+    This sample query would transfer the first 100 documents,
+    in document order:
+    <br/>
+    <code>for $i in doc()[1 to 100] return xdmp:node-uri($i)</code>
+    <br/>
+    If the document URI lexicon is enabled, this could be written as:
+    <br/>
+    <code>cts:uris('', 'document')[1 to 100]</code>
+    <br/>
+    to transfer the first 100 documents, sorted by document URI.
+    </p>
+    <p>If the query contains any repeated semicolons (";;"),
+      it will be split into multiple queries and run separately.
+      This permits faster start-up with complex queries.
+    </p>
+  </td>
+</tr>
+<tr>
+  <td>INPUT_QUERY_CACHABLE</td>
+  <td>false</td>
+  <td>
+    In combination with <code>INPUT_CONNECTION_STRING</code>,
+    the query which fetches the input document URIs
+    will instruct XCC to cache or to stream the URIs.
+    If set to <code>true</code>,
+    no documents will sync until all URIs have been fetched.
+    This is usually undesirable, so <code>false</code> is the default.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_QUERY_BUFFER_BYTES</td>
+  <td>0</td>
+  <td>
+    In combination with <code>INPUT_CONNECTION_STRING</code>,
+    the query which fetches the input document URIs
+    will use this buffer size.
+    The value 0 will cause XCC to use its default size.
+  </td>
+</tr>
+<tr>
+  <td>INPUT_START_POSITION</td>
+  <td>null</td>
+  <td>Use the numeric value of this property as the starting position
+  for the sequence of input documents.</td>
+</tr>
+<tr>
+  <td>INPUT_TIMESTAMP</td>
+  <td>null</td>
+  <td>
+    If not null, and <code>INPUT_CONNECTION_STRING</code> is set,
+    then all input queries will use this timestamp.
+    The special value <code>#AUTO</code>
+    will cause the first request timestamp
+    to be used for the entire synchronization.
+  </td>
+</tr>
+
+<tr>
+  <td>INPUT_RESULT_BUFFER_SIZE</td>
+  <td>0</td>
+  <td>
+    In combination with <code>INPUT_CONNECTION_STRING</code>,
+    the query which fetches each input document and its metadata
+    will use this buffer size.
+    The value 0 will cause XCC to use its default size.
+  </td>
+</tr>
+
+<tr>
+  <td>LOG_LEVEL</td><td>INFO</td>
+  <td>java.util.logger.Level at which to log.</td>
+</tr>
+<tr>
+  <td>LOG_HANDLER</td><td>CONSOLE,FILE</td>
+  <td>java.util.logger log handlers with which to log.</td>
+</tr>
+<tr>
+  <td>OUTPUT_COLLECTIONS</td>
+  <td>null</td>
+  <td>Output documents will be added to one or more collection URIs.
+    Collection URIs may be delimited by whitespace, commas, or colons.
+  </td>
+</tr>
+<tr>
+  <td>OUTPUT_CONNECTION_STRING</td>
+  <td>null</td>
+  <td>
+    Documents will be written to this XCC connection.
+    <br/>
+    If the connection string uses the <code>xccs://</code> scheme,
+    XQSync will attempt to use SSL for server communications.
+    This requires MarkLogic Server 4.1 or later.
+  </td>
+</tr>
+<tr>
+  <td>OUTPUT_DELETE_COLLECTION</td>
+  <td>null</td>
+  <td>In combination with INPUT_COLLECTION_URI and OUTPUT_CONNECTION_STRING,
+  delete the INPUT_COLLECTION_URI on the OUTPUT_CONNECTION_STRING,
+  before beginning synchronization.</td>
+</tr>
+<tr>
+  <td>OUTPUT_FILTER_FORMATS</td><td>null</td>
+  <td>The specified list of document types will not be copied to output.
+    <br/>Example: <code>OUTPUT_FILTER_FORMATS=binary()</code>
+    <br/>Example: <code>OUTPUT_FILTER_FORMATS=text(),xml</code>
+  </td>
+</tr>
+<tr>
+  <td>OUTPUT_FORESTS</td><td>null</td><td>Permitted output forest names.</td>
+</tr>
+<!--
+<tr>
+  <td>OUTPUT_PATH</td>
+  <td>null</td>
+  <td>Output documents will be written to this filesystem path.</td>
+</tr>
+-->
+<tr>
+  <td>OUTPUT_PACKAGE</td>
+  <td>null</td>
+  <td>Output documents will be written to this zip file path.</td>
+</tr>
+<tr>
+  <td>QUEUE_SIZE</td>
+  <td>100,000</td>
+  <td>
+    Maximum size of the synchronization queue,
+    to limit memory consumption by XQSync.
+    You may wish to use a smaller value,
+    if you encounter OutOfMemoryError.
+    You may wish to use a larger value,
+    if using many threads and loading very small documents.
+    If you use a large value,
+    you may also need something like <code>-Xmx4096m</code>
+    to increase the Java heap size.
+    Plan for roughly 1-GB per 1-M queue entries (ie, 1-kB per entry).
+  </td>
+</tr>
+<tr>
+  <td>READ_PERMISSION_ROLES</td><td>null</td>
+  <td>Names of any roles to attach to output documents.</td>
+</tr>
+<tr>
+  <td>REPAIR_INPUT_XML</td><td>false</td>
+  <td>Should MarkLogic Server try to repair malformed input XML?</td>
+</tr>
+
+<tr>
+  <td>SESSION_READER_CLASS</td>
+  <td>com.marklogic.ps.xqsync.SessionReader</td>
+  <td>Class to be used for new session reader instances.
+    This is an experimental feature, allowing plug-in of
+    any subclass of the default SessionReader class.
+    A sample subclass is provided as
+    <code>com.marklogic.ps.tests.SessionReaderTest</code>.
+  </td>
+</tr>
+<tr>
+  <td>SKIP_EXISTING</td><td>false</td>
+  <td>If true, documents that already exist in OUTPUT_CONNECTION
+    are not overwritten. This only affects operations when
+    OUTPUT_CONNECTION is defined. If false,
+    or if targeting an OUTPUT_PACKAGE<!-- or an OUTPUT_PATH -->,
+    then all documents will be overwritten.
+  </td>
+</tr>
+
+<tr>
+  <td>THREADS</td><td>1</td>
+  <td>Number of worker threads to spawn.</td>
+</tr>
+
+<tr>
+  <td>URI_PREFIX</td><td>null</td>
+  <td>String to prepend to all output uris.</td>
+</tr>
+<tr>
+  <td>URI_PREFIX_STRIP</td><td>null</td>
+  <td>String to strip from the beginning of all output uris,
+    when present in those uris.</td>
+</tr>
+<tr>
+  <td>URI_SUFFIX</td><td>null</td>
+  <td>String to append to all output uris.</td>
+</tr>
+<tr>
+  <td>URI_SUFFIX_STRIP</td><td>null</td>
+  <td>String to strip from the end of all output uris,
+    when present in those uris.</td>
+</tr>
+
+</table>
+</body>
+</html>
