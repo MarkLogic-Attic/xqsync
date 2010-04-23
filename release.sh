@@ -1,7 +1,6 @@
 #!/bin/sh
 #
 
-set -x
 set -e
 
 BASE=`dirname $0`
