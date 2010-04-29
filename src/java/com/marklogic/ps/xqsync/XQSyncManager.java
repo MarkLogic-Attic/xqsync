@@ -275,6 +275,16 @@ public class XQSyncManager {
             SyncException {
         logger.info(_path);
         File file = new File(_path);
+        
+        if (!file.exists()) {
+            throw new IOException("missing expected input package path: "
+                    + _path);
+        }
+
+        if (!file.canRead()) {
+            throw new IOException("cannot read from input package path: "
+                    + _path);
+        }
 
         if (file.isFile()) {
             return queueFromInputPackageFile(file);
