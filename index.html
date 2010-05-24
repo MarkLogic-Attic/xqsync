@@ -389,6 +389,12 @@ lc(doc($URI))
   <td>Names of any roles to attach to output documents.</td>
 </tr>
 <tr>
+  <td>REPAIR_MULTIPLE_DOCUMENTS_PER_URI</td><td>false</td>
+  <td>Normally not necessary, this property will cause XQSync
+    to generate XQuery that prevents <code>doc()</code>
+    from returning multiple documents per URI.</td>
+</tr>
+<tr>
   <td>REPAIR_INPUT_XML</td><td>false</td>
   <td>Should MarkLogic Server try to repair malformed input XML?</td>
 </tr>
