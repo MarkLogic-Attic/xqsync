@@ -128,6 +128,10 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String REPAIR_INPUT_XML_DEFAULT = "false";
 
+    public static final String REPAIR_MULTIPLE_DOCUMENTS_PER_URI_DEFAULT = "false";
+
+    public static final String REPAIR_MULTIPLE_DOCUMENTS_PER_URI_KEY = "REPAIR_MULTIPLE_DOCUMENTS_PER_URI";
+
     public static final String SESSION_READER_CLASS_KEY = "SESSION_READER_CLASS";
 
     public static final String SESSION_READER_CLASS_DEFAULT = SessionReader.class
@@ -449,6 +453,14 @@ public class Configuration extends AbstractConfiguration {
     public boolean isFatalErrors() {
         return Utilities.stringToBoolean(properties
                 .getProperty(FATAL_ERRORS_KEY));
+    }
+
+    /**
+     * @return
+     */
+    public boolean isRepairMultipleDocumentsPerUri() {
+        return Utilities.stringToBoolean(properties
+                .getProperty(REPAIR_MULTIPLE_DOCUMENTS_PER_URI_KEY));
     }
 
     /**

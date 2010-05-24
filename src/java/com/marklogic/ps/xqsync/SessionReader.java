@@ -1,5 +1,20 @@
 /**
- * Copyright (c) 2008-2009 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * The use of the Apache License does not indicate that this project is
+ * affiliated with the Apache Software Foundation.
  */
 package com.marklogic.ps.xqsync;
 
@@ -353,26 +368,32 @@ public class SessionReader extends AbstractReader {
         // but our callers need the role-name! this gets ugly...
         // must wrap the list of permissions so we can pass it...
         //
-        // normally I'd put this code in a module,
+        // normally I would put this code in a module,
         // but I want this program to be self-contained
         query = Session.XQUERY_VERSION_0_9_ML;
 
         // prolog - some variables are per-input
         query += "define variable $MODULE-URI as xs:string external\n";
 
+        // we should not normally have to guard against multiple docs per URI
+        String predicate = configuration
+                .isRepairMultipleDocumentsPerUri() ? "[1]" : "";
+
         for (int i = 0; i < size; i++) {
+            // TODO - support for naked properties?
             query += "define variable $URI-" + i
                     + " as xs:string external\n"
                     + "define variable $DOC-" + i
                     + " as document-node() {\n" + "  if ($URI-" + i
                     + " eq '') then document { () }\n"
                     + "  else if ($MODULE-URI) then xdmp:invoke(\n"
-                    + "    $MODULE-URI, (xs:QName('URI'), $URI-"
-                    + i
-                    + "))\n"
+                    + "    $MODULE-URI, (xs:QName('URI'), $URI-" + i
+                    + "))" + predicate + "\n"
                     + "  else doc($URI-"
                     + i
-                    + ")\n"
+                    + ")"
+                    + predicate
+                    + "\n"
                     + "}\n"
                     // a document may contain multiple root nodes
                     // we will prefer the element(), if present
