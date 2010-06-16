@@ -42,6 +42,10 @@ public class SessionWriter extends AbstractWriter {
 
     protected Session session;
 
+    protected static Object firstMaxTasksMutex = new Object();
+
+    protected static boolean firstMaxTasks = false;
+
     /**
      * @param _configuration
      * @throws SyncException
@@ -77,6 +81,7 @@ public class SessionWriter extends AbstractWriter {
         logger.finest("placeKeys = " + Utilities.join(placeKeys, ","));
 
         int retries = 3;
+        long sleepMillis = 125;
         // in case the server is unreliable, we try three times
         while (retries > 0) {
             try {
@@ -157,6 +162,21 @@ public class SessionWriter extends AbstractWriter {
                 // success - will not loop again
                 break;
             } catch (XQueryException e) {
+                if ("XDMP-MAXTASKS".equals(e.getCode())) {
+                    // retry, without limit
+                    if (!firstMaxTasks) {
+                        synchronized (firstMaxTasksMutex) {
+                            if (!firstMaxTasks) {
+                                firstMaxTasks = true;
+                                logger
+                                        .warning("XDMP-MAXTASKS seen - will retry"
+                                                + " (appears only once per run)");
+                            }
+                        }
+                    }
+                    sleepMillis = sleepForRetry(sleepMillis);
+                    continue;
+                }
                 throw new SyncException(e);
             } catch (XccException e) {
                 retries--;
@@ -168,10 +188,26 @@ public class SessionWriter extends AbstractWriter {
                 logger.logException(
                         "error writing document: will retry (" + retries
                                 + "): " + _outputUri, e);
-                Thread.yield();
+                sleepMillis = sleepForRetry(sleepMillis);
             }
         }
         return _contentBytes.length;
+    }
+
+    /**
+     * @param sleepMillis
+     * @return
+     */
+    private long sleepForRetry(long sleepMillis) {
+        logger.fine("sleepMillis = " + sleepMillis);
+        try {
+            Thread.sleep(sleepMillis);
+        } catch (InterruptedException e1) {
+            logger.logException(
+                    "interrupted during sleep " + sleepMillis, e1);
+        }
+        sleepMillis = 2 * sleepMillis;
+        return sleepMillis;
     }
 
     /**
