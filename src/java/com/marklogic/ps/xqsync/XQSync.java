@@ -26,12 +26,12 @@ import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.Version;
 
 /**
- * @author Michael Blakeley <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley
  * 
  */
 public class XQSync {
 
-    public static String VERSION = "2010-06-16.1";
+    public static String VERSION = "2010-06-22.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("

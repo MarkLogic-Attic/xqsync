@@ -143,6 +143,14 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String THREADS_DEFAULT = "1";
 
+    public static final String THROTTLE_EVENTS_KEY = "THROTTLE_EVENTS_PER_SECOND";
+
+    public static final String THROTTLE_EVENTS_DEFAULT = "0";
+
+    public static final String THROTTLE_BYTES_KEY = "THROTTLE_BYTES_PER_SECOND";
+
+    public static final String THROTTLE_BYTES_DEFAULT = "0";
+
     public static final String URI_PREFIX_KEY = "URI_PREFIX";
 
     public static final String URI_SUFFIX_KEY = "URI_SUFFIX";
@@ -182,6 +190,10 @@ public class Configuration extends AbstractConfiguration {
     protected String outputPackagePath;
 
     protected Long startPosition;
+
+    protected double throttledEventsPerSecond;
+
+    protected int throttledBytesPerSecond;
 
     protected String uriPrefix;
 
@@ -311,6 +323,8 @@ public class Configuration extends AbstractConfiguration {
         configureOutput();
 
         configureTimestamp(properties.getProperty(INPUT_TIMESTAMP_KEY));
+        
+        configureThrottling();
 
         // miscellaneous
         String startPositionString = properties
@@ -401,6 +415,52 @@ public class Configuration extends AbstractConfiguration {
                     outputConnection[i] = new Connection(new URI(
                             outputConnectionStrings[i]));
                 }
+            }
+        }
+    }
+
+    /**
+    *
+    */
+   void configureThrottling() {
+       throttledEventsPerSecond = Double.parseDouble(properties
+               .getProperty(THROTTLE_EVENTS_KEY));
+
+       throttledBytesPerSecond = Integer.parseInt(properties
+               .getProperty(THROTTLE_BYTES_KEY));
+   }
+
+   /**
+     * @param _timestampString
+     * @throws RequestException
+     * 
+     */
+    private void configureTimestamp(String _timestampString)
+            throws RequestException {
+        if (null != _timestampString) {
+            Session sess = newInputSession();
+            if (null == sess) {
+                logger.warning("ignoring "
+                        + Configuration.INPUT_TIMESTAMP_KEY + "="
+                        + _timestampString + " because "
+                        + Configuration.INPUT_CONNECTION_STRING_KEY
+                        + " is not set.");
+            } else if (_timestampString.startsWith("#")) {
+                // handle special values
+                if (Configuration.INPUT_TIMESTAMP_AUTO
+                        .equals(_timestampString)) {
+                    // fetch the current timestamp
+                    timestamp = sess.getCurrentServerPointInTime();
+                } else {
+                    logger.warning("ignoring unknown timestamp "
+                            + _timestampString);
+                }
+            } else {
+                timestamp = new BigInteger(_timestampString);
+            }
+
+            if (null != timestamp) {
+                logger.info("using timestamp " + timestamp);
             }
         }
     }
@@ -723,41 +783,6 @@ public class Configuration extends AbstractConfiguration {
     }
 
     /**
-     * @param _timestampString
-     * @throws RequestException
-     * 
-     */
-    private void configureTimestamp(String _timestampString)
-            throws RequestException {
-        if (null != _timestampString) {
-            Session sess = newInputSession();
-            if (null == sess) {
-                logger.warning("ignoring "
-                        + Configuration.INPUT_TIMESTAMP_KEY + "="
-                        + _timestampString + " because "
-                        + Configuration.INPUT_CONNECTION_STRING_KEY
-                        + " is not set.");
-            } else if (_timestampString.startsWith("#")) {
-                // handle special values
-                if (Configuration.INPUT_TIMESTAMP_AUTO
-                        .equals(_timestampString)) {
-                    // fetch the current timestamp
-                    timestamp = sess.getCurrentServerPointInTime();
-                } else {
-                    logger.warning("ignoring unknown timestamp "
-                            + _timestampString);
-                }
-            } else {
-                timestamp = new BigInteger(_timestampString);
-            }
-
-            if (null != timestamp) {
-                logger.info("using timestamp " + timestamp);
-            }
-        }
-    }
-
-    /**
      * @return
      */
     public int inputResultBufferSize() {
@@ -806,6 +831,27 @@ public class Configuration extends AbstractConfiguration {
      */
     public String getUriSuffix() {
         return properties.getProperty(URI_SUFFIX_KEY);
+    }
+
+    /**
+     * @return
+     */
+    public boolean isThrottled() {
+        return (throttledEventsPerSecond > 0 || throttledBytesPerSecond > 0);
+    }
+
+    /**
+     * @return
+     */
+    public int getThrottledBytesPerSecond() {
+        return throttledBytesPerSecond;
+    }
+
+    /**
+     * @return
+     */
+    public double getThrottledEventsPerSecond() {
+        return throttledEventsPerSecond;
     }
 
 }

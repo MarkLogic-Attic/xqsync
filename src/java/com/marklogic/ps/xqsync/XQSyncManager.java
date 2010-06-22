@@ -151,7 +151,7 @@ public class XQSyncManager {
 
             // to attempt to avoid starvation, run the monitor with higher
             // priority than the thread pool will have.
-            monitor = new Monitor(logger, pool, completionService,
+            monitor = new Monitor(configuration, pool, completionService,
                     configuration.isFatalErrors());
             monitor.setPriority(1 + Thread.NORM_PRIORITY);
             monitor.start();
@@ -275,7 +275,7 @@ public class XQSyncManager {
             SyncException {
         logger.info(_path);
         File file = new File(_path);
-        
+
         if (!file.exists()) {
             throw new IOException("missing expected input package path: "
                     + _path);
