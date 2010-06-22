@@ -132,13 +132,12 @@ public class Monitor extends Thread {
             // try to avoid thread starvation
             yield();
 
-            // TODO check throttle
-            checkThrottle();
-
             // check completed tasks
             // sometimes this goes so fast that we never leave the loop,
             // so progress is never displayed... so limit the number of loops.
             do {
+                checkThrottle();
+
                 try {
                     future = completionService.poll(SLEEP_MILLIS,
                             TimeUnit.MILLISECONDS);
