@@ -424,6 +424,16 @@ lc(doc($URI))
   <td>Number of worker threads to spawn.</td>
 </tr>
 
+<tr><td>THROTTLE_BYTES_PER_SECOND</td><td>0</td>
+<td>If non-zero, all threads will be throttled
+  to the given number of bytes inserted per second.</td>
+</tr>
+
+<tr><td>THROTTLE_EVENTS_PER_SECOND</td><td>0</td>
+<td>If non-zero, all threads will be throttled
+  to the given number of inserts per second.</td>
+</tr>
+
 <tr>
   <td>URI_PREFIX</td><td>null</td>
   <td>String to prepend to all output uris.</td>
