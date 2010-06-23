@@ -116,6 +116,8 @@ public class XQSyncManager {
 
     private UriQueue lastUriQueue;
 
+    private Monitor monitor;
+
     /**
      * @param _config
      */
@@ -125,8 +127,6 @@ public class XQSyncManager {
     }
 
     public void run() {
-        Monitor monitor = null;
-
         try {
             // start your engines...
             int threads = configuration.getThreadCount();
@@ -147,14 +147,14 @@ public class XQSyncManager {
             CompletionService<TimedEvent[]> completionService = new ExecutorCompletionService<TimedEvent[]>(
                     pool);
 
-            TaskFactory factory = new TaskFactory(configuration);
-
             // to attempt to avoid starvation, run the monitor with higher
             // priority than the thread pool will have.
             monitor = new Monitor(configuration, pool, completionService,
                     configuration.isFatalErrors());
             monitor.setPriority(1 + Thread.NORM_PRIORITY);
             monitor.start();
+
+            TaskFactory factory = new TaskFactory(configuration, monitor);
 
             // to support large workloads we have an unbounded lightweight
             // queue, which feeds the completion service
@@ -350,7 +350,7 @@ public class XQSyncManager {
         }
         lastUriQueue = uriQueue;
         newUriQueue(uriQueue, new PackageTaskFactory(configuration,
-                inputPackage));
+                monitor, inputPackage));
         logger
                 .fine("uriQueue = " + uriQueue + ", last = "
                         + lastUriQueue);

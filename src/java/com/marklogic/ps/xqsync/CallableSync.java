@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2009 Mark Logic Corporation
+ * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ public class CallableSync implements Callable<TimedEvent[]> {
 
     protected TaskFactory taskFactory;
 
+    protected Monitor monitor;
+
     /**
      * @param _taskFactory
      * @param _uris
@@ -41,6 +43,7 @@ public class CallableSync implements Callable<TimedEvent[]> {
     public CallableSync(TaskFactory _taskFactory, String[] _uris) {
         taskFactory = _taskFactory;
         inputUris = _uris;
+        monitor = taskFactory.getMonitor();
     }
 
     /*
@@ -50,6 +53,9 @@ public class CallableSync implements Callable<TimedEvent[]> {
      */
     public TimedEvent[] call() throws Exception {
         initialize();
+
+        // revisit - throttle before or after creating the timed event? 
+        monitor.checkThrottle();
 
         TimedEvent te[] = new TimedEvent[inputUris.length];
         for (int i = 0; i < inputUris.length; i++) {

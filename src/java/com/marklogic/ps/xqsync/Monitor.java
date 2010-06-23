@@ -136,8 +136,6 @@ public class Monitor extends Thread {
             // sometimes this goes so fast that we never leave the loop,
             // so progress is never displayed... so limit the number of loops.
             do {
-                checkThrottle();
-
                 try {
                     future = completionService.poll(SLEEP_MILLIS,
                             TimeUnit.MILLISECONDS);
@@ -252,7 +250,7 @@ public class Monitor extends Thread {
     /**
      * 
      */
-    private void checkThrottle() {
+    public void checkThrottle() {
         // optional throttling
         if (!config.isThrottled()) {
             return;

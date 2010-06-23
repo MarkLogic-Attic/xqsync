@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2009 Mark Logic Corporation
+ * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,12 +45,19 @@ public class TaskFactory {
 
     private Constructor<? extends SessionReader> sessionReaderConstructor;
 
+    protected Monitor monitor;
+
     /**
      * @param _config
+     * @param _monitor
      * @throws SyncException
      */
-    public TaskFactory(Configuration _config) throws SyncException {
+    public TaskFactory(Configuration _config, Monitor _monitor) throws SyncException {
         configuration = _config;
+        if (null == _monitor) {
+            throw new NullPointerException("monitor may not be null!");
+        }
+        monitor = _monitor;
 
         logger = configuration.getLogger();
 
@@ -174,4 +181,8 @@ public class TaskFactory {
         return writer;
     }
 
+    public Monitor getMonitor() {
+        return monitor;
+    }
+    
 }

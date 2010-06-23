@@ -26,11 +26,13 @@ public class PackageTaskFactory extends TaskFactory {
 
     /**
      * @param _config
-     * @param _inputPackage 
+     * @param _monitor
+     * @param _inputPackage
      * @throws SyncException
      */
-    public PackageTaskFactory(Configuration _config, InputPackage _inputPackage) throws SyncException {
-        super(_config);
+    public PackageTaskFactory(Configuration _config, Monitor _monitor,
+            InputPackage _inputPackage) throws SyncException {
+        super(_config, _monitor);
         inputPackage = _inputPackage;
     }
 
