@@ -439,13 +439,14 @@ public class SessionReader extends AbstractReader {
                         + "'  $p/@*, $p/node(), sec:get-role-names($p/sec:role-id)',\n"
                         + "' }'\n"
                         + ")\n"
-                        // TODO replace eval-in with eval, after 3.1 EOL
-                        // (2009-06-01)
-                        + "where exists($list)\n"
-                        + "return xdmp:eval-in(\n"
-                        + "  $query, xdmp:security-database(),\n"
-                        + "  (xs:QName('LIST'), element sec:permissions { $list })\n"
-                        + "),\n";
+                        + "where exists($list)\n" // x
+                        + "return xdmp:eval(\n" // x
+                        + "  $query,\n" // x
+                        + "  (xs:QName('LIST'),\n"
+                        + "   element sec:permissions { $list }),\n"
+                        + "  <options xmlns=\"xdmp:eval\">\n"
+                        + "    <database>{ xdmp:security-database() }</database>\n"
+                        + "  </options> ),\n";
             }
 
             // quality acts as a marker between permissions and the node

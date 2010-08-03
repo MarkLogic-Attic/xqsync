@@ -58,8 +58,6 @@ public class XQSyncManager {
      */
     private static final String ERROR_CODE_MISSING_URI_LEXICON = "XDMP-URILXCNNOTFOUND";
 
-    private static final String ERROR_CODE_UNDEFINED_FUNCTION = "XDMP-UNDFUN";
-
     /**
      * @author Michael Blakeley, michael.blakeley@marklogic.com
      * 
@@ -395,10 +393,8 @@ public class XQSyncManager {
             return queueFromInputConnection(true);
         } catch (XQueryException e) {
             // check to see if the exception was XDMP-URILXCNNOTFOUND
-            // for 3.1, check for missing cts:uris() function
             String code = e.getCode();
-            if (ERROR_CODE_MISSING_URI_LEXICON.equals(code)
-                    || ERROR_CODE_UNDEFINED_FUNCTION.equals(code)) {
+            if (ERROR_CODE_MISSING_URI_LEXICON.equals(code)) {
                 // try again, the hard way
                 logger.warning("Enable the document uri lexicon on "
                         + inputSession.getContentBaseName()
