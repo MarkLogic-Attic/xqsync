@@ -214,11 +214,9 @@ public class FragmentZipFiles {
 
     /**
      * @param args
-     * @throws UTFDataFormatException
-     * @throws InterruptedException
+     * @throws Exception
      */
-    public static void main(String[] args) throws UTFDataFormatException,
-            InterruptedException {
+    public static void main(String[] args) throws Exception {
         String encoding = System.getProperty("file.encoding");
         if (!"UTF-8".equals(encoding)) {
             throw new UTFDataFormatException("system encoding "

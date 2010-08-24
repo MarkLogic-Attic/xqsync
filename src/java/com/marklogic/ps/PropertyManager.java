@@ -93,7 +93,8 @@ public class PropertyManager extends Thread {
                 // sleep a little
                 Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException e) {
-                // big deal
+                // reset interrupt status and continue
+                Thread.interrupted();
             }
         }
     }

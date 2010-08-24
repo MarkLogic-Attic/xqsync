@@ -111,7 +111,6 @@ public class Monitor extends Thread {
 
     /**
      * @throws ExecutionException
-     * @throws InterruptedException
      * 
      */
     protected void monitor() throws ExecutionException {
@@ -167,6 +166,8 @@ public class Monitor extends Thread {
                         }
                     }
                 } catch (InterruptedException e) {
+                    // reset interrupt status and continue
+                    Thread.interrupted();
                     logger.logException("interrupted in poll() or get()",
                             e);
                     continue;
@@ -291,6 +292,8 @@ public class Monitor extends Thread {
             try {
                 Thread.sleep(sleepMillis);
             } catch (InterruptedException e) {
+                // reset interrupt status and continue
+                Thread.interrupted();
                 logger.logException("interrupted", e);
             }
         }

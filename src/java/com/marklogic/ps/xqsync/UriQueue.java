@@ -99,6 +99,8 @@ public class UriQueue extends Thread {
                 try {
                     uri = queue.poll(SLEEP_MILLIS, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
+                    // reset interrupt status and continue
+                    Thread.interrupted();
                     logger.logException("interrupted", e);
                     if (null == uri) {
                         continue;

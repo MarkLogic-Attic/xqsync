@@ -89,6 +89,8 @@ public class XQSyncManager {
                 }
                 queue.put(r);
             } catch (InterruptedException e) {
+                // reset interrupt status and continue
+                Thread.interrupted();
                 // someone is trying to interrupt us
                 throw new RejectedExecutionException(e);
             }
@@ -221,6 +223,8 @@ public class XQSyncManager {
                     Thread.yield();
                     monitor.join();
                 } catch (InterruptedException e) {
+                    // reset interrupt status and continue
+                    Thread.interrupted();
                     logger.logException("interrupted", e);
                 }
                 logger.finest("waiting for monitor " + monitor + " "
@@ -330,6 +334,8 @@ public class XQSyncManager {
             try {
                 Thread.sleep(125);
             } catch (InterruptedException e) {
+                // reset interrupt status and continue
+                Thread.interrupted();
                 logger.warning("interrupted, will continue");
             }
         }

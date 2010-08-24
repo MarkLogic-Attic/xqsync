@@ -202,12 +202,13 @@ public class SessionWriter extends AbstractWriter {
         logger.fine("sleepMillis = " + sleepMillis);
         try {
             Thread.sleep(sleepMillis);
-        } catch (InterruptedException e1) {
+        } catch (InterruptedException e) {
+            // reset interrupt status and continue
+            Thread.interrupted();
             logger.logException(
-                    "interrupted during sleep " + sleepMillis, e1);
+                    "interrupted during sleep " + sleepMillis, e);
         }
-        sleepMillis = 2 * sleepMillis;
-        return sleepMillis;
+        return 2 * sleepMillis;
     }
 
     /**
