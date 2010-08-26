@@ -1,0 +1,16 @@
+/*
+ * Copyright (C) MarkLogic Corporation. All rights reserved.
+ */
+
+.code-block {
+    border: 1px solid black;
+    background-color: #eee;
+    margin: 0.5em;
+    padding: 0.5em;
+    white-space: pre;
+    overflow: auto;
+    font-family: monospace, -moz-fixed !important;
+    font-size: 1em;
+}
+
+/* screen.css */

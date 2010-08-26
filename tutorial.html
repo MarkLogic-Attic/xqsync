@@ -1,0 +1,485 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+          "http://www.w3.org/TR/html4/loose.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!--
+/*
+ * Copyright (c)2005-2010 Mark Logic Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * The use of the Apache License does not indicate that this project is
+ * affiliated with the Apache Software Foundation.
+ */
+-->
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>XQSync Tutorial</title>
+    <meta name="description" content="tutorial for performance-meters, a simple test harness for XQuery and MarkLogic Server" />
+    <meta name="keywords" content="xquery marklogic harness performance test" />
+    <link rel="stylesheet" type="text/css"
+          href="screen.css" media="screen" />
+  </head>
+  <body class="sub_page layout2">
+    <h2>XQSync: a Wheelbarrow for Content</h2>
+    <div class="author">Michael Blakeley</div>
+    <div class="date">Last updated 2010-08-26</div>
+    <br />
+<p>
+MarkLogic Server includes built-in support for online, transactional
+backup and restore of both databases and forests.
+However, the on-disk format of these backups is platform-specific:
+a backup from Windows IA-32 can't be restored on a Solaris/SPARC server,
+nor vice versa.
+</p>
+
+<p>
+XQSync is an application-level synchronization tool
+that can copy documents and their metadata between databases.
+XQSync can also package documents and their metadata as zip archives,
+or write them directly to a filesystem.
+XQSync can synchronize an entire database, a collection, a directory,
+or the results of evaluating an XQuery expression.
+Finally, XQSync can make some simple changes along the way:
+it can add a prefix or append a suffix to every document URI,
+and it can add new read permissions to every document.
+</p>
+
+<p>
+Use XQSync when...
+</p>
+<ul>
+        <li>You want to copy a database between platforms.</li>
+        <li>You want to back up a portion of a database.</li>
+      </ul>
+
+<a name="setup"></a>
+<h3><a name="ncf02620b9616d85c"></a>Setting up XQSync</h3>
+<p>
+XQSync is a Java program, and requires a Java 1.5 environment.
+If you don't have Java 1.5,
+<a href="http://oracle.com/technetwork/java/javase/downloads/">download</a>
+and install it.
+</p>
+<p>Next, we'll need XQSync itself.
+So download <a href="xqsync.jar">xqsync.jar</a>.
+</p>
+<p>Since XQSync works by connecting to a MarkLogic Server,
+you'll need the Mark Logic XCC libraries, too.
+You can download the MarkXCC.Java zip archive
+<a href="http://developer.marklogic.com/products">here</a>.
+Be sure to download the latest XCC for Java release!
+After you download the zip archive, unpack it and find the jar files.
+You can put <code>xcc.jar</code> anywhere on your disk,
+but for this tutorial I'll assume
+that both files are in the current directory.
+</p>
+<p>Next, we'll need a Java library called XStream:
+XQSync uses XStream to serialize and deserialize XML documents as Java objects.
+You can download XStream
+<a href="http://xstream.codehaus.org/">here</a>.
+</p>
+<p>
+Finally, you'll need a copy of XPP3. You can download it from
+<a href="http://www.extreme.indiana.edu/dist/java-repository/xpp3/jars/">
+this site</a>.
+Again, be sure to get the latest version: right now, that's
+<code>xpp3-1.1.3_8.jar</code>.
+</p>
+
+<a name="running"></a>
+<h3><a name="ncf02620bc178bc05"></a>Running XQSync</h3>
+
+<p>Now that we have a Java environment and all the libraries we need,
+let's try it out with the simplest possible invocation.
+</p>
+
+<div class="code-block">
+java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
+  com.marklogic.ps.xqsync.XQSync
+</div>
+
+<p>Note that the command-line above is for Linux or Unix.
+For Windows, you'll need to use semicolons in the classpath, instead.
+Note that the rest of this tutorial will use Linux command-lines:
+if you're using Windows, just translate the classpath appropriately.
+</p>
+
+<div class="code-block">
+java -cp "xqsync.jar;xcc.jar;xstream.jar;xpp3.jar" \
+  com.marklogic.ps.xqsync.XQSync
+</div>
+
+<p>Java command lines can get pretty ugly. I'll keep using them
+for this tutorial, but you might want to put all of that into
+a shell script (or a batch file, on Windows).
+Remember, I put all my jar files in the current directory.
+You might have used another location:
+if so, just change the classpath in your command-line to match.
+</p>
+
+<p>OK, so we copied that command-line and pasted it into a shell.
+What happened?
+</p>
+
+<div class="code-block">
+java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
+  com.marklogic.ps.xqsync.XQSync
+Exception in thread "main" java.lang.NoClassDefFoundError: com/marklogic/ps/xqsync/XQSync
+</div>
+
+<p>Oh, that doesn't look good. Hmm... looks like we forgot to put
+xqsync.jar into the current directory. We'll do that,
+and try again...
+</p>
+
+<div class="code-block">
+java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
+  com.marklogic.ps.xqsync.XQSync
+added system properties
+logging to CONSOLE
+logging to file simplelogger-%u-%g.log
+Aug 25, 2006 7:30:37 AM com.marklogic.ps.SimpleLogger configureLogger
+INFO: setting up com.marklogic.ps.SimpleLogger@190d11 for: com.marklogic.ps
+Aug 25, 2006 7:30:38 AM com.marklogic.ps.xqsync.Configuration setProperties
+INFO: first-time setup
+Exception in thread "main" java.io.IOException: missing required property: INPUT_CONNECTION_STRING
+        at com.marklogic.ps.xqsync.Configuration.configureInput(Configuration.java:276)
+        at com.marklogic.ps.xqsync.Configuration.configure(Configuration.java:247)
+        at com.marklogic.ps.xqsync.Configuration.setProperties(Configuration.java:188)
+        at com.marklogic.ps.xqsync.XQSync.main(XQSync.java:52)
+</div>
+
+<p>That looks a little bit better: we see a startup message, at least.
+But what about the error? What does
+<code>missing required property: INPUT_CONNECTION_STRING</code> mean?
+</p>
+
+<p>
+<code>INPUT_CONNECTION_STRING</code>
+is the name of a property. In Java, properties are
+simply name-value pairs, such as <code>SIZE=1</code>
+or <code>PATH=/lib/java</code>.
+XQSync uses properties for almost everything,
+so let's learn how to configure those properties.
+</p>
+
+<a name="configuration"></a>
+<h3><a name="ncf02620bf43cfce6"></a>XQSync Configuration</h3>
+<p>XQSync configures itself by looking at the System properties,
+plus any property files that you supply on the command-line.
+We'll learn about property files in a minute.
+But for now, we just need to decide where our content will come from
+(that's the <code>INPUT_CONNECTION_STRING</code> property),
+and where it will end up
+(that will be the <code>OUTPUT_CONNECTION_STRING</code> property).
+Both of these properties will be XCC connection URIs:
+XQSync will use them to connect to specific MarkLogic Server instances.
+</p>
+
+<p>You can also tell XQSync to use zip archives
+ or filesystem directories as its output.
+Once you've written the contents of a MarkLogic database to
+an output package, you can then use that same package
+as the input package, restoring it to an output database.
+</p>
+
+<p>Let's look at an example:
+to keep it simple, we'll use the built-in Documents database.
+</p>
+
+<a name="documents-example"></a>
+<h3><a name="ncf02620c079f3199"></a>Example: Synchronizing the Use-Cases</h3>
+
+<p>Did you know that MarkLogic Server automatically sets up
+the W3C XQuery Use-Cases when it installs?
+If your server is running on your PC or laptop,
+visit <a href="http://localhost:8000/use-cases/">port 8000</a>
+to see what I mean.
+</p>
+
+<p>
+For convenience, here's a screenshot of the Use Cases application.
+</p>
+
+<img src="use-cases-small.png" alt="Use Cases" width="395" height="192" />
+
+<p>To prepare for this example, we'll to do a little more setup.
+</p>
+
+<ol>
+        <li>Open a web browser and visit port 8000 on your MarkLogic Server.</li>
+        <li>Click on the "Load source XML into database" link.
+After a second or two, you should see a message like
+"The source XML has been sucessfully loaded into the database."
+</li>
+      </ol>
+
+<p>You will also need an XDBC server.
+To set one up, use the MarkLogic Server admin interface,
+which runs on port 8001.
+Click on <code>Configure &lt; App Servers &lt; Create XDBC</code>,
+and fill in the following values:
+</p>
+
+<ul>
+        <li>server name: 9000-Docs</li>
+        <li>library: Docs</li>
+        <li>port: 9000</li>
+        <li>modules: (filesystem)</li>
+        <li>database: Documents</li>
+      </ul>
+
+<p>All other values may be left at the defaults.</p>
+
+<p>
+Now we are ready to run XQSync.
+For this example, we will back up the contents of Documents
+to a filesystem package (a zip archive file),
+and then restore it to the same Documents database.
+Note that we could achieve the same effect
+by using the builtin backup and restore features,
+but those features don't support cross-platform backup and restore.
+</p>
+
+<div class="code-block">
+java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
+  -DINPUT_CONNECTION_STRING=xcc://admin:admin@localhost:9000/Documents \
+  -DOUTPUT_PACKAGE=documents.zip \
+  com.marklogic.ps.xqsync.XQSync
+</div>
+
+<p>In this command-line, we simple tell XQSync where to look for the input
+(<code>INPUT_CONNECTION_STRING</code>),
+and where to place the content it finds
+(<code>OUTPUT_PACKAGE</code>).
+When I ran that command-line, here is the output that I saw.
+</p>
+
+<div class="code-block">
+added system properties
+logging to CONSOLE
+logging to file simplelogger-%u-%g.log
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.SimpleLogger configureLogger
+INFO: setting up com.marklogic.ps.SimpleLogger@190d11 for: com.marklogic.ps
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.Configuration setProperties
+INFO: first-time setup
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.Configuration configureInput
+INFO: input from connection: xcc://admin:admin@localhost:9000/Documents
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.Configuration configureOutput
+INFO: output to package: documents.zip
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.XQSync main
+INFO: XQSync starting: version = 2006-08-29.1
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.XQSync main
+INFO: default encoding is UTF-8
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.XQSync main
+INFO: default encoding is now UTF-8
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.XQSyncManager run
+INFO: starting pool of 1 threads
+Aug 29, 2006 11:23:57 AM com.marklogic.ps.xqsync.XQSyncManager getRequest
+INFO: listing all documents
+Aug 29, 2006 11:23:58 AM com.marklogic.ps.xqsync.XQSyncManager run
+INFO: queued 20 items
+Aug 29, 2006 11:23:58 AM com.marklogic.ps.xqsync.OutputPackage newZipOutputStream
+INFO: package output going to new zipfile /tmp/xqsync/documents.zip
+Aug 29, 2006 11:23:58 AM com.marklogic.ps.xqsync.Monitor run
+INFO: loaded 20 records ok
+Aug 29, 2006 11:23:58 AM com.marklogic.ps.xqsync.XQSyncManager run
+INFO: exiting
+Aug 29, 2006 11:23:58 AM com.marklogic.ps.xqsync.XQSync main
+INFO: completed 20 in 1196 ms
+</div>
+
+<p>That was fairly easy: we didn't see any errors,
+and the last line tells me that 20 documents were synchronized.
+Looking at the current directory, I see a new <code>documents.zip</code>.
+</p>
+
+<div class="code-block">
+$ ls
+documents.zip         simplelogger-0-0.log.lck  xpp3.jar    xstream.jar
+simplelogger-0-0.log  xcc.jar                   xqsync.jar
+$ unzip -l documents.zip
+Archive:  documents.zip
+  Length     Date   Time    Name
+ --------    ----   ----    ----
+      491  08-29-06 11:23   http:/www.amazon.com/reviews.xml
+      458  08-29-06 11:23   http:/www.amazon.com/reviews.xml.metadata
+     1299  08-29-06 11:23   report1.xml
+      458  08-29-06 11:23   report1.xml.metadata
+     1065  08-29-06 11:23   book.xml
+      458  08-29-06 11:23   book.xml.metadata
+     4614  08-29-06 11:23   auctionwatchlist.xml
+      458  08-29-06 11:23   auctionwatchlist.xml.metadata
+      923  08-29-06 11:23   http:/www.bn.com/bib.xml
+      458  08-29-06 11:23   http:/www.bn.com/bib.xml.metadata
+      626  08-29-06 11:23   purchaseReport.xml
+      458  08-29-06 11:23   purchaseReport.xml.metadata
+      689  08-29-06 11:23   census.xml
+      458  08-29-06 11:23   census.xml.metadata
+      823  08-29-06 11:23   ipo.xml
+      458  08-29-06 11:23   ipo.xml.metadata
+     3196  08-29-06 11:23   news.xml
+      458  08-29-06 11:23   news.xml.metadata
+      419  08-29-06 11:23   partlist.xml
+      458  08-29-06 11:23   partlist.xml.metadata
+      499  08-29-06 11:23   company-data.xml
+      458  08-29-06 11:23   company-data.xml.metadata
+     1752  08-29-06 11:23   bids.xml
+      458  08-29-06 11:23   bids.xml.metadata
+      536  08-29-06 11:23   users.xml
+      458  08-29-06 11:23   users.xml.metadata
+      638  08-29-06 11:23   prices.xml
+      458  08-29-06 11:23   prices.xml.metadata
+      939  08-29-06 11:23   purchaseOrder.xml
+      458  08-29-06 11:23   purchaseOrder.xml.metadata
+     5211  08-29-06 11:23   report2.xml
+      458  08-29-06 11:23   report2.xml.metadata
+      244  08-29-06 11:23   books.xml
+      458  08-29-06 11:23   books.xml.metadata
+     1712  08-29-06 11:23   items.xml
+      458  08-29-06 11:23   items.xml.metadata
+      241  08-29-06 11:23   zips.xml
+      458  08-29-06 11:23   zips.xml.metadata
+      160  08-29-06 11:23   postals.xml
+      458  08-29-06 11:23   postals.xml.metadata
+ --------                   -------
+    35237                   40 files
+</div>
+
+<p>Every document in my Documents database is represented twice:
+the first file contains the document content,
+and a <code>.metadata</code> file.
+The metadata file contains extra information about the document:
+its format, collections, permissions, properties, and quality
+are all recorded.
+</p>
+
+<p>I also see a log file: that contains the output of XQSync.
+This can be useful for long-running XQSync tasks,
+and for debugging. To increase the verbosity of the log,
+we can add <code>LOG_LEVEL</code> to the properties.
+Valid log levels are from <code>java.util.logging</code>,
+and include <code>DEBUG</code>, <code>FINE</code>, <code>FINDER</code>,
+and <code>FINEST</code>.
+</p>
+
+<p>To restore the zip file, we simply use <code>INPUT_PACKAGE</code>
+and <code>OUTPUT_CONNECTION_STRING</code>.
+</p>
+
+<div class="code-block">
+java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
+  -DOUTPUT_CONNECTION_STRING=xcc://admin:admin@localhost:9000/Documents \
+  -DINPUT_PACKAGE=documents.zip \
+  com.marklogic.ps.xqsync.XQSync
+added system properties
+logging to CONSOLE
+logging to file simplelogger-%u-%g.log
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.SimpleLogger configureLogger
+INFO: setting up com.marklogic.ps.SimpleLogger@190d11 for: com.marklogic.ps
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.Configuration setProperties
+INFO: first-time setup
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.Configuration configureInput
+INFO: input from package: documents.zip
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.Configuration configureOutput
+INFO: output to connection: xcc://admin:admin@localhost:9000/Documents
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.XQSync main
+INFO: XQSync starting: version = 2006-08-29.1
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.XQSync main
+INFO: default encoding is UTF-8
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.XQSync main
+INFO: default encoding is now UTF-8
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.XQSyncManager run
+INFO: starting pool of 1 threads
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.XQSyncManager queueFromInputPackage
+INFO: listing package documents.zip
+Aug 29, 2006 11:59:25 AM com.marklogic.ps.xqsync.XQSyncManager run
+INFO: queued 20 items
+Aug 29, 2006 11:59:26 AM com.marklogic.ps.xqsync.Monitor run
+INFO: loaded 20 records ok
+Aug 29, 2006 11:59:26 AM com.marklogic.ps.xqsync.XQSyncManager run
+INFO: exiting
+Aug 29, 2006 11:59:26 AM com.marklogic.ps.xqsync.XQSync main
+INFO: completed 20 in 1726 ms
+</div>
+
+<a name="advanced-configuration"></a>
+<h3><a name="ncf02620c783b3f2f"></a>Advanced Configuration</h3>
+
+<p>In our simple example, we synchronized the entire Documents database
+to an output package. We can also synchronize
+by collection, using <code>INPUT_COLLECTION_URI</code>,
+or by directory, using <code>INPUT_DIRECTORY_URI</code>.
+We can even submit an arbitrary query,
+using <code>INPUT_QUERY</code>
+- the query must return a sequence of document URIs,
+which will be synchronized.
+</p>
+
+<p>
+On the output side, we can specify prefixes and suffixes for every URI.
+We can also specify which Forests will receive the new documents,
+and add new read-permissions to every document, by role.
+</p>
+
+<p>If needed, the process may be multithreaded.
+Simply set <code>THREADS</code> to the desired number of threads.
+</p>
+
+<a name="performance"></a>
+<h3><a name="ncf02620c912739cc"></a>Performance and Limitations</h3>
+<p>
+XQSync uses a pool of worker threads to synchronize documents.
+The manager thread performs the input query
+(or lists the contents of the input package) and queues each document
+for the workers. In parallel, the workers write any queued documents
+to the destination.
+Note that nothing is queued, and work is performed,
+until the input query has been evaluated and begins to return results.
+For millions of documents, it may be better to synchronize
+some subset of the documents.
+Collections, directories, and ad-hoc queries
+can all be useful for this purpose.
+</p>
+
+<p>Zip archives are inherently 32-bit. Thus, if you are synchronizing
+more than 2GB of XML, XQSync may need to split the work up into
+multiple archives.
+</p>
+
+<a name="conclusion"></a>
+<h3><a name="ncf02620c9c3ac5a0"></a>Conclusion</h3>
+
+<p>
+We hope this tutorial was useful.
+For more information about XQSync, see the
+<a href="http://marklogic.github.com/xqsync">README file</a>.
+</p>
+
+<h3><a name="ncf02620ca575ba26"></a>Troubleshooting</h3>
+
+<p><b><code>NoClassDefFoundError</code></b>:
+Your classpath isn't finding one
+of the jar files. Examine it carefully, and make sure the paths are
+all accurate.
+</p>
+
+<p><b>I'm running Windows, and XQSync is ignoring my
+<code>INPUT_PATH</code> or <code>INPUT_PACKAGE</code> property</b>:
+Try escaping all the back-slash characters in your path.
+For example, change <code>c:\foo</code> to <code>c:\\foo</code>
+- alternatively, change back-slashes to forward-slashes.
+</p>
+
+    </body>
+</html>
