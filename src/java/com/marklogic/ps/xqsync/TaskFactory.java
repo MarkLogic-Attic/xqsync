@@ -52,7 +52,8 @@ public class TaskFactory {
      * @param _monitor
      * @throws SyncException
      */
-    public TaskFactory(Configuration _config, Monitor _monitor) throws SyncException {
+    public TaskFactory(Configuration _config, Monitor _monitor)
+            throws SyncException {
         configuration = _config;
         if (null == _monitor) {
             throw new NullPointerException("monitor may not be null!");
@@ -173,10 +174,8 @@ public class TaskFactory {
             // simple balancer, to keep threads from contending for packages
             writer = writers[count % writers.length];
             count++;
-        } else if (configuration.isOutputConnection()) {
-            writer = new SessionWriter(configuration);
         } else {
-            writer = new FilePathWriter(configuration);
+            writer = configuration.getWriter();
         }
         return writer;
     }
@@ -184,5 +183,5 @@ public class TaskFactory {
     public Monitor getMonitor() {
         return monitor;
     }
-    
+
 }

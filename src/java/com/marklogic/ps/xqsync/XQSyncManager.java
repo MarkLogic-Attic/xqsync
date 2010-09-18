@@ -89,9 +89,9 @@ public class XQSyncManager {
                 }
                 queue.put(r);
             } catch (InterruptedException e) {
+                // someone is trying to interrupt us
                 // reset interrupt status and continue
                 Thread.interrupted();
-                // someone is trying to interrupt us
                 throw new RejectedExecutionException(e);
             }
         }
@@ -233,7 +233,7 @@ public class XQSyncManager {
 
             factory.close();
             factory = null;
-
+            configuration.close();
         } catch (Throwable t) {
             logger.logException("fatal error", t);
             // clean up

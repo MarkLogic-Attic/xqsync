@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007-2009 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2007-2010 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,7 @@
  */
 package com.marklogic.ps.tests;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 
 import junit.framework.TestCase;
@@ -34,7 +30,6 @@ import com.marklogic.ps.xqsync.Configuration;
 import com.marklogic.ps.xqsync.FilePathReader;
 import com.marklogic.ps.xqsync.FilePathWriter;
 import com.marklogic.ps.xqsync.SessionReader;
-import com.marklogic.ps.xqsync.SyncException;
 import com.marklogic.ps.xqsync.XQSyncDocument;
 import com.marklogic.xcc.AdhocQuery;
 import com.marklogic.xcc.Content;
@@ -42,17 +37,14 @@ import com.marklogic.xcc.ContentCapability;
 import com.marklogic.xcc.ContentCreateOptions;
 import com.marklogic.xcc.ContentFactory;
 import com.marklogic.xcc.ContentPermission;
-import com.marklogic.xcc.exceptions.XccException;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class DocumentTest extends TestCase {
 
-    public void testEscaping() throws SyncException, XccException,
-            IOException, URISyntaxException, KeyManagementException,
-            NoSuchAlgorithmException {
+    public void testEscaping() throws Exception {
         String testString = "http://foo.com/bar baz/";
         String expected = testString;
         Configuration config = new Configuration();
@@ -71,9 +63,7 @@ public class DocumentTest extends TestCase {
         // assertEquals(testString, expected);
     }
 
-    public void testPermissions() throws URISyntaxException,
-            XccException, SyncException, IOException,
-            KeyManagementException, NoSuchAlgorithmException {
+    public void testPermissions() throws Exception {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
         props.setProperty(SimpleLogger.LOG_HANDLER, "CONSOLE");

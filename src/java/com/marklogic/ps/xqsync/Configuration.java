@@ -213,9 +213,7 @@ public class Configuration extends AbstractConfiguration {
      * )
      */
     public synchronized void setProperties(Properties _properties)
-            throws XccException, IOException, URISyntaxException,
-            SyncException, KeyManagementException,
-            NoSuchAlgorithmException {
+            throws Exception {
         properties = _properties;
 
         // we need a logger as soon as possible: keep this first
@@ -291,9 +289,7 @@ public class Configuration extends AbstractConfiguration {
      * @throws KeyManagementException
      * 
      */
-    private void configure() throws XccException, IOException,
-            URISyntaxException, SyncException, KeyManagementException,
-            NoSuchAlgorithmException {
+    protected void configure() throws Exception {
         // cold configuration
         if (!firstConfiguration) {
             return;
@@ -323,7 +319,7 @@ public class Configuration extends AbstractConfiguration {
         configureOutput();
 
         configureTimestamp(properties.getProperty(INPUT_TIMESTAMP_KEY));
-        
+
         configureThrottling();
 
         // miscellaneous
@@ -377,16 +373,12 @@ public class Configuration extends AbstractConfiguration {
         }
     }
 
-    private void configureOutput() throws IOException,
-            URISyntaxException, XccException, KeyManagementException,
-            NoSuchAlgorithmException {
-
+    protected void configureOutput() throws Exception {
         outputPackagePath = properties.getProperty(OUTPUT_PACKAGE_KEY);
 
         if (null != outputPackagePath) {
             logger.info("output to package: " + outputPackagePath);
         } else {
-
             outputPath = properties.getProperty(OUTPUT_PATH_KEY);
             if (null != outputPath) {
                 logger.info("output to path: " + outputPath);
@@ -422,15 +414,15 @@ public class Configuration extends AbstractConfiguration {
     /**
     *
     */
-   void configureThrottling() {
-       throttledEventsPerSecond = Double.parseDouble(properties
-               .getProperty(THROTTLE_EVENTS_KEY));
+    void configureThrottling() {
+        throttledEventsPerSecond = Double.parseDouble(properties
+                .getProperty(THROTTLE_EVENTS_KEY));
 
-       throttledBytesPerSecond = Integer.parseInt(properties
-               .getProperty(THROTTLE_BYTES_KEY));
-   }
+        throttledBytesPerSecond = Integer.parseInt(properties
+                .getProperty(THROTTLE_BYTES_KEY));
+    }
 
-   /**
+    /**
      * @param _timestampString
      * @throws RequestException
      * 
@@ -852,6 +844,21 @@ public class Configuration extends AbstractConfiguration {
      */
     public double getThrottledEventsPerSecond() {
         return throttledEventsPerSecond;
+    }
+
+    /**
+     * @return
+     * @throws SyncException
+     */
+    public WriterInterface getWriter() throws SyncException {
+        if (isOutputConnection()) {
+            return new SessionWriter(this);
+        }
+        return new FilePathWriter(this);
+    }
+
+    public void close() {
+        // nothing to do
     }
 
 }
