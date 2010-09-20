@@ -20,8 +20,6 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
 import com.marklogic.ps.SimpleLogger;
@@ -42,8 +40,6 @@ public class TaskFactory {
     protected String outputPackagePath;
 
     protected volatile int count = 0;
-
-    private Constructor<? extends SessionReader> sessionReaderConstructor;
 
     protected Monitor monitor;
 
@@ -66,7 +62,7 @@ public class TaskFactory {
 
         if (null != outputPackagePath) {
             try {
-                // create enough writers to minimize contention
+                // create enough package writers to minimize contention
                 int threadCount = _config.getThreadCount();
                 int poolSize = Math.min(Runtime.getRuntime()
                         .availableProcessors(), threadCount);
@@ -86,22 +82,6 @@ public class TaskFactory {
             } catch (IOException e) {
                 throw new SyncException(e);
             }
-        }
-
-        // allow alternative subclass for SessionReader
-        try {
-            String sessionReaderClassName = configuration
-                    .getSessionReaderClassName();
-            Class<? extends SessionReader> cls = Class.forName(
-                    sessionReaderClassName).asSubclass(
-                    SessionReader.class);
-            sessionReaderConstructor = cls
-                    .getConstructor(new Class[] { Configuration.class });
-            logger.fine("session reader = " + cls.getCanonicalName());
-        } catch (NoSuchMethodException e) {
-            throw new SyncException(e);
-        } catch (ClassNotFoundException e) {
-            throw new SyncException(e);
         }
 
     }
@@ -150,17 +130,7 @@ public class TaskFactory {
      * @throws SyncException
      */
     public ReaderInterface getReader() throws SyncException {
-        try {
-            return sessionReaderConstructor.newInstance(configuration);
-        } catch (IllegalArgumentException e) {
-            throw new SyncException(e);
-        } catch (InstantiationException e) {
-            throw new SyncException(e);
-        } catch (IllegalAccessException e) {
-            throw new SyncException(e);
-        } catch (InvocationTargetException e) {
-            throw new SyncException(e);
-        }
+        return configuration.newReader();
     }
 
     /**
@@ -175,7 +145,7 @@ public class TaskFactory {
             writer = writers[count % writers.length];
             count++;
         } else {
-            writer = configuration.getWriter();
+            writer = configuration.newWriter();
         }
         return writer;
     }

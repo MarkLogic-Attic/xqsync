@@ -20,6 +20,7 @@ package com.marklogic.ps.xqsync;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.util.Properties;
 
 import com.marklogic.ps.SimpleLogger;
@@ -31,7 +32,7 @@ import com.marklogic.xcc.Version;
  */
 public class XQSync {
 
-    public static String VERSION = "2010-09-17.1";
+    public static String VERSION = "2010-09-20.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("
@@ -66,9 +67,7 @@ public class XQSync {
         logger.info("XQSync starting: " + versionMessage);
         logger.info("XCC version = " + Version.getVersionString());
 
-        Configuration configuration = new Configuration();
-        configuration.setLogger(logger);
-        configuration.setProperties(props);
+        Configuration configuration = initConfiguration(logger, props);
 
         // repeat startup info to log - and for emphasis
         logger.info("XQSync starting: " + versionMessage);
@@ -86,4 +85,64 @@ public class XQSync {
                 + " ms (" + (int) (1000 * itemsQueued / duration)
                 + " docs/s)");
     }
+
+    /**
+     * @param _logger
+     * @param _properties
+     * @return
+     * @throws Exception
+     */
+    public static synchronized Configuration initConfiguration(
+            SimpleLogger _logger, Properties _properties)
+            throws Exception {
+        Configuration configuration = new Configuration();
+        configuration.setLogger((null != _logger) ? _logger
+                : SimpleLogger.getSimpleLogger());
+        configuration.setProperties(_properties);
+
+        /*
+         * Now that we have a base configuration, we can bootstrap into the
+         * correct modularized configuration. This should only be called once,
+         * in a single-threaded static context.
+         */
+        try {
+            String configClassName = configuration
+                    .getConfigurationClassName();
+            _logger.info("Configuration is " + configClassName);
+            Class<? extends Configuration> configurationClass = Class
+                    .forName(configClassName, true, getClassLoader())
+                    .asSubclass(Configuration.class);
+            Constructor<? extends Configuration> configurationConstructor = configurationClass
+                    .getConstructor(new Class[] {});
+            Properties props = configuration.getProperties();
+            configuration = configurationConstructor
+                    .newInstance(new Object[0]);
+            // must pass properties to the new instance
+            configuration.setProperties(props);
+        } catch (Exception e) {
+            throw new FatalException(e);
+        }
+
+        // now the configuration is final
+        configuration.configure();
+        return configuration;
+    }
+
+    public static ClassLoader getClassLoader() {
+        ClassLoader cl = null;
+        try {
+            cl = Thread.currentThread().getContextClassLoader();
+        } catch (Throwable ex) {
+            // the next test for null will take care of any errors
+        }
+        if (cl == null) {
+            // No thread context ClassLoader, use ClassLoader of this class
+            cl = XQSync.class.getClassLoader();
+        }
+        if (cl == null) {
+            cl = ClassLoader.getSystemClassLoader();
+        }
+        return cl;
+    }
+
 }

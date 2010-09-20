@@ -31,7 +31,6 @@ import java.util.Vector;
 
 import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
-import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.exceptions.RequestException;
@@ -47,6 +46,11 @@ public class Configuration extends AbstractConfiguration {
     public static final String ALLOW_EMPTY_METADATA_KEY = "ALLOW_EMPTY_METADATA";
 
     public static final String ALLOW_EMPTY_METADATA_DEFAULT = "false";
+
+    public static final String CONFIGURATION_CLASSNAME_KEY = "CONFIGURATION_CLASSNAME";
+
+    public static final String CONFIGURATION_CLASSNAME_DEFAULT = Configuration.class
+            .getCanonicalName();
 
     public static final String COPY_COLLECTIONS_KEY = "COPY_COLLECTIONS";
 
@@ -132,11 +136,6 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String REPAIR_MULTIPLE_DOCUMENTS_PER_URI_KEY = "REPAIR_MULTIPLE_DOCUMENTS_PER_URI";
 
-    public static final String SESSION_READER_CLASS_KEY = "SESSION_READER_CLASS";
-
-    public static final String SESSION_READER_CLASS_DEFAULT = SessionReader.class
-            .getCanonicalName();
-
     public static final String SKIP_EXISTING_KEY = "SKIP_EXISTING";
 
     public static final String THREADS_KEY = "THREADS";
@@ -216,15 +215,67 @@ public class Configuration extends AbstractConfiguration {
             throws Exception {
         properties = _properties;
 
-        // we need a logger as soon as possible: keep this first
+        // we need a logger as soon as possible in this method
         if (null == logger) {
             throw new NullPointerException("null logger");
         }
         logger.setProperties(properties);
+    }
 
-        if (firstConfiguration) {
-            logger.info("first-time setup");
-            configure();
+    /**
+     * @throws XccException
+     * @throws IOException
+     * @throws URISyntaxException
+     * @throws SyncException
+     * @throws NoSuchAlgorithmException
+     * @throws KeyManagementException
+     * 
+     */
+    public void configure() throws Exception {
+        // cold configuration
+        if (!firstConfiguration) {
+            return;
+        }
+        firstConfiguration = false;
+
+        // we need a logger as soon as possible in this method
+        if (null == logger) {
+            throw new NullPointerException("null logger");
+        }
+
+        if (properties == null || !properties.keys().hasMoreElements()) {
+            logger.warning("null or empty properties");
+        }
+
+        logger.info("first-time setup");
+        logger.configureLogger(properties);
+
+        try {
+            setDefaults();
+        } catch (Exception e) {
+            // crude, but this is a configuration-time error
+            throw new FatalException(e);
+        }
+        validateProperties();
+
+        // figure out the input source
+        configureInput();
+
+        // decide on the output
+        configureOutput();
+
+        configureTimestamp(properties.getProperty(INPUT_TIMESTAMP_KEY));
+
+        configureThrottling();
+
+        // miscellaneous
+        String startPositionString = properties
+                .getProperty(INPUT_START_POSITION_KEY);
+        if (startPositionString != null) {
+            startPosition = new Long(startPositionString);
+            if (startPosition.longValue() < 2) {
+                startPosition = null;
+            }
         }
 
         uriPrefix = properties.getProperty(URI_PREFIX_KEY);
@@ -277,61 +328,6 @@ public class Configuration extends AbstractConfiguration {
                         + Utilities.join(outputCollections, ","));
             }
         }
-
-    }
-
-    /**
-     * @throws XccException
-     * @throws IOException
-     * @throws URISyntaxException
-     * @throws SyncException
-     * @throws NoSuchAlgorithmException
-     * @throws KeyManagementException
-     * 
-     */
-    protected void configure() throws Exception {
-        // cold configuration
-        if (!firstConfiguration) {
-            return;
-        }
-
-        firstConfiguration = false;
-
-        logger = SimpleLogger.getSimpleLogger();
-        logger.configureLogger(properties);
-
-        try {
-            setDefaults();
-        } catch (Exception e) {
-            // crude, but this is a configuration-time error
-            throw new FatalException(e);
-        }
-        validateProperties();
-
-        if (properties == null || !properties.keys().hasMoreElements()) {
-            logger.warning("null or empty properties");
-        }
-
-        // figure out the input source
-        configureInput();
-
-        // decide on the output
-        configureOutput();
-
-        configureTimestamp(properties.getProperty(INPUT_TIMESTAMP_KEY));
-
-        configureThrottling();
-
-        // miscellaneous
-        String startPositionString = properties
-                .getProperty(INPUT_START_POSITION_KEY);
-        if (startPositionString != null) {
-            startPosition = new Long(startPositionString);
-            if (startPosition.longValue() < 2) {
-                startPosition = null;
-            }
-        }
-
     }
 
     private void configureInput() throws IOException, URISyntaxException,
@@ -369,7 +365,6 @@ public class Configuration extends AbstractConfiguration {
                 inputUri[i] = new URI(inputStrings[i]);
             }
             inputConnection = new Connection(inputUri);
-
         }
     }
 
@@ -648,6 +643,15 @@ public class Configuration extends AbstractConfiguration {
     }
 
     /**
+     * @return
+     */
+    public String getConfigurationClassName() {
+        // keep the default - used to construct the pre-defaults configuration
+        return properties.getProperty(CONFIGURATION_CLASSNAME_KEY,
+                CONFIGURATION_CLASSNAME_DEFAULT);
+    }
+
+    /**
      * @param _key
      * @return
      */
@@ -800,13 +804,6 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return
      */
-    public String getSessionReaderClassName() {
-        return properties.getProperty(SESSION_READER_CLASS_KEY);
-    }
-
-    /**
-     * @return
-     */
     public String getUriPrefixStrip() {
         return properties.getProperty(URI_PREFIX_STRIP_KEY);
     }
@@ -847,18 +844,37 @@ public class Configuration extends AbstractConfiguration {
     }
 
     /**
+     * 
+     */
+    public void close() {
+        // nothing to do
+        logger.fine("closed");
+    }
+
+    /**
      * @return
      * @throws SyncException
+     * 
+     *             This method always returns a SessionWriter or FilePathWriter.
+     *             However, overriding subclasses can return any object that
+     *             implements ReaderInterface.
      */
-    public WriterInterface getWriter() throws SyncException {
+    public WriterInterface newWriter() throws SyncException {
         if (isOutputConnection()) {
             return new SessionWriter(this);
         }
         return new FilePathWriter(this);
     }
 
-    public void close() {
-        // nothing to do
+    /**
+     * @throws SyncException
+     * 
+     *             This method always returns a SessionReader object. However,
+     *             overriding subclasses can return any object that implements
+     *             WriterInterface.
+     */
+    public ReaderInterface newReader() throws SyncException {
+        return new SessionReader(this);
     }
 
 }

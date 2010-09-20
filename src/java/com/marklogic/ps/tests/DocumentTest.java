@@ -52,7 +52,9 @@ public class DocumentTest extends TestCase {
         properties.setProperty(Configuration.INPUT_PATH_KEY, "/dev/null");
         properties
                 .setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
+        config.setLogger(SimpleLogger.getSimpleLogger());
         config.setProperties(properties);
+        config.configure();
         FilePathReader reader = new FilePathReader(config);
         FilePathWriter writer = new FilePathWriter(config);
         XQSyncDocument doc = new XQSyncDocument(
@@ -67,7 +69,7 @@ public class DocumentTest extends TestCase {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
         props.setProperty(SimpleLogger.LOG_HANDLER, "CONSOLE");
-        URI uri = new URI("xcc://admin:admin@localhost:9000/");
+        URI uri = new URI("xcc://q:q@localhost:9000/");
         props.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, uri
                 .toString());
         props.setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
@@ -96,7 +98,9 @@ public class DocumentTest extends TestCase {
 
         // retrieve the test document
         Configuration config = new Configuration();
+        config.setLogger(SimpleLogger.getSimpleLogger());
         config.setProperties(props);
+        config.configure();
         SessionReader reader = new SessionReader(config);
         FilePathWriter writer = new FilePathWriter(config);
         XQSyncDocument doc = new XQSyncDocument(
