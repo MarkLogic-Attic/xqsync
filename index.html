@@ -85,6 +85,12 @@ using <code>-Xmx</code>.
   </li>
 </ul>
 
+<p>
+  Note that this requirements can be overriden by a subclass
+  of <code>com.marklogic.ps.xqsync.Configuration</code>.
+  See <a href="#Customization">Customization</a> for details.
+</p>
+
 <h2>Available properties:</h2>
 <table border="1" summary="properties">
 <tr><th>Property</th><th>default value</th><th>notes</th></tr>
@@ -94,6 +100,15 @@ using <code>-Xmx</code>.
   <td>
     If true, missing metadata files
     in <code>INPUT_PACKAGE</code> will be ignored.
+  </td>
+</tr>
+
+<tr>
+  <td>CONFIGURATION_CLASSNAME</td><td>null</td>
+  <td>
+    If non-null, this class will be used instead of
+    <code>com.marklogic.ps.xqsync.Configuration</code>.
+    For details, see <a href="#Customization">Customization</a>.
   </td>
 </tr>
 
@@ -401,16 +416,6 @@ lc(doc($URI))
 </tr>
 
 <tr>
-  <td>SESSION_READER_CLASS</td>
-  <td>com.marklogic.ps.xqsync.SessionReader</td>
-  <td>Class to be used for new session reader instances.
-    This is an experimental feature, allowing plug-in of
-    any subclass of the default SessionReader class.
-    A sample subclass is provided as
-    <code>com.marklogic.ps.tests.SessionReaderTest</code>.
-  </td>
-</tr>
-<tr>
   <td>SKIP_EXISTING</td><td>false</td>
   <td>If true, documents that already exist in OUTPUT_CONNECTION
     are not overwritten. This only affects operations when
@@ -455,5 +460,34 @@ lc(doc($URI))
 </tr>
 
 </table>
+
+<a id="Customization"><h2>Customization</h2></a>
+
+<p>
+  Some users may which to customize XQSync more deeply than allowed
+  by the existing configuration options. This can be done by supplying
+  a property <code>CONFIGURATION_CLASSNAME</code>. This must be a subclass
+  of com.marklogic.ps.xqsync.Configuration, and can extend or override
+  its method implementations.
+</p>
+
+<p>
+  For an example subclass,
+  see <code>com.marklogic.ps.tests.ExampleConfiguration</code>.
+  A typical implementation might override one or more of these methods:
+  <ul>
+    <li><code>close()</code></li>
+    <li><code>configure()</code></li>
+    <li><code>newReader()</code></li>
+    <li><code>newWriter()</code></li>
+  </ul>
+</p>
+
+<p>
+  Note that this feature should be considered experimental.
+  The implementation may change at any time,
+  and may not be backward-compatible with existing customizations.
+</p>
+
 </body>
 </html>
