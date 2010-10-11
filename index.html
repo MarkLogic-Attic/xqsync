@@ -353,6 +353,8 @@ lc(doc($URI))
     If the connection string uses the <code>xccs://</code> scheme,
     XQSync will attempt to use SSL for server communications.
     This requires MarkLogic Server 4.1 or later.
+    If the property includes multiple, whitespace-delimited connection strings,
+    XQSync will round-robin documents across the available connections.
   </td>
 </tr>
 <tr>
