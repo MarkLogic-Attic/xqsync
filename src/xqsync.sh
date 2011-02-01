@@ -2,7 +2,7 @@
 #
 # sample bash script for running XQSync
 #
-# Copyright (c)2005-2007 Mark Logic Corporation
+# Copyright (c)2005-2011 MarkLogic Corporation.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,16 +20,30 @@
 # affiliated with the Apache Software Foundation.
 #
 
-BASE=`readlink -f $0`
+# look for GNU readlink first (OS X, BSD, Solaris)
+READLINK=`type -P greadlink`
+if [ -z "$READLINK" ]; then
+    # if readlink is not GNU-style, setting BASE will fail
+    READLINK=`type -P readlink`
+fi
+BASE=`$READLINK -f $0`
 BASE=`dirname $BASE`
+if [ -z "$BASE" ]; then
+    echo Error initializing environment from $READLINK
+    $READLINK --help
+    exit 1
+fi
+
 echo BASE=$BASE
 
 CP=$HOME/lib/java/xcc.jar
-CP=$CP:$HOME/lib/java/xstream-1.1.2.jar
-CP=$CP:$BASE/../lib/xqsync.jar
+CP=$CP:$HOME/lib/java/xstream.jar
+CP=$CP:$HOME/lib/java/xqsync.jar
 
 FILES=
 VMARGS=
+# May be needed for Windows, OS X, etc.
+#VMARGS=-Dfile.encoding=UTF-8
 
 for a in $*; do
     if [ -e "$a" ]; then
