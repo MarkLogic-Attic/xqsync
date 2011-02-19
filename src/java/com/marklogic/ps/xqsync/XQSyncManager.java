@@ -104,7 +104,7 @@ public class XQSyncManager {
 
     private static final String START_POSITION_PREDICATE = "[position() ge $start]\n";
 
-    private static final String START_POSITION_DEFINE_VARIABLE = "define variable $start as xs:integer external\n";
+    private static final String START_POSITION_DEFINE_VARIABLE = "declare variable $start as xs:integer external;\n";
 
     private com.marklogic.ps.Session inputSession;
 
@@ -575,7 +575,7 @@ public class XQSyncManager {
      * @return
      */
     private Request getUrisRequest(boolean _hasStart, boolean _useLexicon) {
-        String query = Session.XQUERY_VERSION_0_9_ML
+        String query = Session.XQUERY_VERSION_1_0_ML
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         if (_useLexicon) {
             logger.info("listing all documents (with uri lexicon)");
@@ -598,8 +598,8 @@ public class XQSyncManager {
     private Request getCollectionRequest(String _uri, boolean _hasStart,
             boolean _useLexicon) {
         logger.info("listing collection " + _uri);
-        String query = Session.XQUERY_VERSION_0_9_ML
-                + "define variable $uri as xs:string external\n"
+        String query = Session.XQUERY_VERSION_1_0_ML
+                + "declare variable $uri as xs:string external;\n"
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         if (_useLexicon) {
             query += "cts:uris('', 'document', cts:collection-query($uri))\n"
@@ -622,8 +622,8 @@ public class XQSyncManager {
     private Request getDirectoryRequest(String _uri, boolean _hasStart,
             boolean _useLexicon) {
         logger.info("listing directory " + _uri);
-        String query = Session.XQUERY_VERSION_0_9_ML
-                + "define variable $uri as xs:string external\n"
+        String query = Session.XQUERY_VERSION_1_0_ML
+                + "declare variable $uri as xs:string external;\n"
                 + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
         if (_useLexicon) {
             query += "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n"

@@ -20,6 +20,7 @@
  */
 -->
 <project name="xqsync" basedir="." default="jar">
+    <property environment="env"/>
     <property name="name" value="xqsync"/>
     <property file="build.properties"/>
 
@@ -50,12 +51,18 @@
 	  </javac>
     </target>
 
-	<target name="jar" depends="build"
-			description="generate the jarfile" >
-	  <mkdir dir="${dist.dir}"/>
-	  <jar jarfile="${dist.dir}/${name}.jar" basedir="${build.dir}"
-		   compress="true" index="true"
-		   excludes="*.java,*.class,**/.*,**/*~"/>
-	</target>
+  <target name="jar" depends="build"
+	  description="generate the jarfile" >
+    <mkdir dir="${dist.dir}"/>
+    <jar jarfile="${dist.dir}/${name}.jar" basedir="${build.dir}"
+	 compress="true" index="true"
+	 excludes="**/*.java"/>
+  </target>
 
+  <target name="clean"
+	  description="clean up all generated files">
+    <delete file="${dist.dir}/${name}.jar">
+      <fileset dir="${build.dir}" includes="**/*.class"/>
+    </delete>
+  </target>
 </project>

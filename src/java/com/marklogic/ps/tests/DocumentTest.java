@@ -89,8 +89,8 @@ public class DocumentTest extends TestCase {
         sess.insertContent(content);
 
         // set the permissions
-        AdhocQuery req = sess.newAdhocQuery(Session.XQUERY_VERSION_0_9_ML
-                + "define variable $URI as xs:string external\n"
+        AdhocQuery req = sess.newAdhocQuery(Session.XQUERY_VERSION_1_0_ML
+                + "declare variable $URI as xs:string external;\n"
                 + "let $perms := xdmp:permission('admin', 'read')\n"
                 + "return xdmp:document-set-permissions($URI, $perms)\n");
         req.setNewStringVariable("URI", documentUri);
@@ -126,8 +126,8 @@ public class DocumentTest extends TestCase {
 
         // on success, delete the test document
         // (otherwise we might inspect it)
-        req = sess.newAdhocQuery(Session.XQUERY_VERSION_0_9_ML
-                + "define variable $URI as xs:string external\n"
+        req = sess.newAdhocQuery(Session.XQUERY_VERSION_1_0_ML
+                + "declare variable $URI as xs:string external;\n"
                 + "xdmp:document-delete($URI)\n");
         req.setNewStringVariable("URI", documentUri);
         sess.submitRequest(req);

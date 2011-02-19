@@ -48,7 +48,7 @@ public class Session implements com.marklogic.xcc.Session {
     /**
      *
      */
-    public static final String XQUERY_VERSION_0_9_ML = "xquery version \"0.9-ml\"\n";
+    public static final String XQUERY_VERSION_1_0_ML = "xquery version \"1.0-ml\";\n";
 
     private com.marklogic.xcc.Session session;
 
@@ -316,8 +316,8 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     public boolean existsDocument(String _uri) throws XccException {
-        String query = XQUERY_VERSION_0_9_ML
-                + "define variable $URI as xs:string external\n"
+        String query = XQUERY_VERSION_1_0_ML
+                + "declare variable $URI as xs:string external;\n"
                 + "boolean(doc($URI))\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
@@ -327,7 +327,7 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     public long getCount() throws XccException {
-        String query = XQUERY_VERSION_0_9_ML + "xdmp:estimate(doc())";
+        String query = XQUERY_VERSION_1_0_ML + "xdmp:estimate(doc())";
         AdhocQuery req = session.newAdhocQuery(query);
         ResultSequence result = session.submitRequest(req);
         return ((XSInteger) (result.next().getItem())).asPrimitiveLong();
@@ -339,8 +339,8 @@ public class Session implements com.marklogic.xcc.Session {
      */
     public void deleteDocument(String _uri) throws XccException {
         // ignore documents that do not exist
-        String query = XQUERY_VERSION_0_9_ML
-                + "define variable $URI as xs:string external\n"
+        String query = XQUERY_VERSION_1_0_ML
+                + "declare variable $URI as xs:string external;\n"
                 + "if (boolean(doc($URI)))\n"
                 + "then xdmp:document-delete($URI) else ()\n";
         AdhocQuery req = session.newAdhocQuery(query);
@@ -353,8 +353,8 @@ public class Session implements com.marklogic.xcc.Session {
      * @throws XccException
      */
     public void deleteCollection(String _uri) throws XccException {
-        String query = XQUERY_VERSION_0_9_ML
-                + "define variable $URI as xs:string external\n"
+        String query = XQUERY_VERSION_1_0_ML
+                + "declare variable $URI as xs:string external;\n"
                 + "xdmp:collection-delete($URI)\n";
         AdhocQuery req = session.newAdhocQuery(query);
         req.setNewStringVariable("URI", _uri);
@@ -372,9 +372,9 @@ public class Session implements com.marklogic.xcc.Session {
         // properties will be set to empty sequence
         // this doesn't affect last-modified, though, if it's active
         // note that we go down two levels, to get the prop:properties children
-        String query = XQUERY_VERSION_0_9_ML
-                + "define variable $URI as xs:string external\n"
-                + "define variable $XML-STRING as xs:string external\n"
+        String query = XQUERY_VERSION_1_0_ML
+                + "declare variable $URI as xs:string external;\n"
+                + "declare variable $XML-STRING as xs:string external;\n"
                 + "xdmp:document-set-properties($URI,\n"
                 + "  xdmp:unquote($XML-STRING)/prop:properties/node() )\n";
         AdhocQuery req = session.newAdhocQuery(query);

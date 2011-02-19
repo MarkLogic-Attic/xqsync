@@ -61,6 +61,8 @@ public class SessionReader extends AbstractReader {
 
     protected boolean copyQuality;
 
+    protected boolean isIndented;
+
     protected int size = 1;
 
     /**
@@ -76,6 +78,7 @@ public class SessionReader extends AbstractReader {
         copyProperties = configuration.isCopyProperties();
         copyCollections = configuration.isCopyCollections();
         copyQuality = configuration.isCopyQuality();
+	isIndented = configuration.getInputIndented();
 
         timestamp = configuration.getTimestamp();
         inputModule = configuration.getInputModule();
@@ -370,10 +373,15 @@ public class SessionReader extends AbstractReader {
         //
         // normally I would put this code in a module,
         // but I want this program to be self-contained
-        query = Session.XQUERY_VERSION_0_9_ML;
+	query = Session.XQUERY_VERSION_1_0_ML;
+
+	if (!isIndented) {
+	    query += "declare boundary-space preserve;\n";
+	    query += "declare option xdmp:output \"indent=no\";\n";
+	}
 
         // prolog - some variables are per-input
-        query += "define variable $MODULE-URI as xs:string external\n";
+        query += "declare variable $MODULE-URI as xs:string external;\n";
 
         // we should not normally have to guard against multiple docs per URI
         String predicate = configuration
@@ -381,10 +389,10 @@ public class SessionReader extends AbstractReader {
 
         for (int i = 0; i < size; i++) {
             // TODO - support for naked properties?
-            query += "define variable $URI-" + i
-                    + " as xs:string external\n"
-                    + "define variable $DOC-" + i
-                    + " as document-node() {\n" + "  if ($URI-" + i
+            query += "declare variable $URI-" + i
+                    + " as xs:string external;\n"
+                    + "declare variable $DOC-" + i
+                    + " as document-node() := \n" + "  if ($URI-" + i
                     + " eq '') then document { () }\n"
                     + "  else if ($MODULE-URI) then xdmp:invoke(\n"
                     + "    $MODULE-URI, (xs:QName('URI'), $URI-" + i
@@ -394,17 +402,17 @@ public class SessionReader extends AbstractReader {
                     + ")"
                     + predicate
                     + "\n"
-                    + "}\n"
+                    + ";\n"
                     // a document may contain multiple root nodes
                     // we will prefer the element(), if present
-                    + "define variable $ROOT-"
+                    + "declare variable $ROOT-"
                     + i
-                    + " as node()? {\n"
+                    + " as node()? := \n"
                     // no need to check for document-node, attribute, namespace
                     + " (\n" + "  $DOC-" + i + "/element(), $DOC-" + i
                     + "/binary(), $DOC-" + i + "/comment(),\n"
                     + "  $DOC-" + i + "/processing-instruction(), $DOC-"
-                    + i + "/text()\n" + " )[1] }\n";
+                    + i + "/text()\n" + " )[1] ;\n";
         }
 
         // body, once per input
@@ -412,7 +420,7 @@ public class SessionReader extends AbstractReader {
             query += (0 == i ? "\n" : ",\n");
 
             // NB - empty document is equivalent to an empty text node
-            query += "if ($ROOT-" + i + ") then node-kind($ROOT-" + i
+            query += "if ($ROOT-" + i + ") then xdmp:node-kind($ROOT-" + i
                     + ") else 'text',\n";
 
             if (copyCollections) {
@@ -432,8 +440,8 @@ public class SessionReader extends AbstractReader {
                         + ")\n"
                         + "let $query := concat(\n"
                         + "' import module ''http://marklogic.com/xdmp/security''"
-                        + " at ''/MarkLogic/security.xqy''',\n"
-                        + "' define variable $LIST as element(sec:permissions) external',\n"
+                        + " at ''/MarkLogic/security.xqy'';',\n"
+                        + "' declare variable $LIST as element(sec:permissions) external;',\n"
                         + "' for $p in $LIST/sec:permission',\n"
                         + "' return element sec:permission {',\n"
                         + "'  $p/@*, $p/node(), sec:get-role-names($p/sec:role-id)',\n"

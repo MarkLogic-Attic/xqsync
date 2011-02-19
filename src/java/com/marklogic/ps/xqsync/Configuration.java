@@ -112,6 +112,8 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String INPUT_TIMESTAMP_KEY = "INPUT_TIMESTAMP";
 
+    public static final String INPUT_INDENTED_KEY = "INPUT_INDENTED";
+
     public static final String OUTPUT_COLLECTIONS_KEY = "OUTPUT_COLLECTIONS";
 
     public static final String OUTPUT_CONNECTION_STRING_KEY = "OUTPUT_CONNECTION_STRING";
@@ -686,6 +688,13 @@ public class Configuration extends AbstractConfiguration {
     public String[] getInputQuery() {
         // handle multiple queries, delimited by repeated semicolons
         return getDelimitedPropertyValues(INPUT_QUERY_KEY, ";;+");
+    }
+
+    /**
+     * @return
+     */
+    public boolean getInputIndented() {
+        return Utilities.stringToBoolean(properties.getProperty(INPUT_INDENTED_KEY), true);
     }
 
     /**
