@@ -219,9 +219,9 @@ using <code>-Xmx</code>.
       the input document to lower-case all element names.
     </p>
     <pre>
-xquery version "0.9-ml"
+xquery version "1.0-ml"
 
-define variable $URI as xs:string external
+declare variable $URI as xs:string external;
 
 define function lc($list as node()*)
  as node()*
@@ -326,6 +326,19 @@ lc(doc($URI))
     the query which fetches each input document and its metadata
     will use this buffer size.
     The value 0 will cause XCC to use its default size.
+  </td>
+</tr>
+
+<tr>
+  <td>INPUT_INDENTED</td>
+  <td>true</td>
+  <td>
+    By default, when retrieving documents from MarkLogic, the
+    MarkLogic server would pretty-indent XML elements.  You can turn
+    off this behavior by setting INPUT_INDENTED to false.  This is
+    equivalent to setting "declare boundary-space preserve; declare
+    option xdmp:output \"indent=no\";" in the prolog section of an
+    XQuery module.
   </td>
 </tr>
 
