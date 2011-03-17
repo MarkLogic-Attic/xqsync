@@ -334,6 +334,19 @@ local:lc(doc($URI))
 </tr>
 
 <tr>
+  <td>INPUT_INDENTED</td>
+  <td>true</td>
+  <td>
+    By default, when retrieving documents from MarkLogic, the
+    MarkLogic server would pretty-indent XML elements.  You can turn
+    off this behavior by setting INPUT_INDENTED to false.  This is
+    equivalent to setting "declare boundary-space preserve; declare
+    option xdmp:output \"indent=no\";" in the prolog section of an
+    XQuery module.
+  </td>
+</tr>
+
+<tr>
   <td>LOG_LEVEL</td><td>INFO</td>
   <td>java.util.logger.Level at which to log.</td>
 </tr>
