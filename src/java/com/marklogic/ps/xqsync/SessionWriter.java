@@ -147,7 +147,6 @@ public class SessionWriter extends AbstractWriter {
                         _contentBytes, options);
 
                 session.insertContent(content);
-                session.commit();
 
                 // handle prop:properties node, optional
                 // TODO do this in the same transaction
