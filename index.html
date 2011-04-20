@@ -208,36 +208,40 @@ using <code>-Xmx</code>.
   <td>INPUT_MODULE_URI</td>
   <td>null</td>
   <td>
-    <p>In combination with <code>INPUT_CONNECTION_STRING</code>,
+    <p>If this property and <code>INPUT_CONNECTION_STRING</code> are both set,
     the named module will be used to process each document
     as it is read from the input database.
     The module must define a module variable
     <code>$URI as xs:string external</code>.
-    If null, no module will be used.
+    The module must return a document-node.
     </p>
     <p>Here is a simple example module, which recursively transforms
       the input document to lower-case all element names.
+      Note that the first call to <code>local:lc()</code>
+      will always receive a document-node
+      (unless the document <code>$URI</code> does not exist),
+      and so the entire module will always return a document-node.
     </p>
     <pre>
-xquery version "1.0-ml"
+xquery version "1.0-ml" ;
 
-declare variable $URI as xs:string external;
+declare variable $URI as xs:string external ;
 
-define function lc($list as node()*)
+declare function local:lc($list as node()*)
  as node()*
 {
   for $n in $list
   return typeswitch($n)
-  case document-node() return document { lc($n/node()) }
-  case element() return element {
-    expanded-QName(namespace-uri($n), lower-case(local-name($n)))
-  } {
-    $n/@*, lc($n/node())
+  case document-node() return document {
+    local:lc($n/node()) }
+  case element() return element { node-name($n) } {
+    $n/@*,
+    local:lc($n/node())
   }
   default return $n
-}
+} ;
 
-lc(doc($URI))
+local:lc(doc($URI))
       </pre>
   </td>
 </tr>
