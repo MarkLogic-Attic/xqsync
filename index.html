@@ -145,11 +145,12 @@ using <code>-Xmx</code>.
   <td>INPUT_BATCH_SIZE</td>
   <td>1</td>
   <td>
-    Process documents in batches of N documents.
-    When exporting many small documents from an input database,
-    increasing this setting can improve performance.
-    Note that the right setting will vary according to document size:
-    if the batch size is too large, poor performance or errors may result.
+    Process documents in batches of N documents.  When exporting many
+    small documents from an input database, increasing this setting
+    can improve performance.  Note that the right setting will vary
+    according to document size: if the batch size is too large, poor
+    performance or errors may result.  Imports are also done in
+    batches of N documents.
   </td>
 </tr>
 <tr>
@@ -173,6 +174,13 @@ using <code>-Xmx</code>.
     If the connection string uses the <code>xccs://</code> scheme,
     XQSync will attempt to use SSL for server communications.
     This requires MarkLogic Server 4.1 or later.
+    <br/>
+    The list of URIs are stored in a temporary file by default.  The
+    location of the file can be specified directly (see the
+    URI_QUEUE_FILE property).  Another way to specify this location is
+    provide a temporary directory (see the TMP_DIR property).  If none
+    of these properties are specified, xqsync would use the OS
+    platform's default temporary directory.
   </td>
 </tr>
 <tr>
@@ -347,6 +355,12 @@ local:lc(doc($URI))
 </tr>
 
 <tr>
+  <td>LOG_FORMATTER</td><td>null</td>
+  <td>Xqsync logs everything on a single line by default.  You can
+  specify this property to SimpleFormatter to restore xqsync's
+  original 2-line logging format.</td>
+</tr>
+<tr>
   <td>LOG_LEVEL</td><td>INFO</td>
   <td>java.util.logger.Level at which to log.</td>
 </tr>
@@ -403,6 +417,15 @@ local:lc(doc($URI))
   <td>null</td>
   <td>Output documents will be written to this zip file path.</td>
 </tr>
+
+<tr>
+  <td>PRINT_CURRENT_RATE</td>
+  <td>false</td>
+  <td>By default, xqsync would print out the overall rate of document
+  transfers every minute.  By specifying this property to true, xqsync
+  would also print out the current (last 1-minute) running rate.</td>
+</tr>
+
 <tr>
   <td>QUEUE_SIZE</td>
   <td>100,000</td>
@@ -457,6 +480,23 @@ local:lc(doc($URI))
 <tr><td>THROTTLE_EVENTS_PER_SECOND</td><td>0</td>
 <td>If non-zero, all threads will be throttled
   to the given number of inserts per second.</td>
+</tr>
+
+<tr><td>TMP_DIR</td><td>null</td>
+<td>
+Specify the temorary directory location.  This is used for creating
+the temporary file for storing URIs.  See also the
+INPUT_CONNECTION_STRING property.
+</td>
+</tr>
+
+<tr><td>URI_QUEUE_FILE</td><td>null</td>
+<td>
+Specify the temorary file location.  This is used for creating the
+temporary file for storing URIs.  See also the INPUT_CONNECTION_STRING
+property.  If both URI_QUEUE_FILE and TMP_DIR are specified, xqsync
+would only use URI_QUEUE_FILE.
+</td>
 </tr>
 
 <tr>
