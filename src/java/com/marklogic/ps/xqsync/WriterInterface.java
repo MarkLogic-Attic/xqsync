@@ -1,4 +1,5 @@
-/**
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,5 +36,21 @@ public interface WriterInterface {
      */
     int write(String _outputUri, byte[] _contentBytes,
             XQSyncDocumentMetadata _metadata) throws SyncException;
+
+    /**
+     * This version is able to write multiple documents.  Depending on
+     * subclass's implementation, the multiple writes may or may not
+     * occur within a single txn.
+     *
+     * @param _outputUri[]
+     * @param _contentBytes[][]
+     * @param _metadata[]
+     * @return
+     * 
+     * returns the number of Bytes written
+     * @throws SyncException 
+     */
+    int write(String[] _outputUri, byte[][] _contentBytes,
+	      XQSyncDocumentMetadata[] _metadata) throws SyncException;
 
 }

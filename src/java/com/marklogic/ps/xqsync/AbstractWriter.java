@@ -1,4 +1,5 @@
-/**
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,4 +72,27 @@ public abstract class AbstractWriter implements WriterInterface {
     public abstract int write(String uri, byte[] bytes,
             XQSyncDocumentMetadata _metadata) throws SyncException;
 
+    /**
+     * This version writes multiple documents by calling the write()
+     * method for single documents in a loop.  This should be good
+     * enough for subclasses that don't have a concept of a txn.
+     *
+     * @param _outputUri[]
+     * @param _contentBytes[][]
+     * @param _metadata[]
+     * @return
+     * 
+     * returns the number of Bytes written
+     * @throws SyncException 
+     */
+    public int write(String[] _outputUri, byte[][] _contentBytes,
+		     XQSyncDocumentMetadata[] _metadata) throws SyncException
+    {
+        int bytes = 0; 
+        if (null != _outputUri) {
+            for (int i = 0; i < _outputUri.length; i++)
+                bytes += write(_outputUri[i], _contentBytes[i], _metadata[i]);
+        }
+        return bytes;
+    }
 }

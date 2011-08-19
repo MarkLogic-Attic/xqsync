@@ -1,4 +1,5 @@
-/*
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ * 
  * Copyright (c)2005-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,8 +56,14 @@ public class Timer {
 
     private long eventCount;
 
+    // The last time that getCurrProgressMessage was called
+    private long lastMessageTime;
+    private long lastEventCount = 0;
+    private long lastBytes = 0;
+
     public Timer() {
         start = System.nanoTime();
+        lastMessageTime = System.currentTimeMillis();
         eventCount = 0;
     }
 
@@ -298,5 +305,29 @@ public class Timer {
     public String getProgressMessage() {
         return getProgressMessage(false);
     }
+
+    public String getCurrProgressMessage() {
+        String msg = null;
+        long currMessageTime = System.currentTimeMillis();
+        long interval = currMessageTime - lastMessageTime;
+
+        if (interval >= 100) {
+            long currEventCount = getEventCount();
+            long currBytes = getBytes(); 
+
+            long currEventRate = MILLISECONDS_PER_SECOND*(currEventCount - lastEventCount)/interval;
+            long currBytesRate = MILLISECONDS_PER_SECOND*(currBytes - lastBytes)/BYTES_PER_KILOBYTE/interval;
+
+            msg = new StringBuilder("current rate:  ").append(currEventRate).append(" events/s, ").append(currBytesRate).append(" kB/s").toString();
+
+            // update these so that we can give out the next current
+            // progress message
+            lastMessageTime = currMessageTime;
+            lastEventCount = currEventCount;
+            lastBytes = currBytes;
+        }
+
+        return msg;
+    } 
 
 }

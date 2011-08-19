@@ -1,4 +1,5 @@
-/**
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +20,7 @@
 package com.marklogic.ps.xqsync;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.Utilities;
@@ -30,10 +32,6 @@ import com.marklogic.xcc.DocumentRepairLevel;
 import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
 
-/**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
- *
- */
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
@@ -69,128 +67,193 @@ public class SessionWriter extends AbstractWriter {
      */
     public int write(String _outputUri, byte[] _contentBytes,
             XQSyncDocumentMetadata _metadata) throws SyncException {
+        String _outputUriArray[] = new String[1];
+        byte _contentBytesArray[][] = new byte[1][0];
+        XQSyncDocumentMetadata _metadataArray[] = new XQSyncDocumentMetadata[1];
 
-        if (matchesFilters(_outputUri, _metadata)) {
-            return 0;
+        _outputUriArray[0] = _outputUri;
+        _contentBytesArray[0] = _contentBytes;
+        _metadataArray[0] = _metadata;
+        return write(_outputUriArray, _contentBytesArray, _metadataArray);
+    }
+
+    /**
+     * This version writes multiple documents in a single txn.
+     *
+     * @param _outputUri[]
+     * @param _contentBytes[][]
+     * @param _metadata[]
+     * @return
+     * 
+     * returns the number of Bytes written
+     * @throws SyncException 
+     */
+    public int write(String[] _outputUri, byte[][] _contentBytes,
+		     XQSyncDocumentMetadata[] _metadata) throws SyncException
+    {
+        int bytes = 0; 
+
+        // do nothing if there's no input
+        if (null == _outputUri || _outputUri.length == 0)
+            return bytes;
+
+        // check which ones we really need to process by running
+        // everything through filtes
+        boolean ignoreList[] = new boolean[_outputUri.length];
+        for (int i = 0; i < _outputUri.length; i++)
+            ignoreList[i] = matchesFilters(_outputUri[i], _metadata[i]);
+
+        // ignore the ones that have no uri
+        for (int i = 0; i < _outputUri.length; i++)
+            if (!ignoreList[i] && (null == _outputUri[i] || _outputUri[i].isEmpty()))
+                ignoreList[i] = true;
+
+        // handle delete requests.  These are URIs that has 0
+        // contentBytes
+        for (int i = 0; i < _outputUri.length; i++) {
+            if (!ignoreList[i] && 
+                (null == _contentBytes[i] || _contentBytes[i].length < 1)) {
+                ignoreList[i] = true;
+                try {
+                    session.deleteDocument(_outputUri[i]);
+                } catch (XccException e) {
+                    // don't retry delete.  We simply log the failure
+                    logger.logException("error deleting document: " +
+                                        _outputUri[i], e);
+                }
+            }
         }
 
-        if (null == session) {
-            throw new FatalException("null session");
+        // skip existing documents if requested
+        if (skipExisting) {
+            for (int i = 0; i < _outputUri.length; i++) {
+                if (!ignoreList[i]) {
+                    try {
+                        if (session.existsDocument(_outputUri[i]))
+                            ignoreList[i] = true;
+                    } catch (XccException e) {
+                        // don't retry this.  We simply log the failure
+                        logger.logException("error on check existing document: " +
+                                            _outputUri[i], e);
+                    }
+                }
+            }
         }
 
-        logger.finest("placeKeys = " + Utilities.join(placeKeys, ","));
+        // create the contents to be inserted
+        ArrayList<Content> contentList = new ArrayList<Content>(_outputUri.length);
+        for (int i = 0; i < _outputUri.length; i++) {
+            if (ignoreList[i]) 
+                continue;
+
+            ContentCreateOptions options = null;
+            if (_metadata[i].isBinary()) {
+                logger.fine(_outputUri[i] + " is binary");
+                options = ContentCreateOptions.newBinaryInstance();
+            } else if (_metadata[i].isText()) {
+                logger.fine(_outputUri[i] + " is text");
+                options = ContentCreateOptions.newTextInstance();
+            } else {
+                logger.fine(_outputUri[i] + " is xml");
+                options = ContentCreateOptions.newXmlInstance();
+            }
+
+            // resolve entities, this seems to be always set to false
+            options.setResolveEntities(false);
+
+            // permissions
+            _metadata[i].addPermissions(readRoles);
+            ContentPermission[] permissions = _metadata[i].getPermissions();
+            if (null != permissions)  
+                options.setPermissions(permissions);
+
+            // collections
+            String[] collections = _metadata[i].getCollections();
+            logger.fine("collections = "
+                        + Utilities.join(collections, " "));
+            options.setCollections(collections);
+
+            // quality
+            options.setQuality(_metadata[i].getQuality());
+
+            // namespace, seems to be always null
+            options.setNamespace(null);
+
+            // repair level
+            DocumentRepairLevel repair = (!repairInputXml) ? 
+                DocumentRepairLevel.NONE : DocumentRepairLevel.FULL;
+            logger.fine("repair = " + repairInputXml + ", " + repair);
+            options.setRepairLevel(repair);
+
+            // place keys
+            if (null != placeKeys) {
+                try {
+                    logger.finest("placeKeys = " + 
+                                  Utilities.join(placeKeys, ","));
+                    options.setPlaceKeys(session.forestNamesToIds(placeKeys));
+                } catch(XccException e) {
+                    // don't retry this.  We simply log the failure
+                    logger.logException("error on setting placekeys: " +
+                                        _outputUri[i], e);
+                }
+            }
+
+            // create the content
+            Content content = 
+                ContentFactory.newContent(_outputUri[i], 
+                                          _contentBytes[i], 
+                                          options);
+
+            contentList.add(content);
+        }
+
+        Content contentArray[] = contentList.toArray(new Content[0]);
 
         int retries = 3;
         long sleepMillis = 125;
         // in case the server is unreliable, we try three times
         while (retries > 0) {
             try {
-                // handle deletes
-                if (null == _contentBytes || _contentBytes.length < 1) {
-                    // this document has been deleted
-                    session.deleteDocument(_outputUri);
-                    return 0;
-                }
-
-                // optionally, check to see if document is already up-to-date
-                if (skipExisting && session.existsDocument(_outputUri)) {
-                    logger.fine("skipping existing document: "
-                            + _outputUri);
-                    return 0;
-                }
-
-                // constants
-                boolean resolveEntities = false;
-                String namespace = null;
-
-                DocumentRepairLevel repair = (!repairInputXml) ? DocumentRepairLevel.NONE
-                        : DocumentRepairLevel.FULL;
-                logger.fine("repair = " + repairInputXml + ", " + repair);
-
-                // marshal the permissions as an array
-                // don't check copyProperties here:
-                // if false, the constructor shouldn't have read any
-                // and anyway we still want to handle any _readRoles
-                _metadata.addPermissions(readRoles);
-                ContentPermission[] permissions = _metadata
-                        .getPermissions();
-                String[] collections = _metadata.getCollections();
-                logger.fine("collections = "
-                        + Utilities.join(collections, " "));
-
-                ContentCreateOptions options = null;
-                if (_metadata.isBinary()) {
-                    logger.fine(_outputUri + " is binary");
-                    options = ContentCreateOptions.newBinaryInstance();
-                } else if (_metadata.isText()) {
-                    logger.fine(_outputUri + " is text");
-                    options = ContentCreateOptions.newTextInstance();
-                } else {
-                    logger.fine(_outputUri + " is xml");
-                    options = ContentCreateOptions.newXmlInstance();
-                }
-
-                options.setResolveEntities(resolveEntities);
-                if (null != permissions) {
-                    options.setPermissions(permissions);
-                }
-                options.setCollections(collections);
-                options.setQuality(_metadata.getQuality());
-                options.setNamespace(namespace);
-                options.setRepairLevel(repair);
-                if (null != placeKeys) {
-                    options.setPlaceKeys(session
-                            .forestNamesToIds(placeKeys));
-                }
-
-                Content content = ContentFactory.newContent(_outputUri,
-                        _contentBytes, options);
-
-                session.insertContent(content);
+                session.insertContent(contentArray);
 
                 // handle prop:properties node, optional
                 // TODO do this in the same transaction
                 if (copyProperties) {
-                    // logger.info("copying properties for " + _outputUri);
-                    String properties = _metadata.getProperties();
-                    if (null != properties) {
-                        session.setDocumentProperties(_outputUri,
-                                properties);
+                    for (int i = 0; i < _outputUri.length; i++) {
+                        if (ignoreList[i])
+                            continue;
+                        
+                        String properties = _metadata[i].getProperties();
+                        if (null != properties) {
+                            session.setDocumentProperties(_outputUri[i],
+                                                          properties);
+                        }
                     }
                 }
                 // success - will not loop again
                 break;
-            } catch (XQueryException e) {
-                if ("XDMP-MAXTASKS".equals(e.getCode())) {
-                    // retry, without limit
-                    if (!firstMaxTasks) {
-                        synchronized (firstMaxTasksMutex) {
-                            if (!firstMaxTasks) {
-                                firstMaxTasks = true;
-                                logger
-                                        .warning("XDMP-MAXTASKS seen - will retry"
-                                                + " (appears only once per run)");
-                            }
-                        }
-                    }
-                    sleepMillis = sleepForRetry(sleepMillis);
-                    continue;
-                }
-                throw new SyncException(e);
             } catch (XccException e) {
+                logger.logException("error writing document: will retry (" + retries + "): " + _outputUri[0], e);
                 retries--;
                 // we want to know which document it was
                 if (retries < 1) {
                     throw new SyncException("retries exhausted for "
-                            + _outputUri, e);
+                                            + _outputUri[0], e);
                 }
-                logger.logException(
-                        "error writing document: will retry (" + retries
-                                + "): " + _outputUri, e);
                 sleepMillis = sleepForRetry(sleepMillis);
             }
         }
-        return _contentBytes.length;
+
+        // compute total ingested bytes 
+        if (retries >= 0) {
+            for (int i = 0; i < _outputUri.length; i++) {
+                if (ignoreList[i])
+                    continue;
+                bytes += _contentBytes[i].length;
+            }
+        }
+
+        return bytes;
     }
 
     /**
@@ -218,9 +281,9 @@ public class SessionWriter extends AbstractWriter {
     private boolean matchesFilters(String _outputUri,
             MetadataInterface _metadata) {
         // check format - return true if any filter matches
-        if (null != outputFormatFilters
-                && Arrays.binarySearch(outputFormatFilters, _metadata
-                        .getFormatName()) > -1) {
+        if (null != outputFormatFilters && 
+            Arrays.binarySearch(outputFormatFilters, 
+                                _metadata.getFormatName()) > -1) {
             logger.finer(Configuration.OUTPUT_FILTER_FORMATS_KEY
                     + " matched " + _outputUri);
             return true;

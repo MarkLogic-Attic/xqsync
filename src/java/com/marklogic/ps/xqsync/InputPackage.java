@@ -1,4 +1,5 @@
-/*
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -248,7 +249,7 @@ public class InputPackage {
             }
 
             // free the resources for the input zip package
-            logger.info("closing " + inputZip.getName() + " ("
+            logger.fine("closing " + inputZip.getName() + " ("
                     + references + ")");
             try {
                 inputZip.close();

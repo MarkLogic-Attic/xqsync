@@ -1,4 +1,5 @@
-/*
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +18,12 @@
  * affiliated with the Apache Software Foundation.
  */
 package com.marklogic.ps.xqsync;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionService;
@@ -50,7 +57,18 @@ public class UriQueue extends Thread {
 
     protected Monitor monitor;
 
-    private Object mutex = new Object();
+    protected boolean useQueueFile = false;
+
+    protected File queueFile;
+
+    protected PrintWriter queueFileWriter;
+
+    protected BufferedReader queueFileReader;
+
+    protected int queueFileEntries = 0;
+
+    protected Object queueFileMutex = new Object();
+
 
     /**
      * @param _configuration
@@ -64,6 +82,7 @@ public class UriQueue extends Thread {
             CompletionService<TimedEvent[]> _cs,
             ThreadPoolExecutor _pool, TaskFactory _factory,
             Monitor _monitor, BlockingQueue<String> _queue) {
+        super("UriQueueThread");
         configuration = _configuration;
         pool = _pool;
         factory = _factory;
@@ -71,6 +90,7 @@ public class UriQueue extends Thread {
         queue = _queue;
         completionService = _cs;
         logger = configuration.getLogger();
+        useQueueFile = configuration.useQueueFile();
     }
 
     /*
@@ -94,29 +114,47 @@ public class UriQueue extends Thread {
                 throw new SyncException("null completion service");
             }
 
-            while (null != queue) {
+            while (true) {
+
                 String uri = null;
-                try {
-                    uri = queue.poll(SLEEP_MILLIS, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    // reset interrupt status and continue
-                    Thread.interrupted();
-                    logger.logException("interrupted", e);
-                    if (null == uri) {
-                        continue;
+
+                if (useQueueFile) {
+                    uri = getUriFromFile();
+                } else {
+                    try {
+                        uri = queue.poll(SLEEP_MILLIS, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        // reset interrupt status and continue
+                        Thread.interrupted();
+                        logger.logException("interrupted", e);
+                        if (null == uri) {
+                            continue;
+                        }
                     }
                 }
+
                 if (null == uri) {
+                    // The in-memory queue returned with nothing
                     logger.finer(this + " uri null, active " + active);
+
                     if (!active) {
                         // queue is empty
                         break;
+                    } else if (useQueueFile) {
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException e) {
+                            // do nothing
+                        }
                     }
+
                     continue;
                 }
+
                 if (0 == count) {
                     logger.fine("took first uri: " + uri);
                 }
+
                 logger.fine(count + ": uri = " + uri);
                 buffer[bufferIndex] = uri;
                 bufferIndex++;
@@ -128,6 +166,7 @@ public class UriQueue extends Thread {
                     bufferIndex = 0;
                     yield();
                 }
+
                 count++;
             }
 
@@ -177,8 +216,15 @@ public class UriQueue extends Thread {
      */
     public void add(String _uri) {
         yield();
-        synchronized (mutex) {
-            queue.add(_uri);
+        synchronized (queueFileMutex) {
+
+            if (!useQueueFile)
+                queue.add(_uri);
+            else { 
+                addUriToFile(_uri);
+                queueFileEntries++;
+            }
+
             monitor.incrementTaskCount();
         }
         yield();
@@ -209,9 +255,12 @@ public class UriQueue extends Thread {
      * @return
      */
     public int getQueueSize() {
-        return queue.size();
+        if (useQueueFile)
+            return queueFileEntries;
+        else 
+            return queue.size();
     }
-
+    
     /**
      * @return
      */
@@ -219,4 +268,61 @@ public class UriQueue extends Thread {
         return active;
     }
 
+    /**
+     * Add the uri to a temporary file
+     */
+    private void addUriToFile(String _uri) {
+
+        if (null == queueFile) {
+            try {
+                
+                if (configuration.getUriQueueFile() != null) {
+                    queueFile = new File(configuration.getUriQueueFile());
+                    if (queueFile.exists())
+                        queueFile.delete();
+                    queueFile.createNewFile();
+                } else if (configuration.getTmpDir() != null) {
+                    queueFile = File.createTempFile("xqsync", ".txt", 
+                                                    new File(configuration.getTmpDir()));
+                } else {
+                    queueFile = File.createTempFile("xqsync", ".txt");
+                }
+
+                if (!configuration.keepUriQueueFile())
+                    queueFile.deleteOnExit();
+
+                queueFileWriter = new PrintWriter(queueFile);
+                queueFileReader = new BufferedReader(new FileReader(queueFile));
+            } catch (Exception e) {
+                // stop the world
+                logger.logException("fatal error", e);
+                System.exit(1);
+            } 
+        }
+
+        queueFileWriter.println(_uri);
+        queueFileWriter.flush();
+    }
+
+    /**
+     * @returns the uri from the queue file, or null if error or EOF
+     */
+    private String getUriFromFile() {
+
+        String uri = null;
+
+        synchronized (queueFileMutex) {
+            try {
+                if (queueFileReader != null)
+                    uri = queueFileReader.readLine();    
+
+                if (null != uri)
+                    queueFileEntries--;
+            } catch (IOException e) {
+                logger.logException("can't read uri queue file", e);
+            }
+        }
+
+        return uri;
+    }
 }

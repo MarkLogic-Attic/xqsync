@@ -1,4 +1,5 @@
-/*
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2005-2008 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +31,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.util.logging.Formatter;
 
 /**
  * @author Michael Blakeley michael.blakeley@marklogic.com
@@ -84,6 +86,8 @@ public class SimpleLogger extends Logger implements
     static public final String DEFAULT_FILEHANDLER_PATH = "simplelogger-%u-%g.log";
 
     static public final String LOGGER_NAME = "com.marklogic.ps";
+
+    static public final String LOG_FORMATTER = "LOG_FORMATTER";
 
     private static Map<String, SimpleLogger> loggers = Collections
             .synchronizedMap(new Hashtable<String, SimpleLogger>());
@@ -155,6 +159,7 @@ public class SimpleLogger extends Logger implements
                 LOG_FILEHANDLER_COUNT, "1"));
         int logFileLimit = Integer.parseInt(_prop.getProperty(
                 LOG_FILEHANDLER_LIMIT, "0"));
+        String logFormatter = _prop.getProperty(LOG_FORMATTER, null);
 
         Handler h = null;
         if (newHandlers != null && newHandlers.length > 0) {
@@ -221,11 +226,9 @@ public class SimpleLogger extends Logger implements
                                 .println("cannot configure logging: exiting");
                         Runtime.getRuntime().exit(-1);
                     }
-                    h.setFormatter(new SimpleFormatter());
                 } else if (newHandlers[i].equals("CONSOLE")) {
                     System.err.println("logging to " + newHandlers[i]);
                     h = new ConsoleHandler();
-                    h.setFormatter(new SimpleFormatter());
                 } else {
                     // try to load the string as a classname
                     try {
@@ -253,10 +256,10 @@ public class SimpleLogger extends Logger implements
         } else {
             // default to ConsoleHandler
             h = new ConsoleHandler();
-            h.setFormatter(new SimpleFormatter());
             addHandler(h);
         }
 
+        // set logging level for all handers
         if (logLevel != null) {
             /*
              * Logger.setLevel() isn't sufficient, unless the Handler.level is
@@ -272,6 +275,23 @@ public class SimpleLogger extends Logger implements
             }
             fine("logging set to " + getLevel());
         }
+
+        // set formatter for all handlers
+        Handler[] v = getHandlers();
+        for (int i = 0; i < v.length; i++) {
+            Formatter f = null;
+            
+            // use OneLineFormatter if specified
+            if ("SimpleFormatter".equals(logFormatter))
+                f = new SimpleFormatter();
+
+            // use SimpleFormatter as the default
+            if (null == logFormatter)
+                f = new OneLineFormatter();
+
+            v[i].setFormatter(f);
+        }
+
         info("setting up " + this + " for: " + getName());
     } // setLogging
 

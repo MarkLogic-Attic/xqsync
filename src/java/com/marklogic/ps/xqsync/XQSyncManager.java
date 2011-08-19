@@ -275,7 +275,7 @@ public class XQSyncManager {
      */
     private long queueFromInputPackage(String _path) throws IOException,
             SyncException {
-        logger.info(_path);
+        logger.fine(_path);
         File file = new File(_path);
 
         if (!file.exists()) {
@@ -344,7 +344,7 @@ public class XQSyncManager {
                 .getCanonicalPath(), configuration);
         // ensure that the package won't close while queuing
         inputPackage.addReference();
-        logger.info("listing package " + _path + " ("
+        logger.fine("listing package " + _path + " ("
                 + inputPackage.size() + ")");
 
         // create a new factory and queue for each input package
@@ -353,11 +353,8 @@ public class XQSyncManager {
             uriQueue.shutdown();
         }
         lastUriQueue = uriQueue;
-        newUriQueue(uriQueue, new PackageTaskFactory(configuration,
-                monitor, inputPackage));
-        logger
-                .fine("uriQueue = " + uriQueue + ", last = "
-                        + lastUriQueue);
+        newUriQueue(uriQueue, new PackageTaskFactory(configuration, monitor, inputPackage));
+        logger.fine("uriQueue = " + uriQueue + ", last = " + lastUriQueue);
 
         Iterator<String> iter = inputPackage.list().iterator();
         String path;
@@ -384,8 +381,7 @@ public class XQSyncManager {
      */
     private void newUriQueue(UriQueue _old, TaskFactory _factory) {
         // copy from old to new
-        newUriQueue(_old.getCompletionService(), _old.getPool(),
-                _factory, _old.getMonitor());
+        newUriQueue(_old.getCompletionService(), _old.getPool(), _factory, _old.getMonitor());
     }
 
     /**

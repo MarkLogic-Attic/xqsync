@@ -1,5 +1,6 @@
-/**
- * Copyright (c)2006-2010 Mark Logic Corporation
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
+ * (c)2006-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,6 +69,7 @@ public class Monitor extends Thread {
      */
     public Monitor(Configuration _config, ThreadPoolExecutor _pool,
             CompletionService<TimedEvent[]> _cs, boolean _fatalErrors) {
+        super("MonitorThread");
         config = _config;
         completionService = _cs;
         pool = _pool;
@@ -85,8 +87,7 @@ public class Monitor extends Thread {
             yield();
         } catch (Exception e) {
             if (e instanceof ExecutionException) {
-                logger
-                        .logException("fatal execution error", e
+                logger.logException("fatal execution error", e
                                 .getCause());
             } else {
                 logger.logException("fatal error", e);
@@ -185,6 +186,12 @@ public class Monitor extends Thread {
                                 + taskCount + ", "
                                 + timer.getProgressMessage(false) + ", "
                                 + lastEvent[0].getDescription());
+                        
+                        if (config.doPrintCurrRate()) {
+                            String currMsg = timer.getCurrProgressMessage();
+                            if (currMsg != null)
+                                logger.info(currMsg);
+                        }
                     }
                 }
 

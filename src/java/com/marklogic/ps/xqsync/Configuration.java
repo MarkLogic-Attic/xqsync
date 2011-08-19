@@ -1,4 +1,5 @@
-/*
+/* -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -159,6 +160,26 @@ public class Configuration extends AbstractConfiguration {
     public static final String URI_PREFIX_STRIP_KEY = "URI_PREFIX_STRIP";
 
     public static final String URI_SUFFIX_STRIP_KEY = "URI_SUFFIX_STRIP";
+
+    public static final String USE_IN_MEMORY_URI_QUEUE_KEY = "USE_IN_MEMORY_URI_QUEUE";
+
+    public static final String USE_IN_MEMORY_URI_QUEUE_DEFAULT = "false";
+
+    public static final String TMP_DIR_KEY = "TMP_DIR";
+
+    public static final String TMP_DIR_DEFAULT = null;
+
+    public static final String URI_QUEUE_FILE_KEY = "URI_QUEUE_FILE";
+
+    public static final String URI_QUEUE_FILE_DEFAULT = null;
+
+    public static final String KEEP_URI_QUEUE_FILE_KEY = "KEEP_URI_QUEUE_FILE";
+
+    public static final String KEEP_URI_QUEUE_FILE_DEFAULT = "false";
+
+    public static final String PRINT_CURRENT_RATE_KEY = "PRINT_CURRENT_RATE"; 
+
+    public static final String PRINT_CURRENT_RATE_DEFAULT = "false";
 
     /* internal constants */
 
@@ -850,6 +871,59 @@ public class Configuration extends AbstractConfiguration {
      */
     public double getThrottledEventsPerSecond() {
         return throttledEventsPerSecond;
+    }
+
+    /**
+     * @return whether to use the in memory uri queue or not
+     */
+    public boolean useInMemoryUriQueue() {
+        String p = properties.getProperty(USE_IN_MEMORY_URI_QUEUE_KEY, 
+                                          USE_IN_MEMORY_URI_QUEUE_DEFAULT);
+        return Boolean.parseBoolean(p);
+    }
+
+    /**
+     * @return whether to use a file for uri queue or not
+     */
+    public boolean useQueueFile() {
+        return (!useInMemoryUriQueue() && 
+                properties.getProperty(INPUT_CONNECTION_STRING_KEY) != null);
+    }
+
+
+    /**
+     * @return the temporary directory location
+     */
+    public String getTmpDir() {
+        return properties.getProperty(TMP_DIR_KEY, 
+                                      TMP_DIR_DEFAULT);
+    }
+
+
+    /**
+     * @return the uri queue file location
+     */
+    public String getUriQueueFile() {
+        return properties.getProperty(URI_QUEUE_FILE_KEY, 
+                                      URI_QUEUE_FILE_DEFAULT);
+    }
+
+    /**
+     * @return whether the queue file should be kept
+     */
+    public boolean keepUriQueueFile() {
+        String p = properties.getProperty(KEEP_URI_QUEUE_FILE_KEY,
+                                          KEEP_URI_QUEUE_FILE_DEFAULT);
+        return Boolean.parseBoolean(p);
+    }
+
+    /**
+     * @return boolean, true if we should print out the current rate
+     */
+    public boolean doPrintCurrRate() {
+        String p = properties.getProperty(PRINT_CURRENT_RATE_KEY, 
+                                          PRINT_CURRENT_RATE_DEFAULT);
+        return Boolean.parseBoolean(p);
     }
 
     /**

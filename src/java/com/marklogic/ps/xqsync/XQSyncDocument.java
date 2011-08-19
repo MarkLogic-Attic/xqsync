@@ -1,4 +1,5 @@
-/*
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -155,14 +156,12 @@ public class XQSyncDocument implements DocumentInterface {
                     && (byte) 0xBF == contentBytes[i][2]) {
                 logger.finer("stripping BOM from " + uri);
                 byte[] copy = new byte[contentBytes[i].length - 3];
-                System
-                        .arraycopy(contentBytes[i], 3, copy, 0,
+                System.arraycopy(contentBytes[i], 3, copy, 0,
                                 copy.length);
                 contentBytes[i] = copy;
             }
-
-            len += writer.write(uri, contentBytes[i], metadata[i]);
         }
+	len = writer.write(outputUris, contentBytes, metadata);
         return len;
     }
 
