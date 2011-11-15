@@ -369,6 +369,28 @@ local:lc(doc($URI))
   <td>java.util.logger log handlers with which to log.</td>
 </tr>
 <tr>
+  <td>USE_MULTI_STMT_TXN</td>
+  <td>false</td>
+  <td>
+    If true, batch inserts will use MarkLogic 5.0's multi-statement
+    transaction feature.  If false, batch inserts will use XCC's
+    insertContent([]) API.
+  </td>
+</tr>
+<tr>
+  <td>OUTPUT_CONNECTION_STRING</td>
+  <td>null</td>
+  <td>
+    Documents will be written to this XCC connection.
+    <br/>
+    If the connection string uses the <code>xccs://</code> scheme,
+    XQSync will attempt to use SSL for server communications.
+    This requires MarkLogic Server 4.1 or later.
+    If the property includes multiple, whitespace-delimited connection strings,
+    XQSync will round-robin documents across the available connections.
+  </td>
+</tr>
+<tr>
   <td>OUTPUT_COLLECTIONS</td>
   <td>null</td>
   <td>Output documents will be added to one or more collection URIs.
