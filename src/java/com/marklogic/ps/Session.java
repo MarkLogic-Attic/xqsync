@@ -1,4 +1,5 @@
-/**
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c) 2006-2010 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import javax.transaction.xa.XAResource;
 
 import com.marklogic.xcc.AdhocQuery;
 import com.marklogic.xcc.Content;
@@ -92,27 +94,9 @@ public class Session implements com.marklogic.xcc.Session {
     /*
      * (non-Javadoc)
      *
-     * @see com.marklogic.xcc.Session#setAutoCommit(boolean)
-     */
-    public void setAutoCommit(boolean newValue) {
-        session.setAutoCommit(newValue);
-    }
-
-    /*
-     * (non-Javadoc)
-     *
-     * @see com.marklogic.xcc.Session#getAutoCommit()
-     */
-    public boolean getAutoCommit() {
-        return session.getAutoCommit();
-    }
-
-    /*
-     * (non-Javadoc)
-     *
      * @see com.marklogic.xcc.Session#commit()
      */
-    public void commit() {
+    public void commit() throws RequestException{
         session.commit();
     }
 
@@ -121,7 +105,7 @@ public class Session implements com.marklogic.xcc.Session {
      *
      * @see com.marklogic.xcc.Session#rollback()
      */
-    public void rollback() {
+    public void rollback() throws RequestException {
         session.rollback();
     }
 
@@ -411,4 +395,76 @@ public class Session implements com.marklogic.xcc.Session {
     public URI getConnectionUri() {
         return session.getConnectionUri();
     }
+
+    /**
+     * <p>
+     * Sets the transaction mode to the given value. The initial value is
+     * TransactionMode.AUTO.
+     * </p>
+     * <p>
+     * If the transaction mode is TransactionMode.AUTO, a new transaction is created for
+     * every request, and committed (or rolled back) at the end of that request.
+     * The type of transaction created is determined automatically by query analysis.
+     * </p>
+     * <p>
+     * If transaction mode is TransactionMode.QUERY or TransactionMode.UPDATE, requests
+     * are grouped under transactions bounded by calls to Session.commit() or Session.rollback().
+     * If transaction mode is TransactionMode.QUERY, then a read-only query transaction is created
+     * to group requests. If transaction mode is TransactionMode.UPDATE, then a locking update
+     * transaction is created. If an updating request is executed under a read-only
+     * TransactionMode.QUERY transaction, a RequestException is thrown.
+     * </p>
+     * <p>
+     * Calling setTransactionMode() while a transaction is active has no effect on the current
+     * transaction.
+    * </p>
+     * @param mode The new transaction mode
+     */
+    public void setTransactionMode(TransactionMode mode) {
+        session.setTransactionMode(mode);
+    }
+
+    /**
+     * Get the current transaction mode.
+     * 
+     * @return The current transaction mode setting.
+     */
+    public TransactionMode getTransactionMode() {
+        return session.getTransactionMode();
+    }
+
+    /**
+     * Sets the timeout for transactions
+     * @param seconds The number of seconds before the transaction times out
+     * @throws RequestEception
+     *             If there is a problem communicating with the server.
+     */
+    public void setTransactionTimeout(int seconds) throws RequestException {
+        session.setTransactionTimeout(seconds);
+    }
+
+    /**
+     * Get the current transaction timeout.
+     *
+     * @return The current transaction timeout setting.
+     * @throws RequestException
+     *             If there is a problem communicating with the server.
+     */
+    public int getTransactionTimeout() throws RequestException {
+        return session.getTransactionTimeout();
+    }
+
+    /**
+     * <p>
+     * Returns an instance of the XAResource interface, specific to this Session object.
+     * This can be used to take part in JTA distributed transactions using an implementation of
+     * javax.transaction.TransactionManager.
+     * </p>
+     *
+     * @return The XAResource object.
+     */
+    public XAResource getXAResource() {
+        return session.getXAResource();
+    }
+
 }

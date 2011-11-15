@@ -214,7 +214,15 @@ public class SessionWriter extends AbstractWriter {
         // in case the server is unreliable, we try three times
         while (retries > 0) {
             try {
-                session.insertContent(contentArray);
+                if (configuration.useMultiStmtTxn()) {
+                    session.setTransactionMode(com.marklogic.xcc.Session.TransactionMode.UPDATE);
+                    for (int i = 0; i < contentArray.length; i++)
+                        session.insertContent(contentArray[i]);
+                    session.commit();
+                    session.setTransactionMode(com.marklogic.xcc.Session.TransactionMode.QUERY);
+                } else {
+                    session.insertContent(contentArray);
+                }
 
                 // handle prop:properties node, optional
                 // TODO do this in the same transaction

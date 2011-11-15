@@ -79,6 +79,10 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String INPUT_BATCH_SIZE_DEFAULT = "1";
 
+    public static final String USE_MULTI_STMT_TXN_KEY = "USE_MULTI_STMT_TXN";
+
+    public static final String USE_MULTI_STMT_TXN_DEFAULT = "false";
+
     public static final String INPUT_CACHABLE_KEY = "INPUT_QUERY_CACHABLE";
 
     public static final String INPUT_CACHABLE_DEFAULT = "" + false;
@@ -377,15 +381,16 @@ public class Configuration extends AbstractConfiguration {
                 throw new SyncException("unsupported connection string: "
                         + inputConnectionString);
             }
-            logger
-                    .info("input from connection: "
-                            + inputConnectionString);
             // split for load balancing
             String[] inputStrings = inputConnectionString
                     .split(CSV_SCSV_SSV_REGEX);
             URI[] inputUri = new URI[inputStrings.length];
+            logger.info("input from connection: ");
             for (int i = 0; i < inputUri.length; i++) {
                 inputUri[i] = new URI(inputStrings[i]);
+
+                String[] splitStr = inputStrings[i].split("@");
+                logger.info("input connection string: " + splitStr[1]);
             }
             inputConnection = new Connection(inputUri);
         }
@@ -419,11 +424,13 @@ public class Configuration extends AbstractConfiguration {
                 String[] outputConnectionStrings = outputConnectionString
                         .split(CSV_SCSV_SSV_REGEX);
                 outputConnection = new Connection[outputConnectionStrings.length];
+                logger.info("output to connection: ");
                 for (int i = 0; i < outputConnection.length; i++) {
-                    logger.info("output to connection: "
-                            + outputConnectionStrings[i]);
                     outputConnection[i] = new Connection(new URI(
                             outputConnectionStrings[i]));
+
+                    String[] splitStr = outputConnectionStrings[i].split("@");
+                    logger.info("output connection string: " + splitStr[1]);
                 }
             }
         }
@@ -822,6 +829,14 @@ public class Configuration extends AbstractConfiguration {
     public int getInputBatchSize() {
         return Integer.parseInt(properties
                 .getProperty(INPUT_BATCH_SIZE_KEY));
+    }
+
+    /**
+     * @return
+     */
+    public boolean useMultiStmtTxn() {
+        return Boolean.parseBoolean(properties
+                .getProperty(USE_MULTI_STMT_TXN_KEY));
     }
 
     /**

@@ -1,4 +1,5 @@
-/**
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -262,7 +263,8 @@ public class SessionReader extends AbstractReader {
             _resultIndex++;
         }
 
-        // verify marker
+        // verify end-of-record marker, which should be 0
+	// this is a must.  If this verification fails, we have a parsing problem
         if (ValueType.XS_INTEGER != _items[_resultIndex].getItemType()) {
             throw new SyncException("unexpected "
                     + _items[_resultIndex].getItemType() + " "
@@ -471,7 +473,7 @@ public class SessionReader extends AbstractReader {
             if (copyProperties) {
                 query += "if ($URI-" + i + " eq '') then ()\n"
                         + "else xdmp:document-properties($URI-" + i
-                        + "),\n";
+                        + ")/prop:properties,\n";
             } else {
                 query += "(),\n";
             }

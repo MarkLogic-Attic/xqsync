@@ -1,4 +1,5 @@
-/*
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,6 +37,7 @@ import com.marklogic.xcc.Session;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XccConfigException;
 import com.marklogic.xcc.exceptions.XccException;
+import com.marklogic.xcc.spi.ConnectionProvider;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
@@ -137,6 +139,37 @@ public class Connection implements ContentSource {
     public Session newSession() {
         return new com.marklogic.ps.Session(this, getContentSource()
                 .newSession());
+    }
+
+    /**
+     * @return true if basic authentication will be attempted preemptively, false otherwise.
+     */
+    public boolean isAuthenticationPreemptive() {
+        return getContentSource().isAuthenticationPreemptive();
+    }
+    
+    /**
+     * <p>Sets whether basic authentication should be attempted preemptively, default is false.</p>
+     * 
+     * <p>Preemptive authentication can reduce the overhead of making connections to servers that accept
+     * basic authentication by eliminating the challenge-response interaction otherwise required.</p>  
+     * 
+     * <p>Note that misuse of preemptive authentication entails potential security risks, and under most 
+     * circumstances the credentials used to authenticate will be cached after the first connection.  To
+     * avoid creating the illusion that credentials are protected, connections to a server requiring digest 
+     * authentication will not be retried if this flag is set.</p> 
+     *
+     * @param value true if basic authentication should be attempted preemptively, false otherwise.
+     */
+    public void setAuthenticationPreemptive(boolean value) {
+        getContentSource().setAuthenticationPreemptive(value);
+    }
+
+    /**
+     * @return The ConnectionProvider used to construct this ContentSource.
+     */
+    public ConnectionProvider getConnectionProvider() {
+        return getContentSource().getConnectionProvider();
     }
 
     /**
