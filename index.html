@@ -104,6 +104,14 @@ using <code>-Xmx</code>.
 </tr>
 
 <tr>
+  <td>DELETE_COLLECTION</td>
+  <td>null</td>
+  <td>In combination with INPUT_COLLECTION_URI and OUTPUT_CONNECTION_STRING,
+  delete the INPUT_COLLECTION_URI on the OUTPUT_CONNECTION_STRING,
+  before beginning synchronization.</td>
+</tr>
+
+<tr>
   <td>CONFIGURATION_CLASSNAME</td><td>null</td>
   <td>
     If non-null, this class will be used instead of
@@ -410,13 +418,7 @@ local:lc(doc($URI))
     XQSync will round-robin documents across the available connections.
   </td>
 </tr>
-<tr>
-  <td>OUTPUT_DELETE_COLLECTION</td>
-  <td>null</td>
-  <td>In combination with INPUT_COLLECTION_URI and OUTPUT_CONNECTION_STRING,
-  delete the INPUT_COLLECTION_URI on the OUTPUT_CONNECTION_STRING,
-  before beginning synchronization.</td>
-</tr>
+
 <tr>
   <td>OUTPUT_FILTER_FORMATS</td><td>null</td>
   <td>The specified list of document types will not be copied to output.
