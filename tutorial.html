@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 /*
- * Copyright (c)2005-2010 Mark Logic Corporation
+ * Copyright (c)2005-2011 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@
   <body class="sub_page layout2">
     <h2>XQSync: a Wheelbarrow for Content</h2>
     <div class="author">Michael Blakeley</div>
-    <div class="date">Last updated 2010-08-26</div>
+    <div class="date">Last updated 2011-01-04</div>
     <br />
 <p>
 MarkLogic Server includes built-in support for online, transactional
@@ -203,12 +203,18 @@ to keep it simple, we'll use the built-in Documents database.
 <p>Did you know that MarkLogic Server automatically sets up
 the W3C XQuery Use-Cases when it installs?
 If your server is running on your PC or laptop,
-visit <a href="http://localhost:8000/use-cases/">port 8000</a>
-to see what I mean.
+you can view these use cases using one of the following links:
+<ul>
+<li>Versions prior to 5.0:
+  <a href="http://localhost:8000/use-cases/">port 8000</a></li>
+<li><a href="http://developer.marklogic.com/blog/where-did-the-w3c-use-cases-go/">
+    5.0 and later</a></li>
+</ul>
 </p>
 
 <p>
-For convenience, here's a screenshot of the Use Cases application.
+For convenience, here's a screenshot of the Use Cases application,
+as seen in versions prior to 5.0:
 </p>
 
 <img src="use-cases-small.png" alt="Use Cases" width="395" height="192" />
@@ -217,12 +223,12 @@ For convenience, here's a screenshot of the Use Cases application.
 </p>
 
 <ol>
-        <li>Open a web browser and visit port 8000 on your MarkLogic Server.</li>
-        <li>Click on the "Load source XML into database" link.
-After a second or two, you should see a message like
-"The source XML has been sucessfully loaded into the database."
-</li>
-      </ol>
+  <li>Open a web browser and visit the use cases (as described above).</li>
+  <li>Click on the "Load source XML into database" link.
+    After a second or two, you should see a message like
+    "The source XML has been sucessfully loaded into the database."
+  </li>
+</ol>
 
 <p>You will also need an XDBC server.
 To set one up, use the MarkLogic Server admin interface,
