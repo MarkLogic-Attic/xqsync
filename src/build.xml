@@ -20,37 +20,46 @@
  */
 -->
 <project name="xqsync" basedir="." default="jar">
-    <property environment="env"/>
-    <property name="name" value="xqsync"/>
-    <property file="build.properties"/>
+  <property environment="env"/>
+  <property name="name" value="xqsync"/>
+  <property file="build.properties"/>
 
-    <property name="src.dir" value="java"/>
-    <property name="dist.dir" value="../lib"/>
-    <property name="build.dir" value="${src.dir}"/>
+  <property name="src.dir" value="java"/>
+  <property name="dist.dir" value="../lib"/>
+  <property name="build.dir" value="${src.dir}"/>
 
-    <path id="master-classpath">
-        <fileset dir="${java.library.user}">
-            <include name="xcc.jar"/>
-            <include name="xstream-1.1.2.jar"/>
-            <include name="xpp3.jar"/>
-        </fileset>
-        <fileset dir="${java.library.system}">
-            <include name="xcc.jar"/>
-            <include name="xstream-1.1.2.jar"/>
-            <include name="xpp3.jar"/>
-        </fileset>
-        <pathelement path="${build.dir}"/>
-    </path>
-	
-	<target name="build" 
-			description="Compile main source tree java files">
-	  <mkdir dir="${build.dir}"/>
-	  <javac destdir="${build.dir}" debug="true" target="1.5" source="1.5">
-		<src path="${src.dir}"/>
-		<classpath refid="master-classpath"/>
-		<compilerarg value="-Xlint"/>
-	  </javac>
-    </target>
+  <path id="master-classpath">
+    <fileset dir="${java.library.user}">
+      <include name="xcc.jar"/>
+      <include name="xstream-1.1.2.jar"/>
+      <include name="xpp3.jar"/>
+    </fileset>
+    <fileset dir="${java.library.system}">
+      <include name="xcc.jar"/>
+      <include name="xstream-1.1.2.jar"/>
+      <include name="xpp3.jar"/>
+    </fileset>
+    <pathelement path="${build.dir}"/>
+  </path>
+  
+  <target name="build" description="Compile main source tree java files">
+    <mkdir dir="${build.dir}"/>
+    <javac destdir="${build.dir}" debug="true" target="1.5" source="1.5">
+      <src path="${src.dir}"/>
+      <exclude name="**/tests/**"/>
+      <classpath refid="master-classpath"/>
+      <compilerarg value="-Xlint"/>
+    </javac>
+  </target>
+
+  <target name="test" description="Compile main source tree java files, including tests">
+    <mkdir dir="${build.dir}"/>
+    <javac destdir="${build.dir}" debug="true" target="1.5" source="1.5">
+      <src path="${src.dir}"/>
+      <classpath refid="master-classpath"/>
+      <compilerarg value="-Xlint"/>
+    </javac>
+  </target>
 
   <target name="jar" depends="build"
 	  description="generate the jarfile" >
