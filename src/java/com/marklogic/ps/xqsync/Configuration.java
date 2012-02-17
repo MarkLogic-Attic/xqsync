@@ -1,6 +1,6 @@
 /* -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2010 Mark Logic Corporation
+ * Copyright (c)2004-2012 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class Configuration extends AbstractConfiguration {
 
@@ -133,7 +133,10 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String QUEUE_SIZE_KEY = "QUEUE_SIZE";
 
-    public static final String READ_PERMISSION_ROLES_KEY = "READ_PERMISSION_ROLES";
+    public static final String ROLES_EXECUTE_KEY = "ROLES_EXECUTE";
+    public static final String ROLES_INSERT_KEY = "ROLES_INSERT";
+    public static final String ROLES_READ_KEY = "ROLES_READ";
+    public static final String ROLES_UPDATE_KEY = "ROLES_UPDATE";
 
     public static final String REPAIR_INPUT_XML_KEY = "REPAIR_INPUT_XML";
 
@@ -181,7 +184,7 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String KEEP_URI_QUEUE_FILE_DEFAULT = "false";
 
-    public static final String PRINT_CURRENT_RATE_KEY = "PRINT_CURRENT_RATE"; 
+    public static final String PRINT_CURRENT_RATE_KEY = "PRINT_CURRENT_RATE";
 
     public static final String PRINT_CURRENT_RATE_DEFAULT = "false";
 
@@ -197,7 +200,10 @@ public class Configuration extends AbstractConfiguration {
 
     /* fields */
 
-    protected Collection<ContentPermission> readRoles;
+    protected Collection<ContentPermission> rolesExecute;
+    protected Collection<ContentPermission> rolesInsert;
+    protected Collection<ContentPermission> rolesRead;
+    protected Collection<ContentPermission> rolesUpdate;
 
     protected String[] placeKeys = null;
 
@@ -233,7 +239,7 @@ public class Configuration extends AbstractConfiguration {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties
      * )
@@ -256,7 +262,7 @@ public class Configuration extends AbstractConfiguration {
      * @throws SyncException
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException
-     * 
+     *
      */
     public void configure() throws Exception {
         // cold configuration
@@ -307,18 +313,66 @@ public class Configuration extends AbstractConfiguration {
 
         uriPrefix = properties.getProperty(URI_PREFIX_KEY);
 
-        String readRolesString = properties
-                .getProperty(READ_PERMISSION_ROLES_KEY);
-        if (readRolesString != null) {
-            logger.fine("read roles are: " + readRolesString);
-            String[] roleNames = readRolesString
+        String rolesExecuteString = properties
+                .getProperty(ROLES_EXECUTE_KEY);
+        if (rolesExecuteString != null) {
+            logger.fine("execute roles are: " + rolesExecuteString);
+            String[] roleNames = rolesExecuteString
                     .split(CSV_SCSV_SSV_REGEX);
             if (roleNames.length > 0) {
-                readRoles = new Vector<ContentPermission>();
+                rolesExecute = new Vector<ContentPermission>();
+                for (int i = 0; i < roleNames.length; i++) {
+                    logger.fine("adding execute role: " + roleNames[i]);
+                    rolesExecute.add(new ContentPermission(
+                            ContentPermission.EXECUTE, roleNames[i]));
+                }
+            }
+        }
+
+        String rolesInsertString = properties
+                .getProperty(ROLES_INSERT_KEY);
+        if (rolesInsertString != null) {
+            logger.fine("insert roles are: " + rolesInsertString);
+            String[] roleNames = rolesInsertString
+                    .split(CSV_SCSV_SSV_REGEX);
+            if (roleNames.length > 0) {
+                rolesInsert = new Vector<ContentPermission>();
+                for (int i = 0; i < roleNames.length; i++) {
+                    logger.fine("adding insert role: " + roleNames[i]);
+                    rolesInsert.add(new ContentPermission(
+                            ContentPermission.INSERT, roleNames[i]));
+                }
+            }
+        }
+
+        String rolesReadString = properties
+                .getProperty(ROLES_READ_KEY);
+        if (rolesReadString != null) {
+            logger.fine("read roles are: " + rolesReadString);
+            String[] roleNames = rolesReadString
+                    .split(CSV_SCSV_SSV_REGEX);
+            if (roleNames.length > 0) {
+                rolesRead = new Vector<ContentPermission>();
                 for (int i = 0; i < roleNames.length; i++) {
                     logger.fine("adding read role: " + roleNames[i]);
-                    readRoles.add(new ContentPermission(
+                    rolesRead.add(new ContentPermission(
                             ContentPermission.READ, roleNames[i]));
+                }
+            }
+        }
+
+        String rolesUpdateString = properties
+                .getProperty(ROLES_UPDATE_KEY);
+        if (rolesUpdateString != null) {
+            logger.fine("update roles are: " + rolesUpdateString);
+            String[] roleNames = rolesUpdateString
+                    .split(CSV_SCSV_SSV_REGEX);
+            if (roleNames.length > 0) {
+                rolesUpdate = new Vector<ContentPermission>();
+                for (int i = 0; i < roleNames.length; i++) {
+                    logger.fine("adding update role: " + roleNames[i]);
+                    rolesUpdate.add(new ContentPermission(
+                            ContentPermission.UPDATE, roleNames[i]));
                 }
             }
         }
@@ -450,7 +504,7 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @param _timestampString
      * @throws RequestException
-     * 
+     *
      */
     private void configureTimestamp(String _timestampString)
             throws RequestException {
@@ -552,8 +606,20 @@ public class Configuration extends AbstractConfiguration {
         return placeKeys;
     }
 
-    public Collection<ContentPermission> getReadRoles() {
-        return readRoles;
+    public Collection<ContentPermission> getRolesExecute() {
+        return rolesExecute;
+    }
+
+    public Collection<ContentPermission> getRolesInsert() {
+        return rolesInsert;
+    }
+
+    public Collection<ContentPermission> getRolesRead() {
+        return rolesRead;
+    }
+
+    public Collection<ContentPermission> getRolesUpdate() {
+        return rolesUpdate;
     }
 
     /**
@@ -892,7 +958,7 @@ public class Configuration extends AbstractConfiguration {
      * @return whether to use the in memory uri queue or not
      */
     public boolean useInMemoryUriQueue() {
-        String p = properties.getProperty(USE_IN_MEMORY_URI_QUEUE_KEY, 
+        String p = properties.getProperty(USE_IN_MEMORY_URI_QUEUE_KEY,
                                           USE_IN_MEMORY_URI_QUEUE_DEFAULT);
         return Boolean.parseBoolean(p);
     }
@@ -901,7 +967,7 @@ public class Configuration extends AbstractConfiguration {
      * @return whether to use a file for uri queue or not
      */
     public boolean useQueueFile() {
-        return (!useInMemoryUriQueue() && 
+        return (!useInMemoryUriQueue() &&
                 properties.getProperty(INPUT_CONNECTION_STRING_KEY) != null);
     }
 
@@ -910,7 +976,7 @@ public class Configuration extends AbstractConfiguration {
      * @return the temporary directory location
      */
     public String getTmpDir() {
-        return properties.getProperty(TMP_DIR_KEY, 
+        return properties.getProperty(TMP_DIR_KEY,
                                       TMP_DIR_DEFAULT);
     }
 
@@ -919,7 +985,7 @@ public class Configuration extends AbstractConfiguration {
      * @return the uri queue file location
      */
     public String getUriQueueFile() {
-        return properties.getProperty(URI_QUEUE_FILE_KEY, 
+        return properties.getProperty(URI_QUEUE_FILE_KEY,
                                       URI_QUEUE_FILE_DEFAULT);
     }
 
@@ -936,13 +1002,13 @@ public class Configuration extends AbstractConfiguration {
      * @return boolean, true if we should print out the current rate
      */
     public boolean doPrintCurrRate() {
-        String p = properties.getProperty(PRINT_CURRENT_RATE_KEY, 
+        String p = properties.getProperty(PRINT_CURRENT_RATE_KEY,
                                           PRINT_CURRENT_RATE_DEFAULT);
         return Boolean.parseBoolean(p);
     }
 
     /**
-     * 
+     *
      */
     public void close() {
         // nothing to do
@@ -952,7 +1018,7 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return
      * @throws SyncException
-     * 
+     *
      *             This method always returns a SessionWriter or FilePathWriter.
      *             However, overriding subclasses can return any object that
      *             implements ReaderInterface.
@@ -966,7 +1032,7 @@ public class Configuration extends AbstractConfiguration {
 
     /**
      * @throws SyncException
-     * 
+     *
      *             This method always returns a SessionReader object. However,
      *             overriding subclasses can return any object that implements
      *             WriterInterface.

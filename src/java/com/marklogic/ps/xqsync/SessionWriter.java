@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2012 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class SessionWriter extends AbstractWriter {
 
@@ -61,7 +61,7 @@ public class SessionWriter extends AbstractWriter {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.WriterInterface#write(java.lang.String,
      * byte[], com.marklogic.ps.xqsync.XQSyncDocumentMetadata)
      */
@@ -84,14 +84,14 @@ public class SessionWriter extends AbstractWriter {
      * @param _contentBytes[][]
      * @param _metadata[]
      * @return
-     * 
+     *
      * returns the number of Bytes written
-     * @throws SyncException 
+     * @throws SyncException
      */
     public int write(String[] _outputUri, byte[][] _contentBytes,
-		     XQSyncDocumentMetadata[] _metadata) throws SyncException
+         XQSyncDocumentMetadata[] _metadata) throws SyncException
     {
-        int bytes = 0; 
+        int bytes = 0;
 
         // do nothing if there's no input
         if (null == _outputUri || _outputUri.length == 0)
@@ -111,7 +111,7 @@ public class SessionWriter extends AbstractWriter {
         // handle delete requests.  These are URIs that has 0
         // contentBytes
         for (int i = 0; i < _outputUri.length; i++) {
-            if (!ignoreList[i] && 
+            if (!ignoreList[i] &&
                 (null == _contentBytes[i] || _contentBytes[i].length < 1)) {
                 ignoreList[i] = true;
                 try {
@@ -143,7 +143,7 @@ public class SessionWriter extends AbstractWriter {
         // create the contents to be inserted
         ArrayList<Content> contentList = new ArrayList<Content>(_outputUri.length);
         for (int i = 0; i < _outputUri.length; i++) {
-            if (ignoreList[i]) 
+            if (ignoreList[i])
                 continue;
 
             ContentCreateOptions options = null;
@@ -162,9 +162,12 @@ public class SessionWriter extends AbstractWriter {
             options.setResolveEntities(false);
 
             // permissions
-            _metadata[i].addPermissions(readRoles);
+            _metadata[i].addPermissions(rolesExecute);
+            _metadata[i].addPermissions(rolesInsert);
+            _metadata[i].addPermissions(rolesRead);
+            _metadata[i].addPermissions(rolesUpdate);
             ContentPermission[] permissions = _metadata[i].getPermissions();
-            if (null != permissions)  
+            if (null != permissions)
                 options.setPermissions(permissions);
 
             // collections
@@ -180,7 +183,7 @@ public class SessionWriter extends AbstractWriter {
             options.setNamespace(null);
 
             // repair level
-            DocumentRepairLevel repair = (!repairInputXml) ? 
+            DocumentRepairLevel repair = (!repairInputXml) ?
                 DocumentRepairLevel.NONE : DocumentRepairLevel.FULL;
             logger.fine("repair = " + repairInputXml + ", " + repair);
             options.setRepairLevel(repair);
@@ -188,7 +191,7 @@ public class SessionWriter extends AbstractWriter {
             // place keys
             if (null != placeKeys) {
                 try {
-                    logger.finest("placeKeys = " + 
+                    logger.finest("placeKeys = " +
                                   Utilities.join(placeKeys, ","));
                     options.setPlaceKeys(session.forestNamesToIds(placeKeys));
                 } catch(XccException e) {
@@ -199,9 +202,9 @@ public class SessionWriter extends AbstractWriter {
             }
 
             // create the content
-            Content content = 
-                ContentFactory.newContent(_outputUri[i], 
-                                          _contentBytes[i], 
+            Content content =
+                ContentFactory.newContent(_outputUri[i],
+                                          _contentBytes[i],
                                           options);
 
             contentList.add(content);
@@ -230,7 +233,7 @@ public class SessionWriter extends AbstractWriter {
                     for (int i = 0; i < _outputUri.length; i++) {
                         if (ignoreList[i])
                             continue;
-                        
+
                         String properties = _metadata[i].getProperties();
                         if (null != properties) {
                             session.setDocumentProperties(_outputUri[i],
@@ -252,7 +255,7 @@ public class SessionWriter extends AbstractWriter {
             }
         }
 
-        // compute total ingested bytes 
+        // compute total ingested bytes
         if (retries >= 0) {
             for (int i = 0; i < _outputUri.length; i++) {
                 if (ignoreList[i])
@@ -289,8 +292,8 @@ public class SessionWriter extends AbstractWriter {
     private boolean matchesFilters(String _outputUri,
             MetadataInterface _metadata) {
         // check format - return true if any filter matches
-        if (null != outputFormatFilters && 
-            Arrays.binarySearch(outputFormatFilters, 
+        if (null != outputFormatFilters &&
+            Arrays.binarySearch(outputFormatFilters,
                                 _metadata.getFormatName()) > -1) {
             logger.finer(Configuration.OUTPUT_FILTER_FORMATS_KEY
                     + " matched " + _outputUri);
