@@ -372,6 +372,15 @@ public class Session implements com.marklogic.xcc.Session {
      * @return
      * @throws XccException
      */
+    public Map<String, BigInteger> getForestMap() throws XccException {
+        return session.getContentbaseMetaData().getForestMap();
+    }
+
+    /**
+     * @param _names
+     * @return
+     * @throws XccException
+     */
     public BigInteger[] forestNamesToIds(String[] _names)
             throws XccException {
         if (_names == null) {

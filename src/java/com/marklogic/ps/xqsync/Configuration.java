@@ -79,6 +79,10 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String INPUT_BATCH_SIZE_DEFAULT = "1";
 
+    public static final String OUTPUT_BATCH_SIZE_KEY = "OUTPUT_BATCH_SIZE";
+
+    public static final String OUTPUT_BATCH_SIZE_DEFAULT = "1";
+
     public static final String USE_MULTI_STMT_TXN_KEY = "USE_MULTI_STMT_TXN";
 
     public static final String USE_MULTI_STMT_TXN_DEFAULT = "false";
@@ -135,6 +139,12 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String READ_PERMISSION_ROLES_KEY = "READ_PERMISSION_ROLES";
 
+    public static final String UPDATE_PERMISSION_ROLES_KEY = "UPDATE_PERMISSION_ROLES";
+
+    public static final String INSERT_PERMISSION_ROLES_KEY = "INSERT_PERMISSION_ROLES";
+
+    public static final String EXECUTE_PERMISSION_ROLES_KEY = "EXECUTE_PERMISSION_ROLES";
+
     public static final String REPAIR_INPUT_XML_KEY = "REPAIR_INPUT_XML";
 
     public static final String REPAIR_INPUT_XML_DEFAULT = "false";
@@ -185,6 +195,10 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String PRINT_CURRENT_RATE_DEFAULT = "false";
 
+    public static final String USE_IN_FOREST_EVAL_KEY = "USE_IN_FOREST_EVAL"; 
+
+    public static final String USE_IN_FOREST_EVAL_DEFAULT = "false";
+
     /* internal constants */
 
     protected static final String CSV_SCSV_SSV_REGEX = "[,;\\s]+";
@@ -198,6 +212,12 @@ public class Configuration extends AbstractConfiguration {
     /* fields */
 
     protected Collection<ContentPermission> readRoles;
+
+    protected Collection<ContentPermission> updateRoles;
+
+    protected Collection<ContentPermission> insertRoles;
+
+    protected Collection<ContentPermission> executeRoles;
 
     protected String[] placeKeys = null;
 
@@ -319,6 +339,54 @@ public class Configuration extends AbstractConfiguration {
                     logger.fine("adding read role: " + roleNames[i]);
                     readRoles.add(new ContentPermission(
                             ContentPermission.READ, roleNames[i]));
+                }
+            }
+        }
+
+        String updateRolesString = properties
+                .getProperty(UPDATE_PERMISSION_ROLES_KEY);
+        if (updateRolesString != null) {
+            logger.fine("update roles are: " + updateRolesString);
+            String[] roleNames = updateRolesString
+                    .split(CSV_SCSV_SSV_REGEX);
+            if (roleNames.length > 0) {
+                updateRoles = new Vector<ContentPermission>();
+                for (int i = 0; i < roleNames.length; i++) {
+                    logger.fine("adding update role: " + roleNames[i]);
+                    updateRoles.add(new ContentPermission(
+                            ContentPermission.UPDATE, roleNames[i]));
+                }
+            }
+        }
+
+        String insertRolesString = properties
+                .getProperty(INSERT_PERMISSION_ROLES_KEY);
+        if (insertRolesString != null) {
+            logger.fine("insert roles are: " + insertRolesString);
+            String[] roleNames = insertRolesString
+                    .split(CSV_SCSV_SSV_REGEX);
+            if (roleNames.length > 0) {
+                insertRoles = new Vector<ContentPermission>();
+                for (int i = 0; i < roleNames.length; i++) {
+                    logger.fine("adding insert role: " + roleNames[i]);
+                    insertRoles.add(new ContentPermission(
+                            ContentPermission.INSERT, roleNames[i]));
+                }
+            }
+        }
+
+        String executeRolesString = properties
+                .getProperty(EXECUTE_PERMISSION_ROLES_KEY);
+        if (executeRolesString != null) {
+            logger.fine("execute roles are: " + executeRolesString);
+            String[] roleNames = executeRolesString
+                    .split(CSV_SCSV_SSV_REGEX);
+            if (roleNames.length > 0) {
+                executeRoles = new Vector<ContentPermission>();
+                for (int i = 0; i < roleNames.length; i++) {
+                    logger.fine("adding execute role: " + roleNames[i]);
+                    executeRoles.add(new ContentPermission(
+                            ContentPermission.EXECUTE, roleNames[i]));
                 }
             }
         }
@@ -556,6 +624,18 @@ public class Configuration extends AbstractConfiguration {
         return readRoles;
     }
 
+    public Collection<ContentPermission> getUpdateRoles() {
+        return updateRoles;
+    }
+
+    public Collection<ContentPermission> getInsertRoles() {
+        return insertRoles;
+    }
+
+    public Collection<ContentPermission> getExecuteRoles() {
+        return executeRoles;
+    }
+
     /**
      * @return
      */
@@ -568,13 +648,22 @@ public class Configuration extends AbstractConfiguration {
      * @return
      */
     public com.marklogic.ps.Session newOutputSession() {
+        return newOutputSession(null);
+    }
+
+    /**
+     * @return a Session that would perform inForestEval
+     */
+    public com.marklogic.ps.Session newOutputSession(String forestId) {
         if (null == outputConnection) {
             return null;
         }
         // support round-robin across multiple outputs
         synchronized (outputConnection) {
             int x = (outputConnectionCount++ % outputConnection.length);
-            return (Session) outputConnection[x].newSession();
+            return (forestId == null ? 
+                    (Session) outputConnection[x].newSession() :
+                    (Session) outputConnection[x].newSession(forestId));
         }
     }
 
@@ -834,6 +923,14 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return
      */
+    public int getOutputBatchSize() {
+        return Integer.parseInt(properties
+                .getProperty(OUTPUT_BATCH_SIZE_KEY));
+    }
+
+    /**
+     * @return
+     */
     public boolean useMultiStmtTxn() {
         return Boolean.parseBoolean(properties
                 .getProperty(USE_MULTI_STMT_TXN_KEY));
@@ -938,6 +1035,15 @@ public class Configuration extends AbstractConfiguration {
     public boolean doPrintCurrRate() {
         String p = properties.getProperty(PRINT_CURRENT_RATE_KEY, 
                                           PRINT_CURRENT_RATE_DEFAULT);
+        return Boolean.parseBoolean(p);
+    }
+
+    /**
+     * @return boolean, true if we should use in-forest eval
+     */
+    public boolean useInForestEval() {
+        String p = properties.getProperty(USE_IN_FOREST_EVAL_KEY, 
+                                          USE_IN_FOREST_EVAL_DEFAULT);
         return Boolean.parseBoolean(p);
     }
 

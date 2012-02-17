@@ -21,6 +21,9 @@ package com.marklogic.ps.xqsync;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Random;
+import java.util.Map;
+import java.math.BigInteger;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.Utilities;
@@ -38,11 +41,13 @@ import com.marklogic.xcc.exceptions.XccException;
  */
 public class SessionWriter extends AbstractWriter {
 
-    protected Session session;
-
     protected static Object firstMaxTasksMutex = new Object();
 
     protected static boolean firstMaxTasks = false;
+
+    protected int placeKeyIdx = -1;
+
+    protected Map<String, BigInteger> forestMap = null;
 
     /**
      * @param _configuration
@@ -53,10 +58,28 @@ public class SessionWriter extends AbstractWriter {
         // superclass takes care of some configuration
         super(_configuration);
 
-        session = configuration.newOutputSession();
-        if (null == session) {
-            throw new FatalException("null output session");
+        // prepare for in-forest eval
+        if (configuration.useInForestEval()) {
+            Session metadataSession = configuration.newOutputSession();
+            if (null == metadataSession) {
+                throw new FatalException("null metadata session");
+            }
+
+            try {
+                forestMap = metadataSession.getForestMap();
+            } catch (XccException e) {
+                throw new SyncException("cannot retrieve forest map", e);
+            }
+
+            metadataSession.close();
+
+            // Create the initial placeKey randomly
+            if (placeKeys != null && placeKeys.length > 0) {
+                Random random = new Random(hashCode() + System.currentTimeMillis());
+                placeKeyIdx = random.nextInt(placeKeys.length);
+            }
         }
+
     }
 
     /*
@@ -92,6 +115,7 @@ public class SessionWriter extends AbstractWriter {
 		     XQSyncDocumentMetadata[] _metadata) throws SyncException
     {
         int bytes = 0; 
+        boolean useInForestEval = configuration.useInForestEval();
 
         // do nothing if there's no input
         if (null == _outputUri || _outputUri.length == 0)
@@ -108,33 +132,55 @@ public class SessionWriter extends AbstractWriter {
             if (!ignoreList[i] && (null == _outputUri[i] || _outputUri[i].isEmpty()))
                 ignoreList[i] = true;
 
-        // handle delete requests.  These are URIs that has 0
-        // contentBytes
-        for (int i = 0; i < _outputUri.length; i++) {
-            if (!ignoreList[i] && 
-                (null == _contentBytes[i] || _contentBytes[i].length < 1)) {
-                ignoreList[i] = true;
-                try {
-                    session.deleteDocument(_outputUri[i]);
-                } catch (XccException e) {
-                    // don't retry delete.  We simply log the failure
-                    logger.logException("error deleting document: " +
-                                        _outputUri[i], e);
-                }
-            }
+        // create the session to be used
+        String forestName = null;
+        BigInteger forestIdBigInt = null;
+        Session session = null;
+
+        if (!useInForestEval) {
+            session = configuration.newOutputSession();
+        } else {
+            forestName = placeKeys[placeKeyIdx];
+            forestIdBigInt = forestMap.get(forestName);
+            session = configuration.newOutputSession("#"+forestIdBigInt.toString());
+            
+            // advance to next forest
+            placeKeyIdx = (placeKeyIdx + 1 ) % placeKeys.length;
         }
 
-        // skip existing documents if requested
-        if (skipExisting) {
+        if (null == session) {
+            throw new FatalException("null output session");
+        }
+
+        // handle delete requests.  These are URIs that has 0
+        // contentBytes
+        if (!useInForestEval) {
             for (int i = 0; i < _outputUri.length; i++) {
-                if (!ignoreList[i]) {
+                if (!ignoreList[i] && 
+                    (null == _contentBytes[i] || _contentBytes[i].length < 1)) {
+                    ignoreList[i] = true;
                     try {
-                        if (session.existsDocument(_outputUri[i]))
-                            ignoreList[i] = true;
+                        session.deleteDocument(_outputUri[i]);
                     } catch (XccException e) {
-                        // don't retry this.  We simply log the failure
-                        logger.logException("error on check existing document: " +
+                        // don't retry delete.  We simply log the failure
+                        logger.logException("error deleting document: " +
                                             _outputUri[i], e);
+                    }
+                }
+            }
+
+            // skip existing documents if requested
+            if (skipExisting) {
+                for (int i = 0; i < _outputUri.length; i++) {
+                    if (!ignoreList[i]) {
+                        try {
+                            if (session.existsDocument(_outputUri[i]))
+                                ignoreList[i] = true;
+                        } catch (XccException e) {
+                            // don't retry this.  We simply log the failure
+                            logger.logException("error on check existing document: " +
+                                                _outputUri[i], e);
+                        }
                     }
                 }
             }
@@ -163,6 +209,9 @@ public class SessionWriter extends AbstractWriter {
 
             // permissions
             _metadata[i].addPermissions(readRoles);
+            _metadata[i].addPermissions(updateRoles);
+            _metadata[i].addPermissions(insertRoles);
+            _metadata[i].addPermissions(executeRoles);
             ContentPermission[] permissions = _metadata[i].getPermissions();
             if (null != permissions)  
                 options.setPermissions(permissions);
@@ -188,9 +237,14 @@ public class SessionWriter extends AbstractWriter {
             // place keys
             if (null != placeKeys) {
                 try {
-                    logger.finest("placeKeys = " + 
-                                  Utilities.join(placeKeys, ","));
-                    options.setPlaceKeys(session.forestNamesToIds(placeKeys));
+                    if (forestIdBigInt == null) {
+                        logger.finest("placeKeys = " + 
+                                      Utilities.join(placeKeys, ","));
+                        options.setPlaceKeys(session.forestNamesToIds(placeKeys));
+                    } else {
+                        BigInteger forestIds[] = {forestIdBigInt};
+                        options.setPlaceKeys(forestIds);
+                    }
                 } catch(XccException e) {
                     // don't retry this.  We simply log the failure
                     logger.logException("error on setting placekeys: " +
@@ -260,6 +314,8 @@ public class SessionWriter extends AbstractWriter {
                 bytes += _contentBytes[i].length;
             }
         }
+
+        session.close();
 
         return bytes;
     }
