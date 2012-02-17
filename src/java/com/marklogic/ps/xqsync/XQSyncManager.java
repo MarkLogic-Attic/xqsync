@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2010 Mark Logic Corporation
+ * Copyright (c)2004-2012 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- * 
+ *
  */
 public class XQSyncManager {
 
@@ -60,7 +60,7 @@ public class XQSyncManager {
 
     /**
      * @author Michael Blakeley, michael.blakeley@marklogic.com
-     * 
+     *
      */
     public class CallerBlocksPolicy implements RejectedExecutionHandler {
 
@@ -70,7 +70,7 @@ public class XQSyncManager {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see
          * java.util.concurrent.RejectedExecutionHandler#rejectedExecution(java
          * .lang.Runnable, java.util.concurrent.ThreadPoolExecutor)
@@ -271,7 +271,7 @@ public class XQSyncManager {
      * @return
      * @throws IOException
      * @throws SyncException
-     * 
+     *
      */
     private long queueFromInputPackage(String _path) throws IOException,
             SyncException {
@@ -420,10 +420,24 @@ public class XQSyncManager {
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
         String[] userQuery = configuration.getInputQuery();
-        if (null != collectionUris && null != directoryUris) {
-            logger.warning("conflicting properties: using "
-                    + Configuration.INPUT_COLLECTION_URI_KEY + ", not "
-                    + Configuration.INPUT_DIRECTORY_URI_KEY);
+        // warn the user about incompatible combinations
+        if (null != documentUris) {
+            if (null != collectionUris
+                || null != directoryUris
+                || null != userQuery) {
+                logger.warning("conflicting properties: only using "
+                               + Configuration.INPUT_DOCUMENT_URIS_KEY);
+            }
+        } else if (null != collectionUris) {
+            if (null != directoryUris || null != userQuery) {
+                logger.warning("conflicting properties: only using "
+                               + Configuration.INPUT_COLLECTION_URI_KEY);
+            }
+        } else if (null != directoryUris) {
+            if (null != userQuery) {
+                logger.warning("conflicting properties: only using "
+                               + Configuration.INPUT_DIRECTORY_URI_KEY);
+            }
         }
 
         Long startPosition = configuration.getStartPosition();

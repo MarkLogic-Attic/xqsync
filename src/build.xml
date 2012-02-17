@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
 /*
- * Copyright (c)2005-2006 Mark Logic Corporation
+ * Copyright (c)2005-2012 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,20 +31,21 @@
   <path id="master-classpath">
     <fileset dir="${java.library.user}">
       <include name="xcc.jar"/>
-      <include name="xstream-1.1.2.jar"/>
+      <include name="xstream.jar"/>
       <include name="xpp3.jar"/>
     </fileset>
     <fileset dir="${java.library.system}">
       <include name="xcc.jar"/>
-      <include name="xstream-1.1.2.jar"/>
+      <include name="xstream.jar"/>
       <include name="xpp3.jar"/>
     </fileset>
     <pathelement path="${build.dir}"/>
   </path>
-  
+
   <target name="build" description="Compile main source tree java files">
     <mkdir dir="${build.dir}"/>
-    <javac destdir="${build.dir}" debug="true" target="1.5" source="1.5">
+    <javac destdir="${build.dir}" debug="true" target="1.5" source="1.5"
+           includeantruntime="false">
       <src path="${src.dir}"/>
       <exclude name="**/tests/**"/>
       <classpath refid="master-classpath"/>
@@ -52,25 +53,25 @@
     </javac>
   </target>
 
-  <target name="test" description="Compile main source tree java files, including tests">
+  <target name="test"
+          description="Compile main source tree java files, including tests">
     <mkdir dir="${build.dir}"/>
-    <javac destdir="${build.dir}" debug="true" target="1.5" source="1.5">
+    <javac destdir="${build.dir}" debug="true" target="1.5" source="1.5"
+           includeantruntime="false">
       <src path="${src.dir}"/>
       <classpath refid="master-classpath"/>
       <compilerarg value="-Xlint"/>
     </javac>
   </target>
 
-  <target name="jar" depends="build"
-	  description="generate the jarfile" >
+  <target name="jar" depends="build" description="generate the jarfile">
     <mkdir dir="${dist.dir}"/>
     <jar jarfile="${dist.dir}/${name}.jar" basedir="${build.dir}"
-	 compress="true" index="true"
-	 excludes="**/*.java"/>
+         compress="true" index="true"
+         excludes="**/*.java"/>
   </target>
 
-  <target name="clean"
-	  description="clean up all generated files">
+  <target name="clean" description="clean up all generated files">
     <delete file="${dist.dir}/${name}.jar">
       <fileset dir="${build.dir}" includes="**/*.class"/>
     </delete>

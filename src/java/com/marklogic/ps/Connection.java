@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2009 Mark Logic Corporation
+ * Copyright (c)2004-2012 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ import com.marklogic.xcc.spi.ConnectionProvider;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
- * 
+ *
  */
 public class Connection implements ContentSource {
 
@@ -133,7 +133,7 @@ public class Connection implements ContentSource {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.ContentSource#newSession()
      */
     public Session newSession() {
@@ -147,17 +147,17 @@ public class Connection implements ContentSource {
     public boolean isAuthenticationPreemptive() {
         return getContentSource().isAuthenticationPreemptive();
     }
-    
+
     /**
      * <p>Sets whether basic authentication should be attempted preemptively, default is false.</p>
-     * 
+     *
      * <p>Preemptive authentication can reduce the overhead of making connections to servers that accept
-     * basic authentication by eliminating the challenge-response interaction otherwise required.</p>  
-     * 
-     * <p>Note that misuse of preemptive authentication entails potential security risks, and under most 
+     * basic authentication by eliminating the challenge-response interaction otherwise required.</p>
+     *
+     * <p>Note that misuse of preemptive authentication entails potential security risks, and under most
      * circumstances the credentials used to authenticate will be cached after the first connection.  To
-     * avoid creating the illusion that credentials are protected, connections to a server requiring digest 
-     * authentication will not be retried if this flag is set.</p> 
+     * avoid creating the illusion that credentials are protected, connections to a server requiring digest
+     * authentication will not be retried if this flag is set.</p>
      *
      * @param value true if basic authentication should be attempted preemptively, false otherwise.
      */
@@ -183,7 +183,7 @@ public class Connection implements ContentSource {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String)
      */
     public Session newSession(String contentbaseId) {
@@ -193,7 +193,7 @@ public class Connection implements ContentSource {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String,
      * java.lang.String)
      */
@@ -204,7 +204,7 @@ public class Connection implements ContentSource {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String,
      * java.lang.String, java.lang.String)
      */
@@ -216,7 +216,7 @@ public class Connection implements ContentSource {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.xcc.ContentSource#getDefaultLogger()
      */
     public Logger getDefaultLogger() {
@@ -225,7 +225,7 @@ public class Connection implements ContentSource {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.marklogic.xcc.ContentSource#setDefaultLogger(java.util.logging.Logger
      * )
@@ -262,5 +262,4 @@ public class Connection implements ContentSource {
         sslContext.init(null, trust, null);
         return new SecurityOptions(sslContext);
     }
-
 }
