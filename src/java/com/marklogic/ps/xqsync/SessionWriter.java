@@ -45,9 +45,11 @@ public class SessionWriter extends AbstractWriter {
 
     protected static boolean firstMaxTasks = false;
 
-    protected int placeKeyIdx = -1;
+    protected int evalForestIdx = -1;
 
     protected Map<String, BigInteger> forestMap = null;
+
+    protected String forestNameArray[] = null;
 
     /**
      * @param _configuration
@@ -60,26 +62,17 @@ public class SessionWriter extends AbstractWriter {
 
         // prepare for in-forest eval
         if (configuration.useInForestEval()) {
-            Session metadataSession = configuration.newOutputSession();
-            if (null == metadataSession) {
-                throw new FatalException("null metadata session");
-            }
+            forestMap = configuration.getOutputForestMap();
+            if (forestMap == null)
+                throw new SyncException("cannot retrieve forest map");
 
-            try {
-                forestMap = metadataSession.getForestMap();
-            } catch (XccException e) {
-                throw new SyncException("cannot retrieve forest map", e);
-            }
+            forestNameArray = placeKeys;
+            if (forestNameArray == null || forestNameArray.length == 0)
+                forestNameArray = configuration.getOutputForestNames();
 
-            metadataSession.close();
-
-            // Create the initial placeKey randomly
-            if (placeKeys != null && placeKeys.length > 0) {
-                Random random = new Random(hashCode() + System.currentTimeMillis());
-                placeKeyIdx = random.nextInt(placeKeys.length);
-            }
+            Random random = new Random(hashCode() + System.currentTimeMillis());
+            evalForestIdx = random.nextInt(forestNameArray.length);
         }
-
     }
 
     /*
@@ -140,12 +133,12 @@ public class SessionWriter extends AbstractWriter {
         if (!useInForestEval) {
             session = configuration.newOutputSession();
         } else {
-            forestName = placeKeys[placeKeyIdx];
+            forestName = forestNameArray[evalForestIdx];
             forestIdBigInt = forestMap.get(forestName);
             session = configuration.newOutputSession("#"+forestIdBigInt.toString());
             
             // advance to next forest
-            placeKeyIdx = (placeKeyIdx + 1 ) % placeKeys.length;
+            evalForestIdx = (evalForestIdx + 1 ) % forestNameArray.length;
         }
 
         if (null == session) {
@@ -208,10 +201,7 @@ public class SessionWriter extends AbstractWriter {
             options.setResolveEntities(false);
 
             // permissions
-            _metadata[i].addPermissions(readRoles);
-            _metadata[i].addPermissions(updateRoles);
-            _metadata[i].addPermissions(insertRoles);
-            _metadata[i].addPermissions(executeRoles);
+            _metadata[i].addPermissions(permissionRoles);
             ContentPermission[] permissions = _metadata[i].getPermissions();
             if (null != permissions)  
                 options.setPermissions(permissions);
@@ -295,12 +285,12 @@ public class SessionWriter extends AbstractWriter {
                 // success - will not loop again
                 break;
             } catch (XccException e) {
-                logger.logException("error writing document: will retry (" + retries + "): " + _outputUri[0], e);
                 retries--;
-                // we want to know which document it was
-                if (retries < 1) {
-                    throw new SyncException("retries exhausted for "
-                                            + _outputUri[0], e);
+                if (retries > 0)
+                    logger.warning("error writing document (" + _outputUri[0] + "), will retry " + 
+                                   retries + " more times.");
+                else {
+                    throw new SyncException("write failed, all retries exhausted for " + _outputUri[0], e);
                 }
                 sleepMillis = sleepForRetry(sleepMillis);
             }

@@ -40,13 +40,7 @@ public abstract class AbstractWriter implements WriterInterface {
 
     protected boolean repairInputXml;
 
-    protected Collection<ContentPermission> readRoles;
-
-    protected Collection<ContentPermission> updateRoles;
-
-    protected Collection<ContentPermission> insertRoles;
-
-    protected Collection<ContentPermission> executeRoles;
+    protected Collection<ContentPermission> permissionRoles;
 
     protected boolean copyProperties;
 
@@ -64,10 +58,7 @@ public abstract class AbstractWriter implements WriterInterface {
         copyProperties = configuration.isCopyProperties();
         outputFormatFilters = configuration.getOutputFormatFilters();
         placeKeys = configuration.getPlaceKeys();
-        readRoles = configuration.getReadRoles();
-        updateRoles = configuration.getUpdateRoles();
-        insertRoles = configuration.getInsertRoles();
-        executeRoles = configuration.getExecuteRoles();
+        permissionRoles = configuration.getPermissionRoles();
         repairInputXml = configuration.isRepairInputXml();
         skipExisting = configuration.isSkipExisting();
     }

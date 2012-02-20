@@ -1,4 +1,5 @@
-/**
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2004-2010 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,17 +96,17 @@ public class CallableSync implements Callable<TimedEvent[]> {
             return te;
         } catch (SyncException e) {
             // we want to know which URI was at fault
-            logger.warning("error in sync of " + inputUris.length + ": "
-                    + inputUris[0]);
+            for (int i = 0; i < inputUris.length; i++)
+                logger.severe("sync failed for: " + inputUris[i]);
             if (reader instanceof PackageReader) {
                 logger.warning("error in input package "
-                        + ((PackageReader) reader).getPath());
+                               + ((PackageReader) reader).getPath());
             }
             throw e;
         } catch (Throwable t) {
             // we want to know which URI was at fault
-            logger.warning("error in sync of " + inputUris.length + ": "
-                    + inputUris[0]);
+            for (int i = 0; i < inputUris.length; i++)
+                logger.severe("sync failed for: " + inputUris[i]);
             throw new FatalException(t);
         } finally {
             if (null != reader) {

@@ -29,10 +29,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.Map;
+import java.util.ArrayList;
 
 import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.Utilities;
+import com.marklogic.xcc.ContentCapability;
 import com.marklogic.xcc.ContentPermission;
 import com.marklogic.xcc.exceptions.RequestException;
 import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
@@ -211,13 +214,7 @@ public class Configuration extends AbstractConfiguration {
 
     /* fields */
 
-    protected Collection<ContentPermission> readRoles;
-
-    protected Collection<ContentPermission> updateRoles;
-
-    protected Collection<ContentPermission> insertRoles;
-
-    protected Collection<ContentPermission> executeRoles;
+    protected Collection<ContentPermission> permissionRoles = new ArrayList<ContentPermission>();
 
     protected String[] placeKeys = null;
 
@@ -250,6 +247,8 @@ public class Configuration extends AbstractConfiguration {
     protected BigInteger timestamp;
 
     private int outputConnectionCount = 0;
+
+    protected Map<String, BigInteger> forestMap = null;
 
     /*
      * (non-Javadoc)
@@ -327,69 +326,10 @@ public class Configuration extends AbstractConfiguration {
 
         uriPrefix = properties.getProperty(URI_PREFIX_KEY);
 
-        String readRolesString = properties
-                .getProperty(READ_PERMISSION_ROLES_KEY);
-        if (readRolesString != null) {
-            logger.fine("read roles are: " + readRolesString);
-            String[] roleNames = readRolesString
-                    .split(CSV_SCSV_SSV_REGEX);
-            if (roleNames.length > 0) {
-                readRoles = new Vector<ContentPermission>();
-                for (int i = 0; i < roleNames.length; i++) {
-                    logger.fine("adding read role: " + roleNames[i]);
-                    readRoles.add(new ContentPermission(
-                            ContentPermission.READ, roleNames[i]));
-                }
-            }
-        }
-
-        String updateRolesString = properties
-                .getProperty(UPDATE_PERMISSION_ROLES_KEY);
-        if (updateRolesString != null) {
-            logger.fine("update roles are: " + updateRolesString);
-            String[] roleNames = updateRolesString
-                    .split(CSV_SCSV_SSV_REGEX);
-            if (roleNames.length > 0) {
-                updateRoles = new Vector<ContentPermission>();
-                for (int i = 0; i < roleNames.length; i++) {
-                    logger.fine("adding update role: " + roleNames[i]);
-                    updateRoles.add(new ContentPermission(
-                            ContentPermission.UPDATE, roleNames[i]));
-                }
-            }
-        }
-
-        String insertRolesString = properties
-                .getProperty(INSERT_PERMISSION_ROLES_KEY);
-        if (insertRolesString != null) {
-            logger.fine("insert roles are: " + insertRolesString);
-            String[] roleNames = insertRolesString
-                    .split(CSV_SCSV_SSV_REGEX);
-            if (roleNames.length > 0) {
-                insertRoles = new Vector<ContentPermission>();
-                for (int i = 0; i < roleNames.length; i++) {
-                    logger.fine("adding insert role: " + roleNames[i]);
-                    insertRoles.add(new ContentPermission(
-                            ContentPermission.INSERT, roleNames[i]));
-                }
-            }
-        }
-
-        String executeRolesString = properties
-                .getProperty(EXECUTE_PERMISSION_ROLES_KEY);
-        if (executeRolesString != null) {
-            logger.fine("execute roles are: " + executeRolesString);
-            String[] roleNames = executeRolesString
-                    .split(CSV_SCSV_SSV_REGEX);
-            if (roleNames.length > 0) {
-                executeRoles = new Vector<ContentPermission>();
-                for (int i = 0; i < roleNames.length; i++) {
-                    logger.fine("adding execute role: " + roleNames[i]);
-                    executeRoles.add(new ContentPermission(
-                            ContentPermission.EXECUTE, roleNames[i]));
-                }
-            }
-        }
+        getPermissionRole(READ_PERMISSION_ROLES_KEY, ContentPermission.READ);
+        getPermissionRole(UPDATE_PERMISSION_ROLES_KEY, ContentPermission.UPDATE);
+        getPermissionRole(INSERT_PERMISSION_ROLES_KEY, ContentPermission.INSERT);
+        getPermissionRole(EXECUTE_PERMISSION_ROLES_KEY, ContentPermission.EXECUTE);
 
         String placeKeysString = properties
                 .getProperty(OUTPUT_FORESTS_KEY);
@@ -620,20 +560,8 @@ public class Configuration extends AbstractConfiguration {
         return placeKeys;
     }
 
-    public Collection<ContentPermission> getReadRoles() {
-        return readRoles;
-    }
-
-    public Collection<ContentPermission> getUpdateRoles() {
-        return updateRoles;
-    }
-
-    public Collection<ContentPermission> getInsertRoles() {
-        return insertRoles;
-    }
-
-    public Collection<ContentPermission> getExecuteRoles() {
-        return executeRoles;
+    public Collection<ContentPermission> getPermissionRoles() {
+        return permissionRoles;
     }
 
     /**
@@ -665,6 +593,32 @@ public class Configuration extends AbstractConfiguration {
                     (Session) outputConnection[x].newSession() :
                     (Session) outputConnection[x].newSession(forestId));
         }
+    }
+
+    /**
+     * @return a map of forest names to forest ids
+     */
+    public Map<String, BigInteger> getOutputForestMap() {
+        if (forestMap == null) {
+            Session sess = newOutputSession();
+            if (sess != null) {
+                try {
+                    forestMap = sess.getForestMap();
+                } catch (XccException e) {
+                    logger.warning("can't get forest map");
+                }
+                sess.close();
+            }
+        }
+        return forestMap;
+    }
+
+    /**
+     * @return an array of forest names
+     */
+    public String[] getOutputForestNames() {
+        Map<String, BigInteger> fmap = getOutputForestMap();
+        return fmap.keySet().toArray(new String[0]);
     }
 
     /**
@@ -1079,6 +1033,15 @@ public class Configuration extends AbstractConfiguration {
      */
     public ReaderInterface newReader() throws SyncException {
         return new SessionReader(this);
+    }
+
+    private void getPermissionRole(String propertyKey, ContentCapability capability) {
+        String rolesString = properties.getProperty(propertyKey);
+        if (rolesString != null) {
+            String[] roleNames = rolesString.split(CSV_SCSV_SSV_REGEX);
+            for (int i = 0; i < roleNames.length; i++) 
+                permissionRoles.add(new ContentPermission(capability, roleNames[i]));
+        }
     }
 
 }
