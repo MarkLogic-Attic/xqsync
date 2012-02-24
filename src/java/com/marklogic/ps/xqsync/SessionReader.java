@@ -48,7 +48,7 @@ import com.marklogic.xcc.types.XdmElement;
  */
 public class SessionReader extends AbstractReader {
 
-    protected static String query;
+    protected volatile static String query = null;
 
     private BigInteger timestamp;
 
@@ -89,6 +89,7 @@ public class SessionReader extends AbstractReader {
         try {
             if (null == query) {
                 initQuery();
+                logger.fine("reader query = \n" + query);
             }
         } catch (RequestException e) {
             throw new SyncException(e);
@@ -375,15 +376,15 @@ public class SessionReader extends AbstractReader {
         //
         // normally I would put this code in a module,
         // but I want this program to be self-contained
-	query = Session.XQUERY_VERSION_1_0_ML;
+	String local_q = Session.XQUERY_VERSION_1_0_ML;
 
 	if (!isIndented) {
-	    query += "declare boundary-space preserve;\n";
-	    query += "declare option xdmp:output \"indent=no\";\n";
+	    local_q += "declare boundary-space preserve;\n";
+	    local_q += "declare option xdmp:output \"indent=no\";\n";
 	}
 
         // prolog - some variables are per-input
-        query += "declare variable $MODULE-URI as xs:string external;\n";
+        local_q += "declare variable $MODULE-URI as xs:string external;\n";
 
         // we should not normally have to guard against multiple docs per URI
         String predicate = configuration
@@ -391,7 +392,7 @@ public class SessionReader extends AbstractReader {
 
         for (int i = 0; i < size; i++) {
             // TODO - support for naked properties?
-            query += "declare variable $URI-" + i
+            local_q += "declare variable $URI-" + i
                     + " as xs:string external;\n"
                     + "declare variable $DOC-" + i
                     + " as document-node() := \n" + "  if ($URI-" + i
@@ -419,21 +420,21 @@ public class SessionReader extends AbstractReader {
 
         // body, once per input
         for (int i = 0; i < size; i++) {
-            query += (0 == i ? "\n" : ",\n");
+            local_q += (0 == i ? "\n" : ",\n");
 
             // NB - empty document is equivalent to an empty text node
-            query += "if ($ROOT-" + i + ") then xdmp:node-kind($ROOT-" + i
+            local_q += "if ($ROOT-" + i + ") then xdmp:node-kind($ROOT-" + i
                     + ") else 'text',\n";
 
             if (copyCollections) {
-                query += "if ($URI-" + i + " eq '') then ()\n"
+                local_q += "if ($URI-" + i + " eq '') then ()\n"
                         + "else xdmp:document-get-collections($URI-" + i
                         + "),\n";
             }
 
             // use node for permissions, since we walk the tree
             if (copyPermissions) {
-                query += "let $list := \n"
+                local_q += "let $list := \n"
                         + "  if ($URI-"
                         + i
                         + " eq '') then ()\n"
@@ -461,25 +462,27 @@ public class SessionReader extends AbstractReader {
 
             // quality acts as a marker between permissions and the node
             if (copyQuality) {
-                query += "if ($URI-" + i + " eq '') then 0\n"
+                local_q += "if ($URI-" + i + " eq '') then 0\n"
                         + "else xdmp:document-get-quality($URI-" + i
                         + "),\n";
             } else {
-                query += "0,";
+                local_q += "0,";
             }
 
-            query += "$DOC-" + i + ",\n";
+            local_q += "$DOC-" + i + ",\n";
 
             if (copyProperties) {
-                query += "if ($URI-" + i + " eq '') then ()\n"
+                local_q += "if ($URI-" + i + " eq '') then ()\n"
                         + "else xdmp:document-properties($URI-" + i
                         + ")/prop:properties,\n";
             } else {
-                query += "(),\n";
+                local_q += "(),\n";
             }
 
             // end-of-record marker
-            query += "0\n";
+            local_q += "0\n";
         }
+
+        query = local_q;
     }
 }
