@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 /*
- * Copyright (c)2005-2010 Mark Logic Corporation
+ * Copyright (c)2005-2012 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -167,13 +167,16 @@ using <code>-Xmx</code>.
   <td>
     Input documents will come from this XCC connection.
     By default, every document in the input database will be transferred.
-    To change this behavior, use one of the related properties:
+    To change this behavior, use exactly one of the related properties:
     <ul>
+      <li><code>INPUT_DOCUMENT_URIS</code></li>
       <li><code>INPUT_COLLECTION_URI</code></li>
       <li><code>INPUT_DIRECTORY_URI</code></li>
-      <li><code>INPUT_DOCUMENT_URIS</code></li>
       <li><code>INPUT_QUERY</code></li>
     </ul>
+    NB - if more than one key is specified, XQSync will use the first one
+    it finds, using the order above.
+    <br/>
     NB - to list all input documents, or to list a collection or a directory,
     XQSync uses <code>cts:uris()</code>.
     If the document URI lexicon is not available,
@@ -466,10 +469,7 @@ local:lc(doc($URI))
     Plan for roughly 1-GB per 1-M queue entries (ie, 1-kB per entry).
   </td>
 </tr>
-<tr>
-  <td>READ_PERMISSION_ROLES</td><td>null</td>
-  <td>Names of any roles to attach to output documents.</td>
-</tr>
+
 <tr>
   <td>REPAIR_MULTIPLE_DOCUMENTS_PER_URI</td><td>false</td>
   <td>Normally not necessary, this property will cause XQSync
@@ -479,6 +479,27 @@ local:lc(doc($URI))
 <tr>
   <td>REPAIR_INPUT_XML</td><td>false</td>
   <td>Should MarkLogic Server try to repair malformed input XML?</td>
+</tr>
+
+<tr>
+  <td>ROLES_EXECUTE</td><td>null</td>
+  <td>Names of any roles to attach to output documents
+    as execute permissions.</td>
+</tr>
+<tr>
+  <td>ROLES_INSERT</td><td>null</td>
+  <td>Names of any roles to attach to output documents
+    as insert permissions.</td>
+</tr>
+<tr>
+  <td>ROLES_READ</td><td>null</td>
+  <td>Names of any roles to attach to output documents
+    as read permissions.</td>
+</tr>
+<tr>
+  <td>ROLES_UPDATE</td><td>null</td>
+  <td>Names of any roles to attach to output documents
+    as update permissions.</td>
 </tr>
 
 <tr>
