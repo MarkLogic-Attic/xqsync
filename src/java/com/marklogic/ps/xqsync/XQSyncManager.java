@@ -1,5 +1,6 @@
-/*
- * Copyright (c)2004-2012 Mark Logic Corporation
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
+ * Copyright (c)2004-2012 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -127,6 +128,7 @@ public class XQSyncManager {
     }
 
     public void run() {
+        TaskFactory factory = null;
         try {
             // start your engines...
             int threads = configuration.getThreadCount();
@@ -154,7 +156,7 @@ public class XQSyncManager {
             monitor.setPriority(1 + Thread.NORM_PRIORITY);
             monitor.start();
 
-            TaskFactory factory = new TaskFactory(configuration, monitor);
+            factory = new TaskFactory(configuration, monitor);
 
             // to support large workloads we have an unbounded lightweight
             // queue, which feeds the completion service
@@ -230,10 +232,6 @@ public class XQSyncManager {
                 logger.finest("waiting for monitor " + monitor + " "
                         + (null != monitor) + " " + monitor.isAlive());
             } while (null != monitor && monitor.isAlive());
-
-            factory.close();
-            factory = null;
-            configuration.close();
         } catch (Throwable t) {
             logger.logException("fatal error", t);
             // clean up
@@ -243,7 +241,16 @@ public class XQSyncManager {
             if (null != monitor) {
                 monitor.halt(t);
             }
-        }
+        } finally {
+            // important to do this one last close. If we are outputting
+            // zip files, and this is not done, the last zip file might
+            // be corrupted.
+            if (null != factory) {
+                factory.close();
+                factory = null;
+            }
+            configuration.close();
+	}
 
         logger.fine("exiting");
     }
