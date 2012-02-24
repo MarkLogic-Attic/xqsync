@@ -1,4 +1,5 @@
-/*
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c)2004-2009 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +48,8 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
     int quality = 0;
 
     String properties = null;
+
+    protected String hashValue = null;
 
     /**
      * @param reader
@@ -249,5 +252,19 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
         for (int i = 0; i < _collections.length; i++) {
             addCollection(_collections[i]);
         }
+    }
+
+    /**
+     * Set the hash value for this document
+     */
+    public void setHashValue(String hashValue) {
+        this.hashValue = hashValue;
+    }
+
+    /**
+     * @return the hash value for this document
+     */
+    public String getHashValue() {
+        return hashValue;
     }
 }

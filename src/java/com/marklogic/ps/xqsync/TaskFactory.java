@@ -93,7 +93,6 @@ public class TaskFactory {
      */
     public Callable<TimedEvent[]> newTask(String[] _uris)
             throws SyncException {
-        logger.fine(_uris.length + ", " + _uris[0]);
         return new CallableSync(this, _uris);
     }
 

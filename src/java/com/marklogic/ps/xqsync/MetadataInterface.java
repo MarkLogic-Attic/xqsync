@@ -1,4 +1,5 @@
-/**
+/** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
+ *
  * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,4 +73,15 @@ public interface MetadataInterface {
      */
     void clearProperties();
 
+    /**
+     * Set the hash value for this document
+     */
+    void setHashValue(String hashValue);
+
+    /**
+     * @return the hash value for this document
+     */
+    String getHashValue();
+    
+  
 }

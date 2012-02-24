@@ -152,15 +152,15 @@ public class UriQueue extends Thread {
                 }
 
                 if (0 == count) {
-                    logger.fine("took first uri: " + uri);
+                    logger.finest("took first uri: " + uri);
                 }
 
-                logger.fine(count + ": uri = " + uri);
+                logger.finest(count + ": uri = " + uri);
                 buffer[bufferIndex] = uri;
                 bufferIndex++;
 
                 if (buffer.length == bufferIndex) {
-                    logger.fine("submitting " + buffer.length);
+                    logger.finest("submitting " + buffer.length);
                     completionService.submit(factory.newTask(buffer));
                     buffer = new String[buffer.length];
                     bufferIndex = 0;
@@ -187,7 +187,7 @@ public class UriQueue extends Thread {
             System.exit(1);
         }
 
-        logger.fine("finished queuing " + count + " uris");
+        logger.finest("finished queuing " + count + " uris");
     }
 
     public synchronized void shutdown() {

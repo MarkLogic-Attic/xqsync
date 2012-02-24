@@ -202,6 +202,8 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String USE_IN_FOREST_EVAL_DEFAULT = "false";
 
+    public static final String HASH_MODULE_KEY = "HASH_MODULE";
+
     /* internal constants */
 
     protected static final String CSV_SCSV_SSV_REGEX = "[,;\\s]+";
@@ -999,6 +1001,21 @@ public class Configuration extends AbstractConfiguration {
         String p = properties.getProperty(USE_IN_FOREST_EVAL_KEY, 
                                           USE_IN_FOREST_EVAL_DEFAULT);
         return Boolean.parseBoolean(p);
+    }
+
+    /**
+     * @return whether hash module should be used or not
+     */
+    public boolean useHashModule() {
+        String m = getHashModule();
+        return (m != null && !m.isEmpty());
+    }
+
+    /**
+     * @return
+     */
+    public String getHashModule() {
+        return properties.getProperty(HASH_MODULE_KEY);
     }
 
     /**

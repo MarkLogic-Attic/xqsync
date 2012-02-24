@@ -89,6 +89,7 @@ public class SessionReader extends AbstractReader {
         try {
             if (null == query) {
                 initQuery();
+                logger.fine("reader query = \n" + query);
             }
         } catch (RequestException e) {
             throw new SyncException(e);
@@ -142,6 +143,8 @@ public class SessionReader extends AbstractReader {
                     }
                     req.setNewStringVariable("MODULE-URI",
                             (null == inputModule) ? "" : inputModule);
+                    if (configuration.useHashModule()) 
+                        req.setNewStringVariable("HASH-MODULE", configuration.getHashModule());
 
                     rs = session.submitRequest(req);
                     // success!
@@ -189,8 +192,8 @@ public class SessionReader extends AbstractReader {
                     logger.fine("uri at " + urisIndex + " is null");
                     break;
                 }
-                resultIndex = readDocument(_document, items, urisIndex,
-                        resultIndex);
+                logger.fine("reading uri: " + _uris[urisIndex]);
+                resultIndex = readDocument(_document, items, urisIndex, resultIndex);
                 urisIndex++;
             }
 
@@ -260,6 +263,14 @@ public class SessionReader extends AbstractReader {
             if (pString != null) {
                 metadata.setProperties(pString);
             }
+            _resultIndex++;
+        }
+
+        // handle hash value, optional
+        if (configuration.useHashModule()) {
+            String hashValue = _items[_resultIndex].asString();
+            metadata.setHashValue(hashValue);
+            logger.fine("hashValue = " + hashValue);
             _resultIndex++;
         }
 
@@ -382,6 +393,9 @@ public class SessionReader extends AbstractReader {
 	    local_q += "declare option xdmp:output \"indent=no\";\n";
 	}
 
+        if (configuration.useHashModule())
+            local_q += "declare variable $HASH-MODULE as xs:string external;\n";
+
         // prolog - some variables are per-input
         local_q += "declare variable $MODULE-URI as xs:string external;\n";
 
@@ -478,6 +492,14 @@ public class SessionReader extends AbstractReader {
                 local_q += "(),\n";
             }
 
+            if (configuration.useHashModule()) {
+                local_q += "if ($URI-" + i + " eq '') then ()\n"
+                        + "else xdmp:invoke($HASH-MODULE, (xs:QName('URI'), $URI-" + i 
+                        + ")),\n";
+            } else {
+                local_q += "(),\n";
+            }
+            
             // end-of-record marker
             local_q += "0\n";
         }

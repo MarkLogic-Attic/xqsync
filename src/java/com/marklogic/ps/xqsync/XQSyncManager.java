@@ -342,7 +342,7 @@ public class XQSyncManager {
 
         InputPackage inputPackage = new InputPackage(_path
                 .getCanonicalPath(), configuration);
-        // ensure that the package won't close while queuing
+        // ensure that the package won't close while euing
         inputPackage.addReference();
         logger.fine("listing package " + _path + " ("
                 + inputPackage.size() + ")");
@@ -362,7 +362,7 @@ public class XQSyncManager {
 
         while (iter.hasNext()) {
             path = iter.next();
-            logger.fine("queuing " + count + ": " + path);
+            logger.finest("queuing " + count + ": " + path);
             inputPackage.addReference();
             uriQueue.add(path);
             count++;
@@ -494,7 +494,7 @@ public class XQSyncManager {
                     if (0 == count) {
                         logger.info("queuing first task: " + uri);
                     }
-                    logger.fine("queuing " + count + ": " + uri);
+                    logger.finest("queuing " + count + ": " + uri);
                     uriQueue.add(uri);
                     count++;
                 }

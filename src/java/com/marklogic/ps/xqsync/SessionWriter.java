@@ -27,6 +27,9 @@ import java.math.BigInteger;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.Utilities;
+import com.marklogic.xcc.Request;
+import com.marklogic.xcc.ResultItem;
+import com.marklogic.xcc.ResultSequence;
 import com.marklogic.xcc.Content;
 import com.marklogic.xcc.ContentCreateOptions;
 import com.marklogic.xcc.ContentFactory;
@@ -51,7 +54,10 @@ public class SessionWriter extends AbstractWriter {
 
     protected String forestNameArray[] = null;
 
-    /**
+    protected int last_batch_size = -1;
+    protected String query = null;
+
+   /**
      * @param _configuration
      * @throws SyncException
      */
@@ -296,6 +302,36 @@ public class SessionWriter extends AbstractWriter {
             }
         }
 
+        // verify hash value
+        if (configuration.useHashModule()) {
+            try {
+                String q = getQuery(_outputUri.length);
+                logger.fine("writer hash query = \n" + q);
+                Request req = session.newAdhocQuery(query);
+                for (int i = 0; i < _outputUri.length; i++)
+                    req.setNewStringVariable("URI-" + i, _outputUri[i] == null ? "" : _outputUri[i]);
+                ResultSequence rs = session.submitRequest(req);
+                ResultItem items[] = rs.toResultItemArray();
+
+                for (int i = 0; i < _outputUri.length; i++) {
+                    if (ignoreList[i])
+                        continue;
+
+                    String srcHash = _metadata[i].getHashValue();
+                    String dstHash = items[i].asString();
+                    if ((srcHash == null && dstHash != null) || 
+                        !srcHash.equals(dstHash))
+                        logger.warning("hash value mismatch, uri = " + _outputUri[i] +
+                                       ",src hash = " + srcHash +
+                                       ",dst hash = " + dstHash);
+                }
+            } catch (Exception e) {
+                logger.logException("hash comparison failed", e);
+                for (int i = 0; i < _outputUri.length; i++)
+                    logger.warning("no hash comparison for uri=" + _outputUri[i]);
+            }
+        }
+
         // compute total ingested bytes 
         if (retries >= 0) {
             for (int i = 0; i < _outputUri.length; i++) {
@@ -344,6 +380,28 @@ public class SessionWriter extends AbstractWriter {
         }
 
         return false;
+    }
+
+    protected String getQuery(int uriCount) {
+        if (query == null || uriCount != last_batch_size) {
+            String local_q = "";
+            String m = configuration.getHashModule();
+
+            for (int i = 0; i < uriCount; i++) 
+                local_q += "declare variable $URI-" + i + " external;\n";
+
+            local_q += "\n";
+
+            for (int i = 0; i < uriCount; i++) {
+                local_q += "xdmp:invoke(\"" + m + "\", (xs:QName(\"URI\"), $URI-" + i + "))\n";
+                if (i < uriCount - 1)
+                    local_q += ",\n";
+            }
+
+            query = local_q;
+            last_batch_size = uriCount;
+        }
+        return query;
     }
 
 }
