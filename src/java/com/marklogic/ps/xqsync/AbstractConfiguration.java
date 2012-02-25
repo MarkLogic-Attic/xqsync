@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2010 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2012 Mark Logic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import com.marklogic.ps.SimpleLogger;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class AbstractConfiguration {
 
@@ -97,12 +97,16 @@ public class AbstractConfiguration {
         Properties validated = new Properties();
         Enumeration<?> keys = properties.propertyNames();
         // ignore known patterns from System properties
-        String ignorePatterns = "^(file|java|line|os|path|sun|user)\\..+";
+        String ignorePrefixPatterns = "^("
+            + "awt|file|ftp|http|https|java|line|mrj|os|path|sun|user"
+            + ")\\..+";
+        String ignorePatterns = "^(gopherProxySet|socksNonProxyHosts)$";
         String key, value;
         while (keys.hasMoreElements()) {
             key = (String) keys.nextElement();
             // known jre pattern
-            if (key.matches(ignorePatterns)) {
+            if (key.matches(ignorePatterns)
+                || key.matches(ignorePrefixPatterns)) {
                 logger.fine("known system key: ignoring " + key);
                 continue;
             }

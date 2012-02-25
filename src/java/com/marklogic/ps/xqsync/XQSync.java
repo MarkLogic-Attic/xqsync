@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2010 Mark Logic Corporation
+ * Copyright (c)2004-2012 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,11 +29,11 @@ import com.marklogic.xcc.Version;
 
 /**
  * @author Michael Blakeley
- * 
+ *
  */
 public class XQSync {
 
-    public static String VERSION = "2012-02-23.0";
+    public static String VERSION = "2012-02-24.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("

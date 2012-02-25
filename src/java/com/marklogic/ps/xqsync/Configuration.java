@@ -1,6 +1,6 @@
 /* -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2010 Mark Logic Corporation
+ * Copyright (c)2004-2012 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ import com.marklogic.xcc.exceptions.XccException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class Configuration extends AbstractConfiguration {
 
@@ -194,7 +194,7 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String KEEP_URI_QUEUE_FILE_DEFAULT = "false";
 
-    public static final String PRINT_CURRENT_RATE_KEY = "PRINT_CURRENT_RATE"; 
+    public static final String PRINT_CURRENT_RATE_KEY = "PRINT_CURRENT_RATE";
 
     public static final String PRINT_CURRENT_RATE_DEFAULT = "false";
 
@@ -254,7 +254,7 @@ public class Configuration extends AbstractConfiguration {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties
      * )
@@ -277,7 +277,7 @@ public class Configuration extends AbstractConfiguration {
      * @throws SyncException
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException
-     * 
+     *
      */
     public void configure() throws Exception {
         // cold configuration
@@ -460,7 +460,7 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @param _timestampString
      * @throws RequestException
-     * 
+     *
      */
     private void configureTimestamp(String _timestampString)
             throws RequestException {
@@ -945,7 +945,7 @@ public class Configuration extends AbstractConfiguration {
      * @return whether to use the in memory uri queue or not
      */
     public boolean useInMemoryUriQueue() {
-        String p = properties.getProperty(USE_IN_MEMORY_URI_QUEUE_KEY, 
+        String p = properties.getProperty(USE_IN_MEMORY_URI_QUEUE_KEY,
                                           USE_IN_MEMORY_URI_QUEUE_DEFAULT);
         return Boolean.parseBoolean(p);
     }
@@ -954,7 +954,7 @@ public class Configuration extends AbstractConfiguration {
      * @return whether to use a file for uri queue or not
      */
     public boolean useQueueFile() {
-        return (!useInMemoryUriQueue() && 
+        return (!useInMemoryUriQueue() &&
                 properties.getProperty(INPUT_CONNECTION_STRING_KEY) != null);
     }
 
@@ -963,7 +963,7 @@ public class Configuration extends AbstractConfiguration {
      * @return the temporary directory location
      */
     public String getTmpDir() {
-        return properties.getProperty(TMP_DIR_KEY, 
+        return properties.getProperty(TMP_DIR_KEY,
                                       TMP_DIR_DEFAULT);
     }
 
@@ -972,7 +972,7 @@ public class Configuration extends AbstractConfiguration {
      * @return the uri queue file location
      */
     public String getUriQueueFile() {
-        return properties.getProperty(URI_QUEUE_FILE_KEY, 
+        return properties.getProperty(URI_QUEUE_FILE_KEY,
                                       URI_QUEUE_FILE_DEFAULT);
     }
 
@@ -989,7 +989,7 @@ public class Configuration extends AbstractConfiguration {
      * @return boolean, true if we should print out the current rate
      */
     public boolean doPrintCurrRate() {
-        String p = properties.getProperty(PRINT_CURRENT_RATE_KEY, 
+        String p = properties.getProperty(PRINT_CURRENT_RATE_KEY,
                                           PRINT_CURRENT_RATE_DEFAULT);
         return Boolean.parseBoolean(p);
     }
@@ -1029,7 +1029,7 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return
      * @throws SyncException
-     * 
+     *
      *             This method always returns a SessionWriter or FilePathWriter.
      *             However, overriding subclasses can return any object that
      *             implements ReaderInterface.
@@ -1043,7 +1043,7 @@ public class Configuration extends AbstractConfiguration {
 
     /**
      * @throws SyncException
-     * 
+     *
      *             This method always returns a SessionReader object. However,
      *             overriding subclasses can return any object that implements
      *             WriterInterface.
