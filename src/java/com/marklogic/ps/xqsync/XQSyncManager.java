@@ -204,8 +204,12 @@ public class XQSyncManager {
 
             logger.fine("queue is shutdown with queue size "
                     + uriQueue.getQueueSize());
-            // give the queue a chance before testing it
+            // loop until all uri tasks have been queued
             do {
+                /* Give the queue a chance to start, before testing it.
+                 * After that, the queue should fill much more quickly
+                 * than the thread pool can drain it.
+                 */
                 Thread.sleep(125);
                 Thread.yield();
             } while (uriQueue.getQueueSize() > 0);
@@ -214,10 +218,11 @@ public class XQSyncManager {
              * shut down the pool after queuing is complete and task count has
              * been set, not before then - to avoid races.
              */
-            logger.fine("pool ready to shutdown, queue size "
+            logger.info("pool ready to shutdown, queue size "
                     + uriQueue.getQueueSize());
             pool.shutdown();
 
+            logger.info("waiting for monitor to exit");
             do {
                 logger.finest("waiting for monitor " + monitor + " "
                         + (null != monitor) + " " + monitor.isAlive());
@@ -235,10 +240,13 @@ public class XQSyncManager {
         } catch (Throwable t) {
             logger.logException("fatal error", t);
             // clean up
+            // first, ensure no new new tasks are queued
             if (null != uriQueue) {
                 uriQueue.halt();
             }
+            // tell the monitor to stop running
             if (null != monitor) {
+                logger.info("halting monitor");
                 monitor.halt(t);
             }
         } finally {
@@ -246,11 +254,16 @@ public class XQSyncManager {
             // zip files, and this is not done, the last zip file might
             // be corrupted.
             if (null != factory) {
+                logger.info("closing factory");
                 factory.close();
                 factory = null;
             }
-            configuration.close();
-	}
+
+            // tell the configuration to clean up anything that needs it
+            if (null != configuration) {
+                configuration.close();
+            }
+        }
 
         logger.fine("exiting");
     }

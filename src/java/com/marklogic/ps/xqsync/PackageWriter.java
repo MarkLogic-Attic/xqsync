@@ -22,7 +22,7 @@ import java.io.IOException;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class PackageWriter extends AbstractWriter {
 
@@ -43,7 +43,7 @@ public class PackageWriter extends AbstractWriter {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.marklogic.ps.xqsync.WriterInterface#write(java.lang.String,
      * byte[], com.marklogic.ps.xqsync.XQSyncDocumentMetadata)
      */
@@ -69,7 +69,7 @@ public class PackageWriter extends AbstractWriter {
 
     /**
      * @throws SyncException
-     * 
+     *
      */
     public void close() throws SyncException {
         if (null != pkg) {

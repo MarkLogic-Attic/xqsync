@@ -31,17 +31,18 @@ import com.marklogic.ps.timing.Timer;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
+ *
  */
 public class Monitor extends Thread {
 
+    // TODO make these constants configurable?
     protected static final int DISPLAY_MILLIS = 60 * 1000;
+
+    protected static final int FUTURE_MILLIS = 15 * 60 * 1000;
 
     protected static final int SLEEP_MILLIS = 500;
 
     protected static SimpleLogger logger;
-
-    protected static long lastDisplayMillis = 0;
 
     protected boolean running = true;
 
@@ -96,9 +97,10 @@ public class Monitor extends Thread {
             System.exit(-1);
         } finally {
             pool.shutdownNow();
+            running = false;
+            logger.info("exiting after " + timer.getEventCount() + "/"
+                        + taskCount + ", " + timer.getProgressMessage());
         }
-        logger.info("exiting after " + timer.getEventCount() + "/"
-                + taskCount + ", " + timer.getProgressMessage());
     }
 
     /**
@@ -112,13 +114,19 @@ public class Monitor extends Thread {
 
     /**
      * @throws ExecutionException
-     * 
+     *
      */
     protected void monitor() throws ExecutionException {
         int displayMillis = DISPLAY_MILLIS;
+        int futureMillis = FUTURE_MILLIS;
         int sleepMillis = SLEEP_MILLIS;
         Future<TimedEvent[]> future = null;
-        long currentMillis;
+        /* Initialize lastFutureMillis so that we do not get
+         * warnings on slow queue startup.
+         */
+        long currentMillis = System.currentTimeMillis();
+        long lastDisplayMillis = 0;
+        long lastFutureMillis = currentMillis;
         TimedEvent[] lastEvent = null;
 
         logger.finest("looping every " + sleepMillis + ", core="
@@ -141,6 +149,7 @@ public class Monitor extends Thread {
                             TimeUnit.MILLISECONDS);
                     if (null != future) {
                         // record result, or throw exception
+                        lastFutureMillis = System.currentTimeMillis();
                         try {
                             lastEvent = future.get();
                             if (null == lastEvent) {
@@ -186,7 +195,7 @@ public class Monitor extends Thread {
                                 + taskCount + ", "
                                 + timer.getProgressMessage(false) + ", "
                                 + lastEvent[0].getDescription());
-                        
+
                         if (config.doPrintCurrRate()) {
                             String currMsg = timer.getCurrProgressMessage();
                             if (currMsg != null)
@@ -197,9 +206,17 @@ public class Monitor extends Thread {
 
             } while (null != future);
 
-            logger.finer("running = " + running + ", terminated = "
-                    + pool.isTerminated());
+            logger.finer("running = " + running
+                         + ", terminated = " + pool.isTerminated()
+                         + ", last future = " + lastFutureMillis);
+            // currentMillis has already been set recently
+            if (currentMillis - lastFutureMillis > futureMillis) {
+                logger.warning("no futures received in over "
+                               + futureMillis + " ms");
+                break;
+            }
         } while (running && !pool.isTerminated());
+        // NB - caller will set running to false to ensure exit
     }
 
     /**
@@ -256,7 +273,7 @@ public class Monitor extends Thread {
     }
 
     /**
-     * 
+     *
      */
     public void checkThrottle() {
         // optional throttling
