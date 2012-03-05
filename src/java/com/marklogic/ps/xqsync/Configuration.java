@@ -126,6 +126,10 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String INPUT_INDENTED_KEY = "INPUT_INDENTED";
 
+    public static final String MAX_RETRIES_DEFAULT = "1";
+
+    public static final String MAX_RETRIES_KEY = "MAX_RETRIES";
+
     public static final String OUTPUT_COLLECTIONS_KEY = "OUTPUT_COLLECTIONS";
 
     public static final String OUTPUT_CONNECTION_STRING_KEY = "OUTPUT_CONNECTION_STRING";
@@ -198,7 +202,7 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String PRINT_CURRENT_RATE_DEFAULT = "false";
 
-    public static final String USE_IN_FOREST_EVAL_KEY = "USE_IN_FOREST_EVAL"; 
+    public static final String USE_IN_FOREST_EVAL_KEY = "USE_IN_FOREST_EVAL";
 
     public static final String USE_IN_FOREST_EVAL_DEFAULT = "false";
 
@@ -591,7 +595,7 @@ public class Configuration extends AbstractConfiguration {
         // support round-robin across multiple outputs
         synchronized (outputConnection) {
             int x = (outputConnectionCount++ % outputConnection.length);
-            return (forestId == null ? 
+            return (forestId == null ?
                     (Session) outputConnection[x].newSession() :
                     (Session) outputConnection[x].newSession(forestId));
         }
@@ -879,6 +883,14 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return
      */
+    public int getMaxRetries() {
+        return Integer.parseInt(properties
+                .getProperty(MAX_RETRIES_KEY));
+    }
+
+    /**
+     * @return
+     */
     public int getOutputBatchSize() {
         return Integer.parseInt(properties
                 .getProperty(OUTPUT_BATCH_SIZE_KEY));
@@ -998,7 +1010,7 @@ public class Configuration extends AbstractConfiguration {
      * @return boolean, true if we should use in-forest eval
      */
     public boolean useInForestEval() {
-        String p = properties.getProperty(USE_IN_FOREST_EVAL_KEY, 
+        String p = properties.getProperty(USE_IN_FOREST_EVAL_KEY,
                                           USE_IN_FOREST_EVAL_DEFAULT);
         return Boolean.parseBoolean(p);
     }
@@ -1019,7 +1031,7 @@ public class Configuration extends AbstractConfiguration {
     }
 
     /**
-     * 
+     *
      */
     public void close() {
         // nothing to do
@@ -1056,7 +1068,7 @@ public class Configuration extends AbstractConfiguration {
         String rolesString = properties.getProperty(propertyKey);
         if (rolesString != null) {
             String[] roleNames = rolesString.split(CSV_SCSV_SSV_REGEX);
-            for (int i = 0; i < roleNames.length; i++) 
+            for (int i = 0; i < roleNames.length; i++)
                 permissionRoles.add(new ContentPermission(capability, roleNames[i]));
         }
     }

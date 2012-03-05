@@ -57,6 +57,8 @@ public class SessionWriter extends AbstractWriter {
     protected int last_batch_size = -1;
     protected String query = null;
 
+    protected int maxRetries = 3;
+
    /**
      * @param _configuration
      * @throws SyncException
@@ -79,6 +81,8 @@ public class SessionWriter extends AbstractWriter {
             Random random = new Random(hashCode() + System.currentTimeMillis());
             evalForestIdx = random.nextInt(forestNameArray.length);
         }
+
+        maxRetries = configuration.getMaxRetries();
     }
 
     /*
@@ -113,7 +117,7 @@ public class SessionWriter extends AbstractWriter {
     public int write(String[] _outputUri, byte[][] _contentBytes,
          XQSyncDocumentMetadata[] _metadata) throws SyncException
     {
-        int bytes = 0; 
+        int bytes = 0;
         boolean useInForestEval = configuration.useInForestEval();
 
         // do nothing if there's no input
@@ -142,7 +146,7 @@ public class SessionWriter extends AbstractWriter {
             forestName = forestNameArray[evalForestIdx];
             forestIdBigInt = forestMap.get(forestName);
             session = configuration.newOutputSession("#"+forestIdBigInt.toString());
-            
+
             // advance to next forest
             evalForestIdx = (evalForestIdx + 1 ) % forestNameArray.length;
         }
@@ -155,7 +159,7 @@ public class SessionWriter extends AbstractWriter {
         // contentBytes
         if (!useInForestEval) {
             for (int i = 0; i < _outputUri.length; i++) {
-                if (!ignoreList[i] && 
+                if (!ignoreList[i] &&
                     (null == _contentBytes[i] || _contentBytes[i].length < 1)) {
                     ignoreList[i] = true;
                     try {
@@ -234,7 +238,7 @@ public class SessionWriter extends AbstractWriter {
             if (null != placeKeys) {
                 try {
                     if (forestIdBigInt == null) {
-                        logger.finest("placeKeys = " + 
+                        logger.finest("placeKeys = " +
                                       Utilities.join(placeKeys, ","));
                         options.setPlaceKeys(session.forestNamesToIds(placeKeys));
                     } else {
@@ -259,9 +263,10 @@ public class SessionWriter extends AbstractWriter {
 
         Content contentArray[] = contentList.toArray(new Content[0]);
 
-        int retries = 3;
+        int retries = maxRetries;
         long sleepMillis = 125;
-        // in case the server is unreliable, we try three times
+        // in case the server is unreliable, we try again N times
+        // the sleep time doubles after every retry
         while (retries > 0) {
             try {
                 if (configuration.useMultiStmtTxn()) {
@@ -293,7 +298,7 @@ public class SessionWriter extends AbstractWriter {
             } catch (XccException e) {
                 retries--;
                 if (retries > 0)
-                    logger.warning("error writing document (" + _outputUri[0] + "), will retry " + 
+                    logger.warning("error writing document (" + _outputUri[0] + "), will retry " +
                                    retries + " more times.");
                 else {
                     throw new SyncException("write failed, all retries exhausted for " + _outputUri[0], e);
@@ -319,7 +324,7 @@ public class SessionWriter extends AbstractWriter {
 
                     String srcHash = _metadata[i].getHashValue();
                     String dstHash = items[i].asString();
-                    if ((srcHash == null && dstHash != null) || 
+                    if ((srcHash == null && dstHash != null) ||
                         !srcHash.equals(dstHash))
                         logger.warning("hash value mismatch, uri = " + _outputUri[i] +
                                        ",src hash = " + srcHash +
@@ -332,7 +337,7 @@ public class SessionWriter extends AbstractWriter {
             }
         }
 
-        // compute total ingested bytes 
+        // compute total ingested bytes
         if (retries >= 0) {
             for (int i = 0; i < _outputUri.length; i++) {
                 if (ignoreList[i])
@@ -387,7 +392,7 @@ public class SessionWriter extends AbstractWriter {
             String local_q = "";
             String m = configuration.getHashModule();
 
-            for (int i = 0; i < uriCount; i++) 
+            for (int i = 0; i < uriCount; i++)
                 local_q += "declare variable $URI-" + i + " external;\n";
 
             local_q += "\n";

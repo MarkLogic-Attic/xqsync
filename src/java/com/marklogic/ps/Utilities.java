@@ -33,7 +33,7 @@ import java.util.List;
 
 /**
  * @author mike.blakeley@marklogic.com
- * 
+ *
  */
 public class Utilities {
 
