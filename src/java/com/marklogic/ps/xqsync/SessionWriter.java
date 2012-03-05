@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Map;
 import java.math.BigInteger;
+import java.security.MessageDigest;
 
 import com.marklogic.ps.Session;
 import com.marklogic.ps.Utilities;
@@ -47,8 +48,6 @@ public class SessionWriter extends AbstractWriter {
     protected static Object firstMaxTasksMutex = new Object();
 
     protected static boolean firstMaxTasks = false;
-
-    protected int evalForestIdx = -1;
 
     protected Map<String, BigInteger> forestMap = null;
 
@@ -77,9 +76,6 @@ public class SessionWriter extends AbstractWriter {
             forestNameArray = placeKeys;
             if (forestNameArray == null || forestNameArray.length == 0)
                 forestNameArray = configuration.getOutputForestNames();
-
-            Random random = new Random(hashCode() + System.currentTimeMillis());
-            evalForestIdx = random.nextInt(forestNameArray.length);
         }
 
         maxRetries = configuration.getMaxRetries();
@@ -143,12 +139,14 @@ public class SessionWriter extends AbstractWriter {
         if (!useInForestEval) {
             session = configuration.newOutputSession();
         } else {
+            // This provides repeatable placement
+            // as long as uris arrive in repeatable batches.
+            // TODO how uniform will placement be? use a different hash?
+            int evalForestIdx = _outputUri[0].hashCode()
+                % forestNameArray.length;
             forestName = forestNameArray[evalForestIdx];
             forestIdBigInt = forestMap.get(forestName);
             session = configuration.newOutputSession("#"+forestIdBigInt.toString());
-
-            // advance to next forest
-            evalForestIdx = (evalForestIdx + 1 ) % forestNameArray.length;
         }
 
         if (null == session) {
@@ -365,7 +363,8 @@ public class SessionWriter extends AbstractWriter {
             logger.logException(
                     "interrupted during sleep " + sleepMillis, e);
         }
-        return 2 * sleepMillis;
+        // cap sleepMillis at 60 sec
+        return (sleepMillis < 60 * 1000) ? (2 * sleepMillis) : sleepMillis;
     }
 
     /**
