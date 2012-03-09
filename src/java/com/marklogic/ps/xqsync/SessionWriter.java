@@ -142,8 +142,8 @@ public class SessionWriter extends AbstractWriter {
             // This provides repeatable placement
             // as long as uris arrive in repeatable batches.
             // TODO how uniform will placement be? use a different hash?
-            int evalForestIdx = _outputUri[0].hashCode()
-                % forestNameArray.length;
+            int evalForestIdx = Math.abs(_outputUri[0].hashCode()
+                                         % forestNameArray.length);
             forestName = forestNameArray[evalForestIdx];
             forestIdBigInt = forestMap.get(forestName);
             session = configuration.newOutputSession("#"+forestIdBigInt.toString());
@@ -262,7 +262,7 @@ public class SessionWriter extends AbstractWriter {
         Content contentArray[] = contentList.toArray(new Content[0]);
 
         int retries = maxRetries;
-        long sleepMillis = 125;
+        long sleepMillis = 250;
         // in case the server is unreliable, we try again N times
         // the sleep time doubles after every retry
         while (retries > 0) {

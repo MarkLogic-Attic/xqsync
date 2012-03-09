@@ -126,7 +126,7 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String INPUT_INDENTED_KEY = "INPUT_INDENTED";
 
-    public static final String MAX_RETRIES_DEFAULT = "1";
+    public static final String MAX_RETRIES_DEFAULT = "5";
 
     public static final String MAX_RETRIES_KEY = "MAX_RETRIES";
 
