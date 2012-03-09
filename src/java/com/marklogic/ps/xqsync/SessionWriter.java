@@ -146,6 +146,9 @@ public class SessionWriter extends AbstractWriter {
                                          % forestNameArray.length);
             forestName = forestNameArray[evalForestIdx];
             forestIdBigInt = forestMap.get(forestName);
+            if (null == forestIdBigInt) {
+                throw new FatalException("forest " + forestName + " not found");
+            }
             session = configuration.newOutputSession("#"+forestIdBigInt.toString());
         }
 

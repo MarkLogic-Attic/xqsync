@@ -33,7 +33,7 @@ import com.marklogic.xcc.Version;
  */
 public class XQSync {
 
-    public static String VERSION = "2012-03-07.1";
+    public static String VERSION = "2012-03-09.1";
 
     private static String versionMessage = "version " + VERSION + " on "
             + System.getProperty("java.version") + " ("
