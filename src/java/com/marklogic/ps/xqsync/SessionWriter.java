@@ -309,7 +309,7 @@ public class SessionWriter extends AbstractWriter {
         }
 
         // verify hash value
-        if (configuration.useHashModule()) {
+        if (configuration.useChecksumModule()) {
             try {
                 String q = getQuery(_outputUri.length);
                 logger.fine("writer hash query = \n" + q);
@@ -392,7 +392,7 @@ public class SessionWriter extends AbstractWriter {
     protected String getQuery(int uriCount) {
         if (query == null || uriCount != last_batch_size) {
             String local_q = "";
-            String m = configuration.getHashModule();
+            String m = configuration.getChecksumModule();
 
             for (int i = 0; i < uriCount; i++)
                 local_q += "declare variable $URI-" + i + " external;\n";

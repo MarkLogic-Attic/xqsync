@@ -144,13 +144,13 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String QUEUE_SIZE_KEY = "QUEUE_SIZE";
 
-    public static final String READ_PERMISSION_ROLES_KEY = "READ_PERMISSION_ROLES";
+    public static final String ROLES_READ_KEY = "ROLES_READ";
 
-    public static final String UPDATE_PERMISSION_ROLES_KEY = "UPDATE_PERMISSION_ROLES";
+    public static final String ROLES_UPDATE_KEY = "ROLES_UPDATE";
 
-    public static final String INSERT_PERMISSION_ROLES_KEY = "INSERT_PERMISSION_ROLES";
+    public static final String ROLES_INSERT_KEY = "ROLES_INSERT";
 
-    public static final String EXECUTE_PERMISSION_ROLES_KEY = "EXECUTE_PERMISSION_ROLES";
+    public static final String ROLES_EXECUTE_KEY = "ROLES_EXECUTE";
 
     public static final String REPAIR_INPUT_XML_KEY = "REPAIR_INPUT_XML";
 
@@ -206,7 +206,7 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String USE_IN_FOREST_EVAL_DEFAULT = "false";
 
-    public static final String HASH_MODULE_KEY = "HASH_MODULE";
+    public static final String CHECKSUM_MODULE_KEY = "CHECKSUM_MODULE";
 
     /* internal constants */
 
@@ -332,10 +332,10 @@ public class Configuration extends AbstractConfiguration {
 
         uriPrefix = properties.getProperty(URI_PREFIX_KEY);
 
-        getPermissionRole(READ_PERMISSION_ROLES_KEY, ContentPermission.READ);
-        getPermissionRole(UPDATE_PERMISSION_ROLES_KEY, ContentPermission.UPDATE);
-        getPermissionRole(INSERT_PERMISSION_ROLES_KEY, ContentPermission.INSERT);
-        getPermissionRole(EXECUTE_PERMISSION_ROLES_KEY, ContentPermission.EXECUTE);
+        getPermissionRole(ROLES_READ_KEY, ContentPermission.READ);
+        getPermissionRole(ROLES_UPDATE_KEY, ContentPermission.UPDATE);
+        getPermissionRole(ROLES_INSERT_KEY, ContentPermission.INSERT);
+        getPermissionRole(ROLES_EXECUTE_KEY, ContentPermission.EXECUTE);
 
         String placeKeysString = properties
                 .getProperty(OUTPUT_FORESTS_KEY);
@@ -1018,16 +1018,16 @@ public class Configuration extends AbstractConfiguration {
     /**
      * @return whether hash module should be used or not
      */
-    public boolean useHashModule() {
-        String m = getHashModule();
+    public boolean useChecksumModule() {
+        String m = getChecksumModule();
         return (m != null && !m.isEmpty());
     }
 
     /**
      * @return
      */
-    public String getHashModule() {
-        return properties.getProperty(HASH_MODULE_KEY);
+    public String getChecksumModule() {
+        return properties.getProperty(CHECKSUM_MODULE_KEY);
     }
 
     /**

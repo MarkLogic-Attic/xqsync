@@ -143,8 +143,8 @@ public class SessionReader extends AbstractReader {
                     }
                     req.setNewStringVariable("MODULE-URI",
                             (null == inputModule) ? "" : inputModule);
-                    if (configuration.useHashModule()) 
-                        req.setNewStringVariable("HASH-MODULE", configuration.getHashModule());
+                    if (configuration.useChecksumModule()) 
+                        req.setNewStringVariable("CHECKSUM-MODULE", configuration.getChecksumModule());
 
                     rs = session.submitRequest(req);
                     // success!
@@ -267,7 +267,7 @@ public class SessionReader extends AbstractReader {
         }
 
         // handle hash value, optional
-        if (configuration.useHashModule()) {
+        if (configuration.useChecksumModule()) {
             String hashValue = _items[_resultIndex].asString();
             metadata.setHashValue(hashValue);
             logger.fine("hashValue = " + hashValue);
@@ -393,8 +393,8 @@ public class SessionReader extends AbstractReader {
 	    local_q += "declare option xdmp:output \"indent=no\";\n";
 	}
 
-        if (configuration.useHashModule())
-            local_q += "declare variable $HASH-MODULE as xs:string external;\n";
+        if (configuration.useChecksumModule())
+            local_q += "declare variable $CHECKSUM-MODULE as xs:string external;\n";
 
         // prolog - some variables are per-input
         local_q += "declare variable $MODULE-URI as xs:string external;\n";
@@ -492,9 +492,9 @@ public class SessionReader extends AbstractReader {
                 local_q += "(),\n";
             }
 
-            if (configuration.useHashModule()) {
+            if (configuration.useChecksumModule()) {
                 local_q += "if ($URI-" + i + " eq '') then ()\n"
-                        + "else xdmp:invoke($HASH-MODULE, (xs:QName('URI'), $URI-" + i 
+                        + "else xdmp:invoke($CHECKSUM-MODULE, (xs:QName('URI'), $URI-" + i 
                         + ")),\n";
             } else {
                 local_q += "(),\n";
