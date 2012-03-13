@@ -569,6 +569,44 @@ would only use URI_QUEUE_FILE.
     when present in those uris.</td>
 </tr>
 
+<tr>
+  <td>USE_INFOREST_EVAL</td><td>false</td>
+  <td>
+    Use in-forest eval when inserting documents into MarkLogic.
+    XQSync would use OUTPUT_FORESTS as the list of eval forest if
+    specified.  Otherwise, it'll use all of the forests in the output
+    database.  By turning on this mode, XQSync will not delete URIs
+    that have 0 content bytes.  Also, SKIP_EXISTING will not work.
+  </td>
+</tr>
+
+<tr>
+  <td>CHECKSUM_MODULE</td><td>null</td>
+  <td>
+    The checksum module to invoke when transferring documents between
+    2 MarkLogic databases.  If this is specified, xqsync will use this
+    module to compute a checksum from the source database and the
+    destination database, and compare.  If the checksum does not
+    match, xqsync will print out a warning.  A simple checksum module
+    should look like this:
+<pre>
+declare variable $URI external;
+
+(: must return 0 for empty or non-existence URIs :)
+
+if ($URI and fn:doc-available($URI)) then
+xdmp:md5(fn:concat(
+  xdmp:quote(fn:doc($URI)),
+  xdmp:quote(xdmp:document-properties($URI)),
+  for $i in xdmp:quote(xdmp:document-get-collections($URI))
+  order by $i
+  return $i
+))
+else 0
+</pre>
+  </td>
+</tr>
+
 </table>
 
 <a id="Customization"><h2>Customization</h2></a>
