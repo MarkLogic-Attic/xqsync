@@ -570,7 +570,21 @@ would only use URI_QUEUE_FILE.
 </tr>
 
 <tr>
-  <td>USE_INFOREST_EVAL</td><td>false</td>
+  <td>ENCODE_OUTPUT_URI</td><td>false</td>
+  <td>
+    If true, xqsync will encode URIs so that they'll conform to the URI standard.
+  </td>
+</tr>
+
+<tr>
+  <td>USE_RANDOM_OUTPUT_URI</td><td>false</td>
+  <td>
+    If true, xqsync will generate random URIs for inserting documents into MarkLogic.  URI_PREFIX and URI_SUFFIX will still be obeyed.
+  </td>
+</tr>
+
+<tr>
+  <td>USE_IN_FOREST_EVAL</td><td>false</td>
   <td>
     Use in-forest eval when inserting documents into MarkLogic.
     XQSync would use OUTPUT_FORESTS as the list of eval forest if
