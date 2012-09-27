@@ -24,16 +24,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 
+import java.util.Random;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
 
 /**
  * @author Michael Blakeley <michael.blakeley@marklogic.com>
  *
- */
-/**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
- * 
  */
 public class XQSyncDocument implements DocumentInterface {
 
@@ -87,7 +88,7 @@ public class XQSyncDocument implements DocumentInterface {
         metadata = new XQSyncDocumentMetadata[inputUris.length];
         contentBytes = new byte[inputUris.length][];
 
-        composeOutputUris(false);
+        composeOutputUris();
     }
 
     /*
@@ -218,7 +219,7 @@ public class XQSyncDocument implements DocumentInterface {
         return _file.getCanonicalPath() + METADATA_EXT;
     }
 
-    private void composeOutputUris(boolean _isEscaped) {
+    private void composeOutputUris() {
         String uriPrefix = configuration.getUriPrefix();
         String uriSuffix = configuration.getUriSuffix();
         String prefixStrip = configuration.getUriPrefixStrip();
@@ -231,32 +232,49 @@ public class XQSyncDocument implements DocumentInterface {
                 continue;
             }
 
+            String outputUri;
             // strip prefix and suffix as needed
             if (null != prefixStrip && uri.startsWith(prefixStrip)) {
                 uri = uri.substring(prefixStrip.length() - 1);
             }
             if (null != suffixStrip && uri.endsWith(suffixStrip)) {
                 uri = uri.substring(0, uri.length()
-                        - suffixStrip.length() - 1);
+                                    - suffixStrip.length() - 1);
             }
 
             // add extra prefix and suffix as needed
             if (null != uriPrefix && !uriPrefix.equals("")
-                    && !uriPrefix.endsWith("/") && !uri.startsWith("/")) {
+                && !uriPrefix.endsWith("/") && !uri.startsWith("/")) {
                 uriPrefix += "/";
             }
-            String outputUri = (null == uriPrefix ? "" : uriPrefix) + uri
-                    + (null == uriSuffix ? "" : uriSuffix);
 
-            // TODO optionally escape outputUri
+            String innerUri = uri;
+            if (configuration.useRandomOutputUri()) {
+                innerUri = 
+                    Long.toHexString(System.currentTimeMillis()) +
+                    Long.toHexString(hashCode()) +
+                    Long.toHexString(innerUri.hashCode());
+            } 
+
+            outputUri = (null == uriPrefix ? "" : uriPrefix) + innerUri
+                + (null == uriSuffix ? "" : uriSuffix);
+
             // note that some constructors will need to un-escape the inputUri
-            if (_isEscaped) {
+            if (configuration.encodeOutputUri()) {
                 // NTFS: The period (.) cannot be the first character
                 // NTFS: Illegal Characters: / \ : * ? " < > |
-                // TODO note that this is a dummy at present.
-                // it's unclear when and what needs to be escaped.
-                // outputUri = URLEncoder.encode(outputUri, ENCODING);
-                throw new FatalException("UNIMPLEMENTED");
+
+                // Supposedly, this will encode URI according to URI's specification.
+                try {
+                    URI uriObj = new URI(null,
+                                         null,
+                                         outputUri,
+                                         null,
+                                         null);
+                    outputUri = uriObj.toString();
+                } catch (URISyntaxException e) {
+                    logger.logException("invalid uri", e);
+                }
             }
 
             logger.finer("copying " + uri + " to " + outputUri);

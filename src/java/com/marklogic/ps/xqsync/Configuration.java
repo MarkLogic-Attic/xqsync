@@ -90,6 +90,14 @@ public class Configuration extends AbstractConfiguration {
 
     public static final String USE_MULTI_STMT_TXN_DEFAULT = "false";
 
+    public static final String ENCODE_OUTPUT_URI_KEY = "ENCODE_OUTPUT_URI";
+
+    public static final String ENCODE_OUTPUT_URI_DEFAULT = "false";
+
+    public static final String USE_RANDOM_OUTPUT_URI_KEY = "USE_RANDOM_OUTPUT_URI";
+
+    public static final String USE_RANDOM_OUTPUT_URI_DEFAULT = "false";
+
     public static final String INPUT_CACHABLE_KEY = "INPUT_QUERY_CACHABLE";
 
     public static final String INPUT_CACHABLE_DEFAULT = "" + false;
@@ -902,6 +910,21 @@ public class Configuration extends AbstractConfiguration {
     public boolean useMultiStmtTxn() {
         return Boolean.parseBoolean(properties
                 .getProperty(USE_MULTI_STMT_TXN_KEY));
+    }
+
+    /**
+     * @return
+     */
+    public boolean encodeOutputUri() {
+        return Boolean.parseBoolean(properties
+                .getProperty(ENCODE_OUTPUT_URI_KEY));
+    }
+
+    /**
+     * @return
+     */
+    public boolean useRandomOutputUri() {
+        return Boolean.parseBoolean(properties.getProperty(USE_RANDOM_OUTPUT_URI_KEY));
     }
 
     /**

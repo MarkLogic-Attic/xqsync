@@ -289,8 +289,12 @@ public class SessionWriter extends AbstractWriter {
 
                         String properties = _metadata[i].getProperties();
                         if (null != properties) {
-                            session.setDocumentProperties(_outputUri[i],
-                                                          properties);
+                            try {
+                                System.out.println(">>> setting properties for " + _outputUri[i]);
+                                session.setDocumentProperties(_outputUri[i], properties);
+                            } catch (Exception e) {
+                                logger.logException("exception when setting properties", e);
+                            }
                         }
                     }
                 }
