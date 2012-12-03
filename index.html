@@ -40,9 +40,10 @@ For the source code, see the
 </p>
 
 <h2>Running XQSync</h2>
-<p>The entry point is the main method in the
- com.marklogic.ps.xqsync.XQSync class.
-It takes zero or more property files as its arguments.
+<p>XQSync is a Java command-line tool.
+The entry point is the main method in the
+<code>com.marklogic.ps.xqsync.XQSync</code> class.
+This class takes zero or more property files as its arguments.
 Any specified system properties will override file-based properties,
 and properties found in later files may override properties
 specified in earlier files on the command line.
@@ -55,7 +56,8 @@ for a sample shell script.
 <b>Note:</b>
 XQSync needs a lot of heap space for large synchronization tasks.
 Be prepared to increase the Java VM heap space limit,
-using <code>-Xmx</code>.
+using <code>-Xmx</code>. Depending on the version of Java used,
+<code>-Xincgc</code> may also help.
 </p>
 
 <h2>Required libraries:</h2>
