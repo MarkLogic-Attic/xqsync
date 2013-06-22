@@ -409,6 +409,12 @@ local:lc(doc($URI))
     If the connection string uses the <code>xccs://</code> scheme,
     XQSync will attempt to use SSL for server communications.
     This requires MarkLogic Server 4.1 or later.
+    <br/>
+    The username, password, and hostname in this connection string
+    must not include non-URI characters. If necessary,
+    use percent-encoding as specified in
+    <a href="http://tools.ietf.org/html/rfc3986">RFC 3986</a>.
+    <br/>
     If the property includes multiple, whitespace-delimited connection strings,
     XQSync will round-robin documents across the available connections.
   </td>
