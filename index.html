@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <!--
 /*
- * Copyright (c)2005-2012 Mark Logic Corporation
+ * Copyright (c)2005-2013 Mark Logic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -192,6 +192,11 @@ older versions of xqsync.jar</a>.
     If the connection string uses the <code>xccs://</code> scheme,
     XQSync will attempt to use SSL for server communications.
     This requires MarkLogic Server 4.1 or later.
+    <br/>
+    The username, password, and hostname in this connection string
+    must not include non-URI characters. If necessary,
+    use percent-encoding as specified in
+    <a href="http://tools.ietf.org/html/rfc3986">RFC 3986</a>.
     <br/>
     The list of URIs are stored in a temporary file by default.  The
     location of the file can be specified directly (see the
