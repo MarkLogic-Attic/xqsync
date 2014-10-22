@@ -24,7 +24,7 @@ import junit.framework.TestCase;
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  *
  */
-public class TimedEventTests extends TestCase {
+public class TimedEventTest extends TestCase {
 
     public void testMonotonicDuration() {
         // runs for about 1 second
