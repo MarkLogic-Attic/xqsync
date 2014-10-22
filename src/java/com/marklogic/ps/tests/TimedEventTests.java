@@ -16,7 +16,9 @@
  * The use of the Apache License does not indicate that this project is
  * affiliated with the Apache Software Foundation.
  */
-package com.marklogic.ps.timing;
+package com.marklogic.ps.tests;
+
+import com.marklogic.ps.timing.TimedEvent;
 
 import junit.framework.TestCase;
 

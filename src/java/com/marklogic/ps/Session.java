@@ -218,6 +218,16 @@ public class Session implements com.marklogic.xcc.Session {
     /*
      * (non-Javadoc)
      *
+     * @see com.marklogic.xcc.Session#insertContent(com.marklogic.xcc.Content[])
+     */
+    public List<RequestException> insertContentCollectErrors(Content[] content) 
+            throws RequestException {
+        return session.insertContentCollectErrors(content);
+    }
+    
+    /*
+     * (non-Javadoc)
+     *
      * @see com.marklogic.xcc.Session#getContentbaseMetaData()
      */
     public ContentbaseMetaData getContentbaseMetaData() {
