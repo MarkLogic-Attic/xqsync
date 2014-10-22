@@ -410,9 +410,6 @@ public class Configuration extends AbstractConfiguration {
             logger.info("input from connection: ");
             for (int i = 0; i < inputUri.length; i++) {
                 inputUri[i] = new URI(inputStrings[i]);
-
-                String[] splitStr = inputStrings[i].split("@");
-                logger.info("input connection string: " + splitStr[1]);
             }
             inputConnection = new Connection(inputUri);
         }
