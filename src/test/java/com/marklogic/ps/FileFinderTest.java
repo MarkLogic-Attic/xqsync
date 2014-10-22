@@ -16,7 +16,7 @@
  * The use of the Apache License does not indicate that this project is
  * affiliated with the Apache Software Foundation.
  */
-package com.marklogic.ps.tests;
+package com.marklogic.ps;
 
 import java.io.File;
 import java.util.List;

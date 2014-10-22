@@ -5,3 +5,7 @@ publish.sh
 src/*.sh
 src/simplelogger*
 src/test*
+/target
+/simplelogger-0-0.log
+/simplelogger-0-0.log.lck
+/.settings

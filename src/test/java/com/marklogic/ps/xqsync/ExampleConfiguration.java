@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2010 Mark Logic Corporation. All rights reserved.
  */
-package com.marklogic.ps.tests;
+package com.marklogic.ps.xqsync;
 
 import com.marklogic.ps.xqsync.Configuration;
 
