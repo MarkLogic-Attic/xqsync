@@ -130,7 +130,7 @@ public class AbstractConfiguration {
     /**
      * @param _props
      */
-    private void applyDefaults(Properties _props) {
+    protected void applyDefaults(Properties _props) {
         // apply default values to properties
         Iterator<String> iter = defaults.keySet().iterator();
         String key;
