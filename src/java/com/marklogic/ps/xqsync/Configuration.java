@@ -27,6 +27,7 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.Map;
@@ -1091,6 +1092,47 @@ public class Configuration extends AbstractConfiguration {
             for (int i = 0; i < roleNames.length; i++)
                 permissionRoles.add(new ContentPermission(capability, roleNames[i]));
         }
+    }
+
+    /**
+     * validate user-defined property names and apply defaults
+     */
+    protected void validateProperties() {
+        Properties validated = new Properties();
+        Enumeration<?> keys = properties.propertyNames();
+        // ignore known patterns from System properties
+        String ignorePrefixPatterns = "^("
+            + "awt|file|ftp|http|https|java|line|mrj|os|path|sun|user"
+            + ")\\..+";
+        String ignorePatterns = "^(gopherProxySet|socksNonProxyHosts)$";
+        String key, value;
+        while (keys.hasMoreElements()) {
+            key = (String) keys.nextElement();
+            // known jre pattern
+            if (key.matches(ignorePatterns)
+                || key.matches(ignorePrefixPatterns)) {
+                logger.fine("known system key: ignoring " + key);
+                continue;
+            }
+            // key is unknown
+            if (!defaults.containsKey(key)) {
+                logger.warning("unknown key: skipping " + key);
+                continue;
+            }
+            // known key
+            value = properties.getProperty(key);
+            if (INPUT_CONNECTION_STRING_KEY.equals(key)) {
+                logger.info("found " + INPUT_CONNECTION_STRING_KEY);
+            } else {
+                logger.info("using " + key + "=" + value);
+            }
+            validated.setProperty(key, value);
+        }
+
+        applyDefaults(validated);
+
+        // use the validated properties
+        properties = validated;
     }
 
 }
