@@ -16,9 +16,7 @@
  * The use of the Apache License does not indicate that this project is
  * affiliated with the Apache Software Foundation.
  */
-package com.marklogic.ps.tests;
-
-import com.marklogic.ps.timing.TimedEvent;
+package com.marklogic.ps.timing;
 
 import junit.framework.TestCase;
 
@@ -26,7 +24,7 @@ import junit.framework.TestCase;
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  *
  */
-public class TimedEventTests extends TestCase {
+public class TimedEventTest extends TestCase {
 
     public void testMonotonicDuration() {
         // runs for about 1 second

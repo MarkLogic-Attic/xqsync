@@ -16,7 +16,7 @@
  * The use of the Apache License does not indicate that this project is
  * affiliated with the Apache Software Foundation.
  */
-package com.marklogic.ps.tests;
+package com.marklogic.ps.xqsync;
 
 import java.net.URI;
 import java.util.Properties;
@@ -42,7 +42,7 @@ import com.marklogic.xcc.ContentPermission;
  * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
-public class DocumentTest extends TestCase {
+public class DocumentIT extends TestCase {
 
     public void testEscaping() throws Exception {
         String testString = "http://foo.com/bar baz/";
