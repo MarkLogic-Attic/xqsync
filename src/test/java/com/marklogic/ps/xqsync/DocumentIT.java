@@ -42,7 +42,7 @@ import com.marklogic.xcc.ContentPermission;
  * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
-public class DocumentTest extends TestCase {
+public class DocumentIT extends TestCase {
 
     public void testEscaping() throws Exception {
         String testString = "http://foo.com/bar baz/";
