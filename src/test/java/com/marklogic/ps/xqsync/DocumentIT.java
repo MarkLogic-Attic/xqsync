@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import java.net.URI;
 import java.util.Properties;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.marklogic.ps.Connection;
@@ -63,6 +64,7 @@ public class DocumentIT {
     }
 
     @Test
+    @Ignore
     public void testPermissions() throws Exception {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
