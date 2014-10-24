@@ -277,9 +277,6 @@
 				<version>${maven.pmd.plugin.version}</version>
 				<configuration>
 					<targetJdk>${jdk.version}</targetJdk>
-					<rulesets>
-						<ruleset>${basedir}/src/test/resources/pmd-ruleset.xml</ruleset>
-					</rulesets>
 					<minimumTokens>${pmd.cpd.minimumTokens}</minimumTokens>
 					<typeResolution>true</typeResolution>
 				</configuration>
