@@ -18,19 +18,16 @@
  */
 package com.marklogic.ps.xqsync;
 
+import static org.junit.Assert.assertEquals;
+
 import java.net.URI;
 import java.util.Properties;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
-import com.marklogic.ps.xqsync.Configuration;
-import com.marklogic.ps.xqsync.FilePathReader;
-import com.marklogic.ps.xqsync.FilePathWriter;
-import com.marklogic.ps.xqsync.SessionReader;
-import com.marklogic.ps.xqsync.XQSyncDocument;
 import com.marklogic.xcc.AdhocQuery;
 import com.marklogic.xcc.Content;
 import com.marklogic.xcc.ContentCapability;
@@ -42,41 +39,41 @@ import com.marklogic.xcc.ContentPermission;
  * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
-public class DocumentIT extends TestCase {
+public class DocumentIT {
 
+    @Test
     public void testEscaping() throws Exception {
         String testString = "http://foo.com/bar baz/";
         String expected = testString;
         Configuration config = new Configuration();
         Properties properties = new Properties();
         properties.setProperty(Configuration.INPUT_PATH_KEY, "/dev/null");
-        properties
-                .setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
+        properties.setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
         config.setLogger(SimpleLogger.getSimpleLogger());
         config.setProperties(properties);
         config.configure();
         FilePathReader reader = new FilePathReader(config);
         FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(
-                new String[] { testString }, reader, writer, config);
+        XQSyncDocument doc = new XQSyncDocument(new String[] { testString },
+                reader, writer, config);
         testString = doc.getOutputUri(0);
         assertEquals(testString, expected);
         // testString = doc.getOutputUri(true);
         // assertEquals(testString, expected);
     }
 
+    @Test
     public void testPermissions() throws Exception {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
         props.setProperty(SimpleLogger.LOG_HANDLER, "CONSOLE");
         URI uri = new URI("xcc://q:q@localhost:9000/");
-        props.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, uri
-                .toString());
+        props.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY,
+                uri.toString());
         props.setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
         Connection c = new Connection(uri);
         Session sess = (Session) c.newSession();
-        String documentUri = this.getClass().getName()
-                + "/testPermissions.xml";
+        String documentUri = this.getClass().getName() + "/testPermissions.xml";
 
         String documentString = "<!-- this is a test -->\n"
                 + "<test id=\"foo\"/>\n";
@@ -103,8 +100,8 @@ public class DocumentIT extends TestCase {
         config.configure();
         SessionReader reader = new SessionReader(config);
         FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(
-                new String[] { documentUri }, reader, writer, config);
+        XQSyncDocument doc = new XQSyncDocument(new String[] { documentUri },
+                reader, writer, config);
         doc.read();
         String retrievedXml = new String(doc.getContent(0));
 
@@ -112,16 +109,14 @@ public class DocumentIT extends TestCase {
         assertEquals(documentString, retrievedXml);
 
         // test the permissions
-        ContentPermission[] permissions = doc.getMetadata(0)
-                .getPermissions();
+        ContentPermission[] permissions = doc.getMetadata(0).getPermissions();
         SimpleLogger logger = config.getLogger();
         logger.fine("found permissions " + permissions.length);
         for (int i = 0; i < permissions.length; i++) {
             logger.finer("permission[" + i + "] = " + permissions[i]);
         }
         assertEquals(1, permissions.length);
-        assertEquals(permissions[0].getCapability(),
-                ContentCapability.READ);
+        assertEquals(permissions[0].getCapability(), ContentCapability.READ);
         assertEquals(permissions[0].getRole(), "admin");
 
         // on success, delete the test document

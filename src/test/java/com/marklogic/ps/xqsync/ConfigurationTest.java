@@ -18,28 +18,29 @@
  */
 package com.marklogic.ps.xqsync;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Properties;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 import com.marklogic.ps.SimpleLogger;
-import com.marklogic.ps.xqsync.Configuration;
-import com.marklogic.ps.xqsync.XQSync;
 
 /**
  * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
-public class ConfigurationTest extends TestCase {
+public class ConfigurationTest {
 
+    @Test
     public void testConfiguration() throws Exception {
         Properties properties = new Properties();
         properties.setProperty(Configuration.CONFIGURATION_CLASSNAME_KEY,
                 ExampleConfiguration.class.getCanonicalName());
         properties.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY,
                 "test");
-        Configuration config = XQSync.initConfiguration(SimpleLogger
-                .getSimpleLogger(), properties);
+        Configuration config = XQSync.initConfiguration(
+                SimpleLogger.getSimpleLogger(), properties);
         config.close();
         assertEquals(config.getClass().getCanonicalName(),
                 ExampleConfiguration.class.getCanonicalName());

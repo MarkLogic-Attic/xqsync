@@ -18,20 +18,25 @@
  */
 package com.marklogic.ps.timing;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertFalse;
+
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
- *
+ * 
  */
-public class TimedEventTest extends TestCase {
+public class TimedEventTest {
 
+    @Test
+    @Ignore
     public void testMonotonicDuration() {
         // runs for about 1 second
-        for (int i=0; i<123456; i++) {
+        for (int i = 0; i < 123456; i++) {
             TimedEvent e = new TimedEvent();
             e.stop();
-            //System.err.println("" + i + ": " + e.getDuration());
+            // System.err.println("" + i + ": " + e.getDuration());
             assertFalse(e.getDuration() < 1);
         }
     }

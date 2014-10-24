@@ -18,23 +18,25 @@
  */
 package com.marklogic.ps;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.List;
 
-import junit.framework.TestCase;
-
-import com.marklogic.ps.FileFinder;
-import com.marklogic.ps.Utilities;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * @author Michael Blakeley, michael.blakeley@marklogic.com
  * 
  */
-public class FileFinderTest extends TestCase {
+public class FileFinderTest {
 
     /*
      * Test method for 'com.marklogic.ps.FileFinder.listRelativePaths(String)'
      */
+    @Test
+    @Ignore
     public void testListRelativePaths() {
         String basePath = "/test/foo/bar";
         FileFinder ff = new FileFinder(basePath);
