@@ -64,7 +64,7 @@ public class DocumentIT {
     }
 
     @Test
-    @Ignore
+    @Ignore("requires a local MarkLogic server")
     public void testPermissions() throws Exception {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");

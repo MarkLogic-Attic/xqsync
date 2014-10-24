@@ -36,7 +36,7 @@ public class FileFinderTest {
      * Test method for 'com.marklogic.ps.FileFinder.listRelativePaths(String)'
      */
     @Test
-    @Ignore
+    @Ignore("fails with Windows file separators")
     public void testListRelativePaths() {
         String basePath = "/test/foo/bar";
         FileFinder ff = new FileFinder(basePath);
