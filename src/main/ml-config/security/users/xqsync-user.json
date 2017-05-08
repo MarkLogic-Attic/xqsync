@@ -1,0 +1,5 @@
+{
+  "user-name" : "%%NAME%%-test-user",
+  "password" : "%%NAME%%-test-password",
+  "role" : [ "%%NAME%%-admin" ]
+}

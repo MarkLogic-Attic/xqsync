@@ -215,6 +215,10 @@ public class Session implements com.marklogic.xcc.Session {
         session.insertContent(content);
     }
 
+    public List<RequestException> insertContentCollectErrors(Content[] content){
+        return new ArrayList<RequestException>(0);
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -476,4 +480,8 @@ public class Session implements com.marklogic.xcc.Session {
         return session.getXAResource();
     }
 
+    public int getCachedTxnTimeout() {
+        throw new java.lang.UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    
 }
