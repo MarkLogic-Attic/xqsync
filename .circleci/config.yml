@@ -27,8 +27,8 @@ jobs:
           - v1-dependencies-
 
       - run:
-        name: Download Dependencies
-        command: ./gradlew dependencies
+          name: Download Dependencies
+          command: ./gradlew dependencies
 
       - save_cache:
           paths:
