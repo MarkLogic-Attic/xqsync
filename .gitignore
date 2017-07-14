@@ -4,9 +4,8 @@ lib/
 publish.sh
 src/*.sh
 src/simplelogger*
-src/test*
 .idea
 .gradle
 /.nb-gradle/
 build
-simplelogger-0-0.log*
+simplelogger-*.log*
