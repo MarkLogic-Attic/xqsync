@@ -69,6 +69,7 @@ dependencies {
     compile group: 'xstream', name: 'xstream', version: '1.2.2'
     compile group: 'org.ogce', name: 'xpp3', version: '1.1.6'
     runtime group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.8.9'
+    runtime group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.8.9'
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
 }
