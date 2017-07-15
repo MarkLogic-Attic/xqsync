@@ -38,7 +38,7 @@ jobs:
       # run tests!
       - run:
           name: Run Tests
-          command: ./gradlew check jacocoTestReport -x integrationTest -x performanceTest
+          command: ./gradlew check -PskipIntegrationTest -PskipPerformanceTest
 
       # collect test results
       #- run: |

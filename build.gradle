@@ -65,9 +65,9 @@ dependencies {
 
     // This dependency is used internally, and not exposed to consumers on their own compile classpath.
     //implementation 'com.google.guava:guava:21.0'
-    implementation group: 'com.marklogic', name: 'marklogic-xcc', version: '8.0.6'
-    implementation group: 'xstream', name: 'xstream', version: '1.2.2'
-    implementation group: 'org.ogce', name: 'xpp3', version: '1.1.6'
+    compile group: 'com.marklogic', name: 'marklogic-xcc', version: '8.0.6'
+    compile group: 'xstream', name: 'xstream', version: '1.2.2'
+    compile group: 'org.ogce', name: 'xpp3', version: '1.1.6'
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
@@ -83,6 +83,15 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from 'build/docs/javadoc'
+}
+
+test {
+    testLogging {
+        events TestLogEvent.STARTED,TestLogEvent.PASSED
+    }
+    //we will run Integration and Performance tests in separate tasks
+    exclude '**/*IT*'
+    exclude '**/*PT*'
 }
 
 jacocoTestReport {
