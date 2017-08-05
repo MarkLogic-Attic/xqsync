@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2017 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ import com.marklogic.xcc.exceptions.XccException;
 import com.marklogic.xcc.spi.ConnectionProvider;
 
 /**
- * @author Michael Blakeley <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class Connection implements ContentSource {
@@ -67,7 +67,8 @@ public class Connection implements ContentSource {
     }
 
     /**
-     * @param _uri
+     * @param _uris
+     * @param _uris
      * @throws XccException
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException

@@ -34,7 +34,7 @@ import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.timing.TimedEvent;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class UriQueue extends Thread {

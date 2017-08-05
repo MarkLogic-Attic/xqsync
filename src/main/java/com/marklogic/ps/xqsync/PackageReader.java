@@ -21,7 +21,7 @@ package com.marklogic.ps.xqsync;
 import java.io.IOException;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class PackageReader extends FilePathReader {
@@ -30,7 +30,6 @@ public class PackageReader extends FilePathReader {
 
     /**
      * @param _configuration
-     * @param _pkg
      * @throws SyncException
      */
     public PackageReader(Configuration _configuration)

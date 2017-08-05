@@ -42,7 +42,7 @@ import com.marklogic.xcc.exceptions.UnimplementedFeatureException;
 import com.marklogic.xcc.exceptions.XccException;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class Configuration extends AbstractConfiguration {

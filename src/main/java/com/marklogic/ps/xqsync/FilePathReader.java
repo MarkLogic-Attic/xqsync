@@ -22,7 +22,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class FilePathReader extends AbstractReader {

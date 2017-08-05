@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,39 +18,29 @@
  */
 package com.marklogic.ps.xqsync;
 
+import java.util.Properties;
+
 import com.marklogic.ps.SimpleLogger;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
-public abstract class AbstractReader implements ReaderInterface {
-
-    protected SimpleLogger logger;
-
-    protected Configuration configuration;
-
-    /**
-     * @param _configuration
-     * @throws SyncException
-     */
-    public AbstractReader(Configuration _configuration)
-            throws SyncException {
-        configuration = _configuration;
-        logger = configuration.getLogger();
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.marklogic.ps.xqsync.ReaderInterface#read(java.lang.String,
-     * com.marklogic.ps.xqsync.DocumentInterface)
-     */
-    public abstract void read(String[] _uris, DocumentInterface _document)
-            throws SyncException;
-
-    public void close() {
-        // do nothing
+public class ConfigurationTest {
+    @Test
+    public void testConfiguration() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty(Configuration.CONFIGURATION_CLASSNAME_KEY,
+                ExampleConfiguration.class.getCanonicalName());
+        properties.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY,
+                "test");
+        Configuration config = XQSync.initConfiguration(SimpleLogger
+                .getSimpleLogger(), properties);
+        config.close();
+        assertEquals(config.getClass().getCanonicalName(),
+                ExampleConfiguration.class.getCanonicalName());
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2003-2012 MarkLogic Corporation
+ * Copyright (c)2003-2017 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package com.marklogic.ps;
 import java.util.Properties;
 
 /**
- * @author Michael Blakeley <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public interface PropertyClientInterface {

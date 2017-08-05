@@ -30,7 +30,7 @@ import com.marklogic.ps.timing.TimedEvent;
 import com.marklogic.ps.timing.Timer;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class Monitor extends Thread {

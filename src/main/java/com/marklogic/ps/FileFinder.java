@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2017 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Vector;
 
 /**
- * @author Michael Blakeley, <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class FileFinder {
@@ -44,7 +44,6 @@ public class FileFinder {
 
     /**
      * @param _path
-     * @throws IOException
      */
     public FileFinder(String _path) {
         if (_path == null)
@@ -55,8 +54,7 @@ public class FileFinder {
 
     /**
      * @param _path
-     * @param _includePattern
-     * @throws IOException
+     * @param _pattern
      */
     public FileFinder(String _path, String _pattern) {
         if (_path == null)
@@ -80,7 +78,7 @@ public class FileFinder {
 
     /**
      * @param _f
-     * @param _includePattern
+     * @param _pattern
      * @throws IOException
      */
     public FileFinder(File _f, String _pattern) throws IOException {

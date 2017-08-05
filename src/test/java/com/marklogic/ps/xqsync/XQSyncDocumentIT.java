@@ -16,7 +16,7 @@
  * The use of the Apache License does not indicate that this project is
  * affiliated with the Apache Software Foundation.
  */
-package com.marklogic.ps.tests;
+package com.marklogic.ps.xqsync;
 
 import java.net.URI;
 import java.util.Properties;
@@ -42,14 +42,14 @@ import static org.junit.Assert.assertEquals;
  * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
-public class DocumentIT {
+public class XQSyncDocumentIT {
 
     @Test
     public void testPermissions() throws Exception {
         Properties props = new Properties();
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
         props.setProperty(SimpleLogger.LOG_HANDLER, "CONSOLE");
-        URI uri = new URI("xcc://xqsync-test-user:xqsync-test-password@localhost:9000/");
+        URI uri = new URI("xcc://xqsync-test-user:xqsync-test-password@localhost:9000");
         props.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, uri
                 .toString());
         props.setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
@@ -61,12 +61,10 @@ public class DocumentIT {
         String documentString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                 + "<!-- this is a test -->\n"
                 + "<test id=\"foo\"/>";
-        ContentCreateOptions createOptions = ContentCreateOptions
-                .newXmlInstance();
+        ContentCreateOptions createOptions = ContentCreateOptions.newXmlInstance();
 
         // write the test document
-        Content content = ContentFactory.newContent(documentUri,
-                documentString, createOptions);
+        Content content = ContentFactory.newContent(documentUri, documentString, createOptions);
         sess.insertContent(content);
 
         // set the permissions

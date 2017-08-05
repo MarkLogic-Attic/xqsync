@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2005-2012 MarkLogic Corporation
+ * Copyright (c)2005-2017 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import java.util.logging.SimpleFormatter;
 import java.util.logging.Formatter;
 
 /**
- * @author Michael Blakeley michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  * wrapper for java logging
  */

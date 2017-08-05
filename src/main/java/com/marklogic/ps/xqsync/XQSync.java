@@ -28,7 +28,7 @@ import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.Version;
 
 /**
- * @author Michael Blakeley
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class XQSync {

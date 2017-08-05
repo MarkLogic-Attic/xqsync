@@ -19,7 +19,7 @@
 package com.marklogic.ps.xqsync;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public interface ReaderInterface {

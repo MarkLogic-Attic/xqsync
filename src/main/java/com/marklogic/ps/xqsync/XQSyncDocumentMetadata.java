@@ -32,7 +32,7 @@ import com.marklogic.xcc.types.XSInteger;
 import com.thoughtworks.xstream.XStream;
 
 /**
- * @author Michael Blakeley <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class XQSyncDocumentMetadata implements MetadataInterface {

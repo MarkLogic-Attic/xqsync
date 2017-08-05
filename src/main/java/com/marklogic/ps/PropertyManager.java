@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2017 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * @author Michael Blakeley <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class PropertyManager extends Thread {
@@ -44,8 +44,8 @@ public class PropertyManager extends Thread {
     protected PropertyClientInterface[] clients;
 
     /**
-     * @param propertyFile
-     * @throws XDCFException
+     *
+     * @param _propertyFilePath
      */
     public PropertyManager(String _propertyFilePath) {
         // set up to periodically check propertyFile for changes
@@ -57,7 +57,7 @@ public class PropertyManager extends Thread {
     }
 
     /**
-     * @param _propertyFile
+     *
      * @throws IOException
      */
     protected void reload() throws IOException {
@@ -100,14 +100,14 @@ public class PropertyManager extends Thread {
     }
 
     /**
-     * @param services
+     * @param _clients
      */
     public void addClients(PropertyClientInterface[] _clients) {
         clients = _clients;
     }
 
     /**
-     * @param oo
+     * @param _client
      */
     public void add(PropertyClientInterface _client) {
         if (clients == null)

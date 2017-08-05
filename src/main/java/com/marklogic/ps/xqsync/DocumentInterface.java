@@ -22,7 +22,7 @@ import java.io.InputStream;
 import java.io.Reader;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public interface DocumentInterface {

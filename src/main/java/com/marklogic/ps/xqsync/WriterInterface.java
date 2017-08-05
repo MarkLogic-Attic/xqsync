@@ -20,7 +20,7 @@
 package com.marklogic.ps.xqsync;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public interface WriterInterface {
@@ -42,9 +42,9 @@ public interface WriterInterface {
      * subclass's implementation, the multiple writes may or may not
      * occur within a single txn.
      *
-     * @param _outputUri[]
-     * @param _contentBytes[][]
-     * @param _metadata[]
+     * @param _outputUri
+     * @param _contentBytes
+     * @param _metadata
      * @return
      * 
      * returns the number of Bytes written

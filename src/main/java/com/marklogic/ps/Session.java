@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c) 2006-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2006-2017 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ import com.marklogic.xcc.types.XSBoolean;
 import com.marklogic.xcc.types.XSInteger;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class Session implements com.marklogic.xcc.Session {
@@ -350,8 +350,8 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     /**
-     * @param remoteURI
-     * @param string
+     * @param _uri
+     * @param _xmlString
      * @throws XccException
      */
     public void setDocumentProperties(String _uri, String _xmlString)
@@ -372,7 +372,6 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     /**
-     * @param _names
      * @return
      * @throws XccException
      */
@@ -449,7 +448,7 @@ public class Session implements com.marklogic.xcc.Session {
     /**
      * Sets the timeout for transactions
      * @param seconds The number of seconds before the transaction times out
-     * @throws RequestEception
+     * @throws RequestException
      *             If there is a problem communicating with the server.
      */
     public void setTransactionTimeout(int seconds) throws RequestException {

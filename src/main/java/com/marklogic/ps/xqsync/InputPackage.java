@@ -36,7 +36,7 @@ import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.Utilities;
 
 /**
- * @author Michael Blakeley <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class InputPackage {

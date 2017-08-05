@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  * 
- * Copyright (c)2005-2010 Mark Logic Corporation
+ * Copyright (c)2005-2017 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.Comparator;
 
 /*
- * @author Michael Blakeley <michael.blakeley@marklogic.com>
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class Timer {
@@ -224,7 +224,7 @@ public class Timer {
     }
 
     /**
-     * @param l
+     *
      */
     public long stop() {
         return stop(System.nanoTime());

@@ -29,6 +29,7 @@ targetCompatibility = '1.7'
 
 repositories {
     jcenter()
+    //needed for XCC versions below 9.0
     maven { url 'http://developer.marklogic.com/maven2/' }
 }
 
@@ -72,7 +73,6 @@ dependencies {
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
 }
-
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     description = "Create a JAR of source files; required by bintray for publishing"

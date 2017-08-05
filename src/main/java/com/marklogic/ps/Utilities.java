@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2017 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import java.io.Writer;
 import java.util.List;
 
 /**
- * @author mike.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class Utilities {
@@ -229,7 +229,7 @@ public class Utilities {
     }
 
     /**
-     * @param outHtmlFileName
+     * @param _path
      * @throws IOException
      */
     public static void deleteFile(String _path) throws IOException {

@@ -43,7 +43,7 @@ import com.marklogic.xcc.types.XSInteger;
 import com.marklogic.xcc.types.XdmElement;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
 public class SessionReader extends AbstractReader {

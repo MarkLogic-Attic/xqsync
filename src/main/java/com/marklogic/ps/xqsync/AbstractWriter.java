@@ -25,7 +25,7 @@ import com.marklogic.ps.SimpleLogger;
 import com.marklogic.xcc.ContentPermission;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public abstract class AbstractWriter implements WriterInterface {
@@ -77,9 +77,9 @@ public abstract class AbstractWriter implements WriterInterface {
      * method for single documents in a loop.  This should be good
      * enough for subclasses that don't have a concept of a txn.
      *
-     * @param _outputUri[]
-     * @param _contentBytes[][]
-     * @param _metadata[]
+     * @param _outputUri
+     * @param _contentBytes
+     * @param _metadata
      * @return
      *
      * returns the number of Bytes written

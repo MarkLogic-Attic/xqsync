@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,36 +18,23 @@
  */
 package com.marklogic.ps.xqsync;
 
+import com.marklogic.ps.xqsync.Configuration;
+
 /**
  * @author Michael Blakeley, MarkLogic Corporation
  * 
+ *         This subclass can override Configuration.getWriter(), etc.
  */
-public class PackageTaskFactory extends TaskFactory {
+public class ExampleConfiguration extends Configuration {
 
-    /**
-     * @param _config
-     * @param _monitor
-     * @param _inputPackage
-     * @throws SyncException
-     */
-    public PackageTaskFactory(Configuration _config, Monitor _monitor,
-            InputPackage _inputPackage) throws SyncException {
-        super(_config, _monitor);
-        inputPackage = _inputPackage;
-    }
-
-    protected InputPackage inputPackage;
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.marklogic.ps.xqsync.TaskFactory#getReader()
-     */
     @Override
-    public ReaderInterface getReader() throws SyncException {
-        ReaderInterface reader = new PackageReader(configuration);
-        ((PackageReader) reader).setPackage(inputPackage);
-        return reader;
+    public void close() {
+        logger.info("closing");
+        super.close();
     }
 
+    @Override
+    public void configure() throws Exception {
+        logger.info("overriding superclass configure method");
+    }
 }

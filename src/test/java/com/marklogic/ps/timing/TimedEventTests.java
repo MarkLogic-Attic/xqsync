@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,39 +16,26 @@
  * The use of the Apache License does not indicate that this project is
  * affiliated with the Apache Software Foundation.
  */
-package com.marklogic.ps.xqsync;
+package com.marklogic.ps.timing;
+
+import com.marklogic.ps.timing.TimedEvent;
+import org.junit.Test;
+import static org.junit.Assert.assertFalse;
 
 /**
  * @author Michael Blakeley, MarkLogic Corporation
  *
  */
-public class FatalException extends RuntimeException {
+public class TimedEventTests {
 
-    /**
-     * @param message
-     */
-    public FatalException(String message) {
-        super(message);
+    @Test
+    public void testMonotonicDuration() {
+        // runs for about 1 second
+        for (int i=0; i<123456; i++) {
+            TimedEvent e = new TimedEvent();
+            e.stop();
+            //System.err.println("" + i + ": " + e.getDuration());
+            assertFalse(e.getDuration() < 1);
+        }
     }
-
-    /**
-     * @param cause
-     */
-    public FatalException(Throwable cause) {
-        super(cause);
-    }
-
-    /**
-     * @param message
-     * @param cause
-     */
-    public FatalException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
 }

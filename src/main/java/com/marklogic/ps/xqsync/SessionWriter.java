@@ -40,7 +40,7 @@ import com.marklogic.xcc.exceptions.XQueryException;
 import com.marklogic.xcc.exceptions.XccException;
 
 /**
- * @author Michael Blakeley, michael.blakeley@marklogic.com
+ * @author Michael Blakeley, MarkLogic Corporation
  *
  */
 public class SessionWriter extends AbstractWriter {
