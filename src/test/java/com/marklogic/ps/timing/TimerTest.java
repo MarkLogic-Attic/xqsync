@@ -79,7 +79,7 @@ public class TimerTest {
         timedEvent.increment(50000l);
         Timer timer = new Timer();
         timer.add(timedEvent);
-        assertNotEquals(0d,timer.getBytesPerSecond(), 0.00001);
+        assertNotEquals(0d, timer.getBytesPerSecond(), 0.00001);
     }
 
     @Test
