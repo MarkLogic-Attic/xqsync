@@ -7,8 +7,8 @@
 [![Travis-ci gradle build status](https://travis-ci.org/marklogic-community/xqsync.svg?branch=develop)](https://travis-ci.org/marklogic-community/xqsync)
 [![CircleCI maven build status](https://circleci.com/gh/marklogic-community/xqsync/tree/develop.svg?style=shield)](https://circleci.com/gh/marklogic-community/xqsync/tree/develop)
 [![Codecov code coverage](https://codecov.io/gh/marklogic-community/xqsync/branch/develop/graph/badge.svg)](https://codecov.io/gh/marklogic-community/xqsync/branch/develop)
-[![SonarQube TechDebt](https://sonarcloud.io/api/badges/measure?key=com.marklogic%3Axqsync%3Adevelop&metric=sqale_debt_ratio)](https://sonarcloud.io/component_measures/domain/Maintainability?id=com.marklogic%3Axqsync%3Adevelop)
-[![SonarQube Quality](https://sonarcloud.io/api/badges/gate?key=com.marklogic%3Axqsync%3Adevelop)](https://sonarcloud.id/dashboard?id=com.marklogic%3Axqsync%3Adevelop)
+[![SonarQube Quality](https://sonarcloud.io/api/project_badges/measure?project=com.marklogic%3Axqsync%3Adevelop&metric=alert_status)](https://sonarcloud.id/dashboard?id=com.marklogic%3Axqsync%3Adevelop)
+[![SonarQube Maintainability](https://sonarcloud.io/api/project_badges/measure?project=com.marklogic%3Axqsync%3Adevelop&metric=sqale_rating)](https://sonarcloud.io/component_measures/domain/Maintainability?id=com.marklogic%3Axqsync%3Adevelop)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/95ab38d35fbd467c9f31e12f2902d2d0)](https://www.codacy.com/app/mads-hansen/xqsync?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=marklogic-community/xqsync&amp;utm_campaign=Badge_Grade)
 
 
@@ -40,7 +40,7 @@ java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
  - one of: OUTPUT_PACKAGE, OUTPUT_CONNECTION_STRING
 
 
-> Note that this requirements can be overriden by a subclass of com.marklogic.ps.xqsync.Configuration. See Customization for details.
+> Note that this requirements can be overriden by a subclass of `com.marklogic.ps.xqsync.Configuration`. See Customization for details.
 
 A full listing of [available properties](https://github.com/marklogic-community/xqsync/wiki/Properties).
  
