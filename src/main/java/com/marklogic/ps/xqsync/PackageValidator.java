@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2009-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,13 +35,9 @@ import com.marklogic.ps.SimpleLogger;
 public class PackageValidator {
 
     static SimpleLogger logger;
-
     static Collection<String> pathsObserved;
-
     static Map<String, String> urisObserved;
-
     private static Configuration config;
-
     private static PackageReader reader;
 
     /**
@@ -55,38 +51,35 @@ public class PackageValidator {
 
     /**
      * @param args
-     * @throws IOException
      * @throws SyncException
      */
-    private static void validatePaths(String[] args) throws IOException,
-            SyncException {
-        pathsObserved = new HashSet<String>();
-        urisObserved = new HashMap<String, String>();
+    private static void validatePaths(String[] args) throws SyncException {
+        pathsObserved = new HashSet<>();
+        urisObserved = new HashMap<>();
         config = new Configuration();
         config.setLogger(logger);
         reader = new PackageReader(config);
         File file;
         long count = 0;
-        for (int i = 0; i < args.length; i++) {
-            file = new File(args[i]);
+        for (String arg : args) {
+            file = new File(arg);
             if (!file.exists()) {
-                logger
-                        .warning("file does not exist, skipping "
-                                + args[i]);
+                logger.warning("file does not exist, skipping "
+                        + arg);
                 continue;
             }
             if (!file.canRead()) {
-                logger.warning("cannot read file, skipping " + args[i]);
+                logger.warning("cannot read file, skipping " + arg);
                 continue;
             }
             if (file.isDirectory()) {
-                logger.warning("skipping directory " + args[i]);
+                logger.warning("skipping directory " + arg);
                 continue;
             }
             try {
                 count += validate(file);
             } catch (Exception e) {
-                logger.logException(args[i], e);
+                logger.logException(arg, e);
             }
         }
         logger.info("checked " + count + " uris");
@@ -121,8 +114,7 @@ public class PackageValidator {
         while (iter.hasNext()) {
             uri = iter.next();
             if (urisObserved.containsKey(uri)) {
-                logger.warning("duplicate uri in " + canonicalPath
-                        + " from " + urisObserved.get(uri) + ": " + uri);
+                logger.warning("duplicate uri in " + canonicalPath + " from " + urisObserved.get(uri) + ": " + uri);
             } else {
                 urisObserved.put(uri, canonicalPath);
             }

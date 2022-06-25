@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2006-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2006-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ package com.marklogic.ps.xqsync;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UTFDataFormatException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -40,19 +40,18 @@ import com.marklogic.ps.Utilities;
  * 
  */
 public class FragmentZipFiles {
-    private static SimpleLogger logger = SimpleLogger.getSimpleLogger();
+    private static final SimpleLogger logger = SimpleLogger.getSimpleLogger();
 
-    class FragmentTask implements Runnable {
+    static class FragmentTask implements Runnable {
 
         /**
          * 
          */
         private static final String ZIP_EXTENSION = ".zip";
+        final File file;
 
-        File file;
-
-        public FragmentTask(File _file) {
-            file = _file;
+        public FragmentTask(File file) {
+            this.file = file;
         }
 
         /*
@@ -77,89 +76,79 @@ public class FragmentZipFiles {
             }
         }
 
-        private void fragment(String path) throws FileNotFoundException,
-                IOException {
+        private void fragment(String path) throws IOException {
             logger.info("fragmenting path" + path);
             File parent = file.getParentFile();
-            String basename = path.substring(0, path.length()
-                    - ZIP_EXTENSION.length());
+            String basename = path.substring(0, path.length() - ZIP_EXTENSION.length());
             String delimiter = "-";
             int fileIndex = 0;
 
             // fragment the archive
-            ZipInputStream zis = new ZipInputStream(new FileInputStream(
-                    file));
-            ZipEntry srcEntry, dstEntry;
-            ZipOutputStream output = null;
-            long entries = 0;
-            long size, compressedSize;
-            String lastEntryName = null;
-            String thisEntryName;
-            long bytes;
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(file))) {
+                ZipEntry srcEntry, dstEntry;
+                ZipOutputStream output = null;
+                long entries = 0;
+                long size, compressedSize;
+                String lastEntryName = null;
+                String thisEntryName;
+                long bytes;
 
-            // iterate over all available entries,
-            // copying to the current archive file.
-            logger.fine("looking for entries in " + path);
-            while ((srcEntry = zis.getNextEntry()) != null) {
-                thisEntryName = srcEntry.getName();
-                logger.finer("looking at entry " + thisEntryName + " in "
-                        + path);
-                entries++;
+                // iterate over all available entries,
+                // copying to the current archive file.
+                logger.fine("looking for entries in " + path);
+                while ((srcEntry = zis.getNextEntry()) != null) {
+                    thisEntryName = srcEntry.getName();
+                    logger.finer("looking at entry " + thisEntryName + " in " + path);
+                    entries++;
 
-                logger.finer("output " + output + ", entries=" + entries);
-                if (null == output
-                        || entries >= OutputPackage.MAX_ENTRIES) {
-                    logger.fine("new output needed");
-                    // ensure that we keep metadata and content together
-                    if (areRelated(lastEntryName, thisEntryName)) {
-                        logger
-                                .info("keeping content and metadata together for "
-                                        + lastEntryName);
-                        // we can go for one more entry, luckily
-                    } else {
-                        logger.fine("new output will be created");
-                        if (null != output) {
-                            output.flush();
-                            output.close();
+                    logger.finer("output " + output + ", entries=" + entries);
+                    if (null == output || entries >= OutputPackage.MAX_ENTRIES) {
+                        logger.fine("new output needed");
+                        // ensure that we keep metadata and content together
+                        if (areRelated(lastEntryName, thisEntryName)) {
+                            logger.info("keeping content and metadata together for " + lastEntryName);
+                            // we can go for one more entry, luckily
+                        } else {
+                            logger.fine("new output will be created");
+                            if (null != output) {
+                                output.flush();
+                                output.close();
+                            }
+                            entries = 0;
+                            output = nextOutput(basename, delimiter, fileIndex++, parent);
                         }
-                        entries = 0;
-                        output = nextOutput(basename, delimiter,
-                                fileIndex++, parent);
                     }
+
+                    // this helps us keep metadata with its content
+                    logger.finest("remembering entry " + thisEntryName);
+                    lastEntryName = thisEntryName;
+
+                    // duplicate the entry
+                    size = srcEntry.getSize();
+                    compressedSize = srcEntry.getCompressedSize();
+                    logger.finer("duplicating entry " + thisEntryName
+                            + " in " + path + ": " + size + "; "
+                            + compressedSize);
+                    // we must force recalc of the compressed size
+                    dstEntry = new ZipEntry(srcEntry);
+                    dstEntry.setCompressedSize(-1);
+                    output.putNextEntry(dstEntry);
+                    if (!srcEntry.isDirectory()) {
+                        bytes = Utilities.copy(zis, output);
+                        logger.finer("copied " + thisEntryName + ": " + bytes + " Bytes");
+                    }
+                    output.closeEntry();
+                    output.flush();
+
+                    logger.fine("processed entry " + entries + ": " + lastEntryName);
                 }
 
-                // this helps us keep metadata with its content
-                logger.finest("remembering entry " + thisEntryName);
-                lastEntryName = thisEntryName;
-
-                // duplicate the entry
-                size = srcEntry.getSize();
-                compressedSize = srcEntry.getCompressedSize();
-                logger.finer("duplicating entry " + thisEntryName
-                        + " in " + path + ": " + size + "; "
-                        + compressedSize);
-                // we must force recalc of the compressed size
-                dstEntry = new ZipEntry(srcEntry);
-                dstEntry.setCompressedSize(-1);
-                output.putNextEntry(dstEntry);
-                if (!srcEntry.isDirectory()) {
-                    bytes = Utilities.copy(zis, output);
-                    logger.finer("copied " + thisEntryName + ": " + bytes
-                            + " Bytes");
+                if (null != output) {
+                    output.flush();
+                    output.close();
                 }
-                output.closeEntry();
-                output.flush();
 
-                logger.fine("processed entry " + entries + ": "
-                        + lastEntryName);
             }
-
-            if (null != output) {
-                output.flush();
-                output.close();
-            }
-
-            zis.close();
             logger.info("fragmented " + path);
         }
 
@@ -187,16 +176,11 @@ public class FragmentZipFiles {
          * @return
          * @throws IOException
          */
-        private ZipOutputStream nextOutput(String basename,
-                String delimiter, int fileIndex, File parent)
-                throws IOException {
+        private ZipOutputStream nextOutput(String basename, String delimiter, int fileIndex, File parent) throws IOException {
             String nextName = nextName(basename, delimiter, fileIndex++);
             File outFile = new File(parent, nextName);
-            logger.info("opening new zip file: "
-                    + outFile.getCanonicalPath());
-            ZipOutputStream output = new ZipOutputStream(
-                    new FileOutputStream(outFile));
-            return output;
+            logger.info("opening new zip file: " + outFile.getCanonicalPath());
+            return new ZipOutputStream(new FileOutputStream(outFile));
         }
 
         /**
@@ -206,11 +190,11 @@ public class FragmentZipFiles {
          */
         private String nextName(String basename, String delimiter, int i) {
             return basename + delimiter
-                    + String.format("%04d", new Integer(i))
+                    + String.format("%04d", i)
                     + ZIP_EXTENSION;
         }
 
-    };
+    }
 
     /**
      * @param args
@@ -218,29 +202,24 @@ public class FragmentZipFiles {
      */
     public static void main(String[] args) throws Exception {
         String encoding = System.getProperty("file.encoding");
-        if (!"UTF-8".equals(encoding)) {
-            throw new UTFDataFormatException("system encoding "
-                    + encoding + "is not UTF-8");
+        if (!StandardCharsets.UTF_8.name().equals(encoding)) {
+            throw new UTFDataFormatException("system encoding " + encoding + "is not UTF-8");
         }
 
         logger.configureLogger(System.getProperties());
 
-        int threads = Integer.parseInt(System.getProperty("THREADS", ""
-                + Runtime.getRuntime().availableProcessors()));
+        int threads = Integer.parseInt(System.getProperty("THREADS", "" + Runtime.getRuntime().availableProcessors()));
         int capacity = 1000 * threads;
 
         // given input zip files, start a thread to fragment each one
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(
-                capacity);
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-                threads, threads, 60, TimeUnit.SECONDS, workQueue);
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(capacity);
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(threads, threads, 60, TimeUnit.SECONDS, workQueue);
         threadPoolExecutor.prestartAllCoreThreads();
 
         File file;
-        FragmentZipFiles factory = new FragmentZipFiles();
-        for (int i = 0; i < args.length; i++) {
-            file = new File(args[i]);
-            FragmentTask task = factory.new FragmentTask(file);
+        for (String arg : args) {
+            file = new File(arg);
+            FragmentTask task = new FragmentTask(file);
             threadPoolExecutor.submit(task);
         }
 

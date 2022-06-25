@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,40 +41,30 @@ import com.marklogic.ps.Utilities;
  */
 public class InputPackage {
 
-    protected static SimpleLogger logger;
-
+    protected  SimpleLogger logger;
     protected Configuration configuration;
-
     // number of entries overflows at 2^16 = 65536
     // ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4828461
     // (supposed to be fixed, but isn't)
     protected static final int MAX_ENTRIES = 65536 - 1;
-
     protected String packagePath;
-
     protected ZipFile inputZip;
-
-    protected File inputFile;
-
+    protected final File inputFile;
     protected volatile int references = 0;
-
     protected boolean allowEmptyMetadata;
-
-    protected Object referenceMutex = new Object();
+    protected final Object referenceMutex = new Object();
 
     /**
-     * @param _path
-     * @param _config
+     * @param path
+     * @param config
      * @throws IOException
      */
-    public InputPackage(String _path, Configuration _config)
-            throws IOException {
-        inputFile = new File(_path);
+    public InputPackage(String path, Configuration config) throws IOException {
+        inputFile = new File(path);
         inputZip = new ZipFile(inputFile);
         packagePath = inputFile.getCanonicalPath();
-        configuration = _config;
+        configuration = config;
         logger = configuration.getLogger();
-
         allowEmptyMetadata = configuration.isAllowEmptyMetadata();
     }
 
@@ -86,63 +76,57 @@ public class InputPackage {
     }
 
     /**
-     * @param _path
+     * @param path
      * @return
      * @throws IOException
      */
-    public XQSyncDocumentMetadata getMetadataEntry(String _path)
-            throws IOException {
-        InputStream entryStream = getEntryStream(XQSyncDocument
-                .getMetadataPath(_path));
+    public XQSyncDocumentMetadata getMetadataEntry(String path) throws IOException {
+        InputStream entryStream = getEntryStream(XQSyncDocument.getMetadataPath(path));
         if (allowEmptyMetadata && null == entryStream) {
             return new XQSyncDocumentMetadata();
         }
-        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(
-                entryStream));
+        return XQSyncDocumentMetadata.fromXML(new InputStreamReader(entryStream));
     }
 
     /**
-     * @param _path
+     * @param path
      * @return
      */
-    private InputStream getEntryStream(String _path) throws IOException {
-        ZipEntry entry = inputZip.getEntry(_path);
+    private InputStream getEntryStream(String path) throws IOException {
+        ZipEntry entry = inputZip.getEntry(path);
         if (null != entry) {
             return inputZip.getInputStream(entry);
         }
 
         int size = inputZip.size();
         if (size >= MAX_ENTRIES) {
-            logger.warning("too many entries in input-package: " + size
-                    + " >= " + MAX_ENTRIES + " (" + _path + ")");
+            logger.warning("too many entries in input-package: " + size + " >= " + MAX_ENTRIES + " (" + path + ")");
             // *slow* work around for the dumb bug
-            ZipInputStream zis = new ZipInputStream(new FileInputStream(
-                    inputFile));
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(inputFile))) {
 
-            while ((entry = zis.getNextEntry()) != null
-                    && !entry.getName().equals(_path)) {
-                // loop until the path matches, or we hit the end
+                while ((entry = zis.getNextEntry()) != null
+                        && !entry.getName().equals(path)) {
+                    // loop until the path matches, or we hit the end
+                }
+                return zis;
             }
-            return zis;
         }
 
-        if (allowEmptyMetadata
-                && _path.endsWith(XQSyncDocument.METADATA_EXT)) {
+        if (allowEmptyMetadata && path.endsWith(XQSyncDocument.METADATA_EXT)) {
             return null;
         }
 
         // otherwise there's no hope: something went very wrong
-        throw new IOException("entry " + _path + " not found in "
-                + inputZip.getName());
+        throw new IOException("entry " + path + " not found in " + inputZip.getName());
     }
 
     /**
-     * @param _path
+     * @param path
      * @return
      * @throws IOException
      */
-    public byte[] getContent(String _path) throws IOException {
-        return Utilities.cat(getEntryStream(_path));
+    public byte[] getContent(String path) throws IOException {
+        return Utilities.cat(getEntryStream(path));
     }
 
     /**
@@ -160,7 +144,7 @@ public class InputPackage {
 
         ZipEntry entry;
         long entries = 0;
-        HashSet<String> documentList = new HashSet<String>();
+        HashSet<String> documentList = new HashSet<>();
 
         // there doesn't seem to be anything we can do about this
         if (size < MAX_ENTRIES) {
@@ -171,20 +155,18 @@ public class InputPackage {
                 entries += addEntry(entry, documentList);
             }
         } else {
-            logger.warning("too many entries in input-package: " + size
-                    + " >= " + MAX_ENTRIES);
+            logger.warning("too many entries in input-package: " + size + " >= " + MAX_ENTRIES);
 
-            ZipInputStream zis = new ZipInputStream(new FileInputStream(
-                    inputFile));
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(inputFile))) {
 
-            while ((entry = zis.getNextEntry()) != null) {
-                entries += addEntry(entry, documentList);
+                while ((entry = zis.getNextEntry()) != null) {
+                    entries += addEntry(entry, documentList);
+                }
             }
         }
-        logger.fine("listed " + documentList.size() + " documents from "
-                + entries + " entries");
+        logger.fine("listed " + documentList.size() + " documents from " + entries + " entries");
 
-        return new LinkedList<String>(documentList);
+        return new LinkedList<>(documentList);
     }
 
     private int addEntry(ZipEntry entry, HashSet<String> documentList) {
@@ -194,8 +176,7 @@ public class InputPackage {
         // instead, skip only if zero-length (even that may be too much)
         if (entry.isDirectory() && entry.getSize() == 0) {
             // really there shouldn't be anything like this in a package
-            logger.warning("skipping zero-length directory "
-                    + entry.getName());
+            logger.warning("skipping zero-length directory " + entry.getName());
             return 0;
         }
 
@@ -204,8 +185,7 @@ public class InputPackage {
 
         // whether it's metadata or not, we add the same path
         if (path.endsWith(XQSyncDocument.METADATA_EXT)) {
-            path = path.substring(0, path.length()
-                    - XQSyncDocument.METADATA_EXT.length());
+            path = path.substring(0, path.length() - XQSyncDocument.METADATA_EXT.length());
         }
 
         // make sure we don't add duplicates
@@ -240,8 +220,7 @@ public class InputPackage {
             references--;
 
             if (0 > references) {
-                throw new FatalException("bad reference count for "
-                        + inputZip.getName() + " : " + references);
+                throw new FatalException("bad reference count for " + inputZip.getName() + " : " + references);
             }
 
             if (0 != references) {
@@ -249,8 +228,7 @@ public class InputPackage {
             }
 
             // free the resources for the input zip package
-            logger.fine("closing " + inputZip.getName() + " ("
-                    + references + ")");
+            logger.fine("closing " + inputZip.getName() + " (" + references + ")");
             try {
                 inputZip.close();
             } catch (IOException e) {

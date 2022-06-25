@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ public class ExampleConfiguration extends Configuration {
     }
 
     @Override
-    public void configure() throws Exception {
+    public void configure() {
         logger.info("overriding superclass configure method");
     }
 }

@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  * 
- * Copyright (c)2005-2017 MarkLogic Corporation
+ * Copyright (c)2005-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@
 package com.marklogic.ps.timing;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 /*
  * @author Michael Blakeley, MarkLogic Corporation
@@ -31,31 +31,17 @@ import java.util.Comparator;
 public class Timer {
 
     public static final int BYTES_PER_KILOBYTE = 1024;
-
     public static final int MILLISECONDS_PER_SECOND = 1000;
-
     public static final int NANOSECONDS_PER_MICROSECOND = MILLISECONDS_PER_SECOND;
-
     public static final int MICROSECONDS_PER_MILLISECOND = MILLISECONDS_PER_SECOND;
-
-    public static final int NANOSECONDS_PER_MILLISECOND = NANOSECONDS_PER_MICROSECOND
-            * MICROSECONDS_PER_MILLISECOND;
-
-    public static final int NANOSECONDS_PER_SECOND = NANOSECONDS_PER_MILLISECOND
-            * MILLISECONDS_PER_SECOND;
-
+    public static final int NANOSECONDS_PER_MILLISECOND = NANOSECONDS_PER_MICROSECOND * MICROSECONDS_PER_MILLISECOND;
+    public static final int NANOSECONDS_PER_SECOND = NANOSECONDS_PER_MILLISECOND * MILLISECONDS_PER_SECOND;
     private long errors = 0;
-
     private long bytes = 0;
-
     private long duration = -1;
-
-    private ArrayList<TimedEvent> events = new ArrayList<TimedEvent>();
-
-    private long start;
-
+    private final List<TimedEvent> events = new ArrayList<>();
+    private final long start;
     private long eventCount;
-
     // The last time that getCurrProgressMessage was called
     private long lastMessageTime;
     private long lastEventCount = 0;
@@ -89,15 +75,15 @@ public class Timer {
     }
 
     /**
-     * @param _timer
+     * @param timer
      */
-    public void add(Timer _timer) {
-        _timer.stop();
+    public void add(Timer timer) {
+        timer.stop();
         synchronized (events) {
-            bytes += _timer.getBytes();
-            errors += _timer.getErrorCount();
-            events.addAll(_timer.events);
-            eventCount += _timer.eventCount;
+            bytes += timer.getBytes();
+            errors += timer.getErrorCount();
+            events.addAll(timer.events);
+            eventCount += timer.eventCount;
         }
     }
 
@@ -137,9 +123,9 @@ public class Timer {
      * @return
      */
     public long getDuration() {
-        if (duration < 0)
+        if (duration < 0) {
             return (System.nanoTime() - start);
-
+        }
         return duration;
     }
 
@@ -147,9 +133,9 @@ public class Timer {
      * @return
      */
     public long getMeanOfEvents() {
-        if (eventCount < 1)
+        if (eventCount < 1) {
             return 0;
-
+        }
         long sum = 0;
         for (int i = 0; i < eventCount; i++) {
             sum += events.get(i).getDuration();
@@ -162,12 +148,12 @@ public class Timer {
      * @return
      */
     public long getPercentileDuration(int p) {
-        if (eventCount < 1)
+        if (eventCount < 1) {
             return 0;
-
+        }
         double size = eventCount;
         Comparator<TimedEvent> c = new TimedEventDurationComparator();
-        Collections.sort(events, c);
+        events.sort(c);
         int pidx = (int) (p * size * .01);
         return events.get(pidx).getDuration();
     }
@@ -177,8 +163,9 @@ public class Timer {
      */
     public long getMaxDuration() {
         long max = 0;
-        for (int i = 0; i < eventCount; i++)
+        for (int i = 0; i < eventCount; i++) {
             max = Math.max(max, events.get(i).getDuration());
+        }
         return max;
     }
 
@@ -187,8 +174,9 @@ public class Timer {
      */
     public long getMinDuration() {
         long min = Integer.MAX_VALUE;
-        for (int i = 0; i < eventCount; i++)
+        for (int i = 0; i < eventCount; i++) {
             min = Math.min(min, events.get(i).getDuration());
+        }
         return min;
     }
 
@@ -237,7 +225,6 @@ public class Timer {
         if (duration < 0) {
             duration = l - start;
         }
-
         return duration;
     }
 
@@ -287,8 +274,7 @@ public class Timer {
      */
     public double getDurationSeconds() {
         // ns to seconds
-        return ((double) getDuration())
-                / ((double) NANOSECONDS_PER_SECOND);
+        return ((double) getDuration()) / ((double) NANOSECONDS_PER_SECOND);
     }
 
     public String getProgressMessage(boolean rawValues) {
@@ -318,7 +304,7 @@ public class Timer {
             long currEventRate = MILLISECONDS_PER_SECOND*(currEventCount - lastEventCount)/interval;
             long currBytesRate = MILLISECONDS_PER_SECOND*(currBytes - lastBytes)/BYTES_PER_KILOBYTE/interval;
 
-            msg = new StringBuilder("current rate:  ").append(currEventRate).append(" events/s, ").append(currBytesRate).append(" kB/s").toString();
+            msg = "current rate:  " + currEventRate + " events/s, " + currBytesRate + " kB/s";
 
             // update these so that we can give out the next current
             // progress message

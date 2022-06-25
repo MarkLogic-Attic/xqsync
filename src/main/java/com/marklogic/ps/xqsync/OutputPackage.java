@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,22 +34,20 @@ import com.marklogic.ps.SimpleLogger;
 public class OutputPackage {
 
     protected static SimpleLogger logger;
+    protected final Configuration configuration;
 
-    protected Configuration configuration;
+    static class CloseThread extends Thread {
 
-    class CloseThread extends Thread {
-
-        private ZipOutputStream zos;
-
-        private String name;
+        private final ZipOutputStream zos;
+        private final String name;
 
         /**
-         * @param _zos
-         * @param _name
+         * @param zos
+         * @param name
          */
-        public CloseThread(ZipOutputStream _zos, String _name) {
-            zos = _zos;
-            name = _name;
+        public CloseThread(ZipOutputStream zos, String name) {
+            this.zos = zos;
+            this.name = name;
         }
 
         @Override
@@ -74,33 +72,24 @@ public class OutputPackage {
     // (supposed to be fixed, but isn't)
     // subtract 2, to allow for metadata entries
     static final int MAX_ENTRIES = 65536 - 2;
-
-    public static String EXTENSION = ".zip";
-
+    public static final String EXTENSION = ".zip";
     private long currentFileBytes = 0;
-
-    private Object outputMutex = new Object();
-
+    private final Object outputMutex = new Object();
     private ZipOutputStream outputStream;
-
-    private static volatile Object closeMutex = new Object();
-
-    private File constructorFile;
-
+    private static final Object closeMutex = new Object();
+    private final File constructorFile;
     private File currentFile;
-
     private int fileCount = 0;
-
     private int currentEntries;
 
     /**
-     * @param _file
-     * @param _config
+     * @param file
+     * @param config
      */
-    public OutputPackage(File _file, Configuration _config) {
-        constructorFile = _file;
-        configuration = _config;
-        logger = _config.getLogger();
+    public OutputPackage(File file, Configuration config) {
+        constructorFile = file;
+        configuration = config;
+        logger = config.getLogger();
     }
 
     /**
@@ -122,8 +111,7 @@ public class OutputPackage {
      * @param metadata
      * @throws IOException
      */
-    public long write(String outputPath, byte[] bytes,
-            XQSyncDocumentMetadata metadata) throws IOException {
+    public long write(String outputPath, byte[] bytes, XQSyncDocumentMetadata metadata) throws IOException {
         /*
          * This method uses size metrics to automatically manage multiple zip
          * archives, to avoid 32-bit limits in java.util.zip
@@ -157,8 +145,7 @@ public class OutputPackage {
 
             // by checking outputBytes first, we should avoid infinite loops -
             // at the cost of fatal exceptions.
-            if (currentFileBytes > 0
-                    && currentFileBytes + total > Integer.MAX_VALUE) {
+            if (currentFileBytes > 0 && currentFileBytes + total > Integer.MAX_VALUE) {
                 logger.fine("too many bytes in current package");
                 newOutputStream();
             }
@@ -184,10 +171,8 @@ public class OutputPackage {
 		}
 		*/
             } catch (ZipException e) {
-                if (configuration.isSkipExisting()
-                        && e.getMessage().startsWith("duplicate entry")) {
-                    logger.warning("skipping duplicate entry: "
-                            + entry.getName());
+                if (configuration.isSkipExisting() && e.getMessage().startsWith("duplicate entry")) {
+                    logger.warning("skipping duplicate entry: " + entry.getName());
                     return 0;
                 }
                 throw e;
@@ -213,8 +198,7 @@ public class OutputPackage {
             currentFileBytes = 0;
             currentEntries = 0;
             currentFile = new File(path);
-            outputStream = new ZipOutputStream(new FileOutputStream(
-                    currentFile));
+            outputStream = new ZipOutputStream(new FileOutputStream(currentFile));
             fileCount++;
         }
     }
@@ -225,7 +209,7 @@ public class OutputPackage {
      * @param width
      * @return
      */
-    static protected String newPackagePath(String canonicalPath,
+    protected static String newPackagePath(String canonicalPath,
             int count, int width) {
         String path = canonicalPath;
         if (path.endsWith(EXTENSION)) {

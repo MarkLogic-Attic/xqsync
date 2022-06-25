@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,23 +18,13 @@
  */
 package com.marklogic.ps.xqsync;
 
-import java.net.URI;
 import java.util.Properties;
 
-import com.marklogic.ps.Connection;
-import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.xqsync.Configuration;
 import com.marklogic.ps.xqsync.FilePathReader;
 import com.marklogic.ps.xqsync.FilePathWriter;
-import com.marklogic.ps.xqsync.SessionReader;
 import com.marklogic.ps.xqsync.XQSyncDocument;
-import com.marklogic.xcc.AdhocQuery;
-import com.marklogic.xcc.Content;
-import com.marklogic.xcc.ContentCapability;
-import com.marklogic.xcc.ContentCreateOptions;
-import com.marklogic.xcc.ContentFactory;
-import com.marklogic.xcc.ContentPermission;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
@@ -51,17 +41,15 @@ public class XQSyncDocumentTest {
         Configuration config = new Configuration();
         Properties properties = new Properties();
         properties.setProperty(Configuration.INPUT_PATH_KEY, "/dev/null");
-        properties
-                .setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
+        properties.setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
         config.setLogger(SimpleLogger.getSimpleLogger());
         config.setProperties(properties);
         config.configure();
         FilePathReader reader = new FilePathReader(config);
         FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(
-                new String[] { testString }, reader, writer, config);
+        XQSyncDocument doc = new XQSyncDocument(new String[] { testString }, reader, writer, config);
         testString = doc.getOutputUri(0);
-        assertEquals(testString, expected);
+        assertEquals(expected, testString);
         // testString = doc.getOutputUri(true);
         // assertEquals(testString, expected);
     }

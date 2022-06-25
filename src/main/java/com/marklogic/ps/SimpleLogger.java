@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2005-2017 MarkLogic Corporation
+ * Copyright (c)2005-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,59 +38,19 @@ import java.util.logging.Formatter;
  * 
  * wrapper for java logging
  */
-public class SimpleLogger extends Logger implements
-        PropertyClientInterface {
-    /**
-     * 
-     */
-    static public final String LOG_FILEHANDLER_LIMIT = "LOG_FILEHANDLER_LIMIT";
-
-    /**
-     * 
-     */
-    static public final String LOG_FILEHANDLER_COUNT = "LOG_FILEHANDLER_COUNT";
-
-    /**
-     * 
-     */
-    static public final String LOG_FILEHANDLER_APPEND = "LOG_FILEHANDLER_APPEND";
-
-    /**
-     * 
-     */
-    static public final String LOG_FILEHANDLER_PATH = "LOG_FILEHANDLER_PATH";
-
-    /**
-     * 
-     */
-    static public final String DEFAULT_LOG_HANDLER = "CONSOLE,FILE";
-
-    /**
-     * 
-     */
-    static public final String DEFAULT_LOG_LEVEL = "INFO";
-
-    /**
-     * 
-     */
-    static public final String LOG_HANDLER = "LOG_HANDLER";
-
-    /**
-     * 
-     */
-    static public final String LOG_LEVEL = "LOG_LEVEL";
-
-    /**
-     * 
-     */
-    static public final String DEFAULT_FILEHANDLER_PATH = "simplelogger-%u-%g.log";
-
-    static public final String LOGGER_NAME = "com.marklogic.ps";
-
-    static public final String LOG_FORMATTER = "LOG_FORMATTER";
-
-    private static Map<String, SimpleLogger> loggers = Collections
-            .synchronizedMap(new Hashtable<String, SimpleLogger>());
+public class SimpleLogger extends Logger implements PropertyClientInterface {
+    public static final String LOG_FILEHANDLER_LIMIT = "LOG_FILEHANDLER_LIMIT";
+    public static final String LOG_FILEHANDLER_COUNT = "LOG_FILEHANDLER_COUNT";
+    public static final String LOG_FILEHANDLER_APPEND = "LOG_FILEHANDLER_APPEND";
+    public static final String LOG_FILEHANDLER_PATH = "LOG_FILEHANDLER_PATH";
+    public static final String DEFAULT_LOG_HANDLER = "CONSOLE,FILE";
+    public static final String DEFAULT_LOG_LEVEL = "INFO";
+    public static final String LOG_HANDLER = "LOG_HANDLER";
+    public static final String LOG_LEVEL = "LOG_LEVEL";
+    public static final String DEFAULT_FILEHANDLER_PATH = "simplelogger-%u-%g.log";
+    public static final String LOGGER_NAME = "com.marklogic.ps";
+    public static final String LOG_FORMATTER = "LOG_FORMATTER";
+    private static final Map<String, SimpleLogger> loggers = Collections.synchronizedMap(new Hashtable<>());
 
     SimpleLogger(String name) {
         super(name, null);
@@ -127,10 +87,9 @@ public class SimpleLogger extends Logger implements
         return obj;
     }
 
-    public void configureLogger(Properties _prop) {
-        if (_prop == null) {
-            System.err
-                    .println("WARNING: null properties. Cannot configure logger");
+    public void configureLogger(Properties prop) {
+        if (prop == null) {
+            System.err.println("WARNING: null properties. Cannot configure logger");
             return;
         }
 
@@ -145,23 +104,17 @@ public class SimpleLogger extends Logger implements
         setUseParentHandlers(false);
 
         // now set the user's properties, if available
-        String logLevel = _prop.getProperty(LOG_LEVEL, DEFAULT_LOG_LEVEL);
+        String logLevel = prop.getProperty(LOG_LEVEL, DEFAULT_LOG_LEVEL);
 
         // support multiple handlers: comma-separated
-        String[] newHandlers = _prop.getProperty(LOG_HANDLER,
-                DEFAULT_LOG_HANDLER).split(",");
-        String logFilePath = _prop.getProperty(LOG_FILEHANDLER_PATH,
-                DEFAULT_FILEHANDLER_PATH);
-        boolean logFileAppend = Boolean.valueOf(
-                _prop.getProperty(LOG_FILEHANDLER_APPEND, "true"))
-                .booleanValue();
-        int logFileCount = Integer.parseInt(_prop.getProperty(
-                LOG_FILEHANDLER_COUNT, "1"));
-        int logFileLimit = Integer.parseInt(_prop.getProperty(
-                LOG_FILEHANDLER_LIMIT, "0"));
-        String logFormatter = _prop.getProperty(LOG_FORMATTER, null);
+        String[] newHandlers = prop.getProperty(LOG_HANDLER, DEFAULT_LOG_HANDLER).split(",");
+        String logFilePath = prop.getProperty(LOG_FILEHANDLER_PATH, DEFAULT_FILEHANDLER_PATH);
+        boolean logFileAppend = Boolean.parseBoolean(prop.getProperty(LOG_FILEHANDLER_APPEND, "true"));
+        int logFileCount = Integer.parseInt(prop.getProperty(LOG_FILEHANDLER_COUNT, "1"));
+        int logFileLimit = Integer.parseInt(prop.getProperty(LOG_FILEHANDLER_LIMIT, "0"));
+        String logFormatter = prop.getProperty(LOG_FORMATTER, null);
 
-        Handler h = null;
+        Handler handler = null;
         if (newHandlers != null && newHandlers.length > 0) {
             // remove any old handlers
             Handler[] oldHandlers = getHandlers();
@@ -211,24 +164,16 @@ public class SimpleLogger extends Logger implements
                 if (newHandlers[i].equals("FILE")) {
                     System.err.println("logging to file " + logFilePath);
                     try {
-                        h = new FileHandler(logFilePath, logFileLimit,
-                                logFileCount, logFileAppend);
-                    } catch (SecurityException e) {
+                        handler = new FileHandler(logFilePath, logFileLimit, logFileCount, logFileAppend);
+                    } catch (SecurityException | IOException e) {
                         e.printStackTrace();
                         // fatal error
-                        System.err
-                                .println("cannot configure logging: exiting");
-                        Runtime.getRuntime().exit(-1);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        // fatal error
-                        System.err
-                                .println("cannot configure logging: exiting");
+                        System.err.println("cannot configure logging: exiting");
                         Runtime.getRuntime().exit(-1);
                     }
                 } else if (newHandlers[i].equals("CONSOLE")) {
                     System.err.println("logging to " + newHandlers[i]);
-                    h = new ConsoleHandler();
+                    handler = new ConsoleHandler();
                 } else {
                     // try to load the string as a classname
                     try {
@@ -236,27 +181,23 @@ public class SimpleLogger extends Logger implements
                                 newHandlers[i], true,
                                 ClassLoader.getSystemClassLoader())
                                 .asSubclass(Handler.class);
-                        System.err.println("logging to class "
-                                + newHandlers[i]);
-                        Constructor<? extends Handler> con = lhc
-                                .getConstructor(new Class[] {});
-                        h = con.newInstance(new Object[] {});
+                        System.err.println("logging to class " + newHandlers[i]);
+                        Constructor<? extends Handler> con = lhc.getConstructor();
+                        handler = con.newInstance();
                     } catch (Exception e) {
-                        System.err.println("unrecognized LOG_HANDLER: "
-                                + newHandlers[i]);
+                        System.err.println("unrecognized LOG_HANDLER: " + newHandlers[i]);
                         e.printStackTrace();
-                        System.err
-                                .println("cannot configure logging: exiting");
+                        System.err.println("cannot configure logging: exiting");
                         Runtime.getRuntime().exit(-1);
                     }
                 }
-                if (h != null)
-                    addHandler(h);
+                if (handler != null)
+                    addHandler(handler);
             } // for handler properties
         } else {
             // default to ConsoleHandler
-            h = new ConsoleHandler();
-            addHandler(h);
+            handler = new ConsoleHandler();
+            addHandler(handler);
         }
 
         // set logging level for all handers
@@ -265,39 +206,37 @@ public class SimpleLogger extends Logger implements
              * Logger.setLevel() isn't sufficient, unless the Handler.level is
              * set equal or lower
              */
-            Level lvl = Level.parse(logLevel);
-            if (lvl != null) {
-                setLevel(lvl);
-                Handler[] v = getHandlers();
-                for (int i = 0; i < v.length; i++) {
-                    v[i].setLevel(lvl);
+            Level level = Level.parse(logLevel);
+            if (level != null) {
+                setLevel(level);
+                for (Handler _handler : getHandlers()) {
+                    _handler.setLevel(level);
                 }
             }
             fine("logging set to " + getLevel());
         }
 
         // set formatter for all handlers
-        Handler[] v = getHandlers();
-        for (int i = 0; i < v.length; i++) {
+        for (Handler _handler : getHandlers()) {
             Formatter f = null;
-            
             // use OneLineFormatter if specified
-            if ("SimpleFormatter".equals(logFormatter))
+            if ("SimpleFormatter".equals(logFormatter)) {
                 f = new SimpleFormatter();
-
+            }
             // use SimpleFormatter as the default
-            if (null == logFormatter)
+            if (null == logFormatter) {
                 f = new OneLineFormatter();
-
-            v[i].setFormatter(f);
+            }
+            _handler.setFormatter(f);
         }
 
         info("setting up " + this + " for: " + getName());
     } // setLogging
 
     public void logException(String message, Throwable exception) {
-        if (message == null)
+        if (message == null) {
             message = "";
+        }
         super.log(Level.SEVERE, message, exception);
     } // logException
 
@@ -306,8 +245,8 @@ public class SimpleLogger extends Logger implements
      * 
      * @see com.marklogic.ps.PropertyClientInterface#setProperties(java.util.Properties)
      */
-    public void setProperties(Properties _properties) {
-        configureLogger(_properties);
+    public void setProperties(Properties properties) {
+        configureLogger(properties);
     }
 
 }

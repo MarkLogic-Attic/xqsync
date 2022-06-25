@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2017 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,63 +46,52 @@ import com.marklogic.xcc.spi.ConnectionProvider;
 public class Connection implements ContentSource {
 
     protected URI[] uri;
-
     protected ContentSource[] cs;
-
     protected volatile int count = 0;
-
-    private Object securityOptionsMutex = new Object();
-
+    private final Object securityOptionsMutex = new Object();
     protected static SecurityOptions securityOptions = null;
 
     /**
-     * @param _uri
+     * @param uri
      * @throws XccException
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException
      */
-    public Connection(URI _uri) throws XccException,
-            KeyManagementException, NoSuchAlgorithmException {
-        init(new URI[] { _uri });
+    public Connection(URI uri) throws XccException, KeyManagementException, NoSuchAlgorithmException {
+        init(new URI[] { uri });
     }
 
     /**
-     * @param _uris
-     * @param _uris
+     * @param uris
      * @throws XccException
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException
      */
-    public Connection(URI[] _uris) throws XccException,
-            KeyManagementException, NoSuchAlgorithmException {
-        init(_uris);
+    public Connection(URI[] uris) throws XccException, KeyManagementException, NoSuchAlgorithmException {
+        init(uris);
     }
 
     /**
-     * @param _uris
+     * @param uris
      * @throws XccConfigException
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException
      */
-    private void init(URI[] _uris) throws XccConfigException,
-            KeyManagementException, NoSuchAlgorithmException {
-        if (null == _uris || 1 > _uris.length) {
+    private void init(URI[] uris) throws XccConfigException, KeyManagementException, NoSuchAlgorithmException {
+        if (null == uris || 1 > uris.length) {
             throw new NullPointerException("must supply uris");
         }
         // detect bad URIs, since the JVM allows them
-        uri = new URI[_uris.length];
-        cs = new ContentSource[_uris.length];
-        for (int i = 0; i < _uris.length; i++) {
-            if (null == _uris[i].getHost()) {
-                throw new UnimplementedFeatureException(
-                        "bad URI: cannot parse host from " + _uris[i]);
+        uri = new URI[uris.length];
+        cs = new ContentSource[uris.length];
+        for (int i = 0; i < uris.length; i++) {
+            if (null == uris[i].getHost()) {
+                throw new UnimplementedFeatureException("bad URI: cannot parse host from " + uris[i]);
             }
-            uri[i] = _uris[i];
+            uri[i] = uris[i];
             // support SSL
             boolean ssl = uri[i].getScheme().equals("xccs");
-            cs[i] = ssl ? ContentSourceFactory.newContentSource(uri[i],
-                    getSecurityOptions()) : ContentSourceFactory
-                    .newContentSource(uri[i]);
+            cs[i] = ssl ? ContentSourceFactory.newContentSource(uri[i], getSecurityOptions()) : ContentSourceFactory.newContentSource(uri[i]);
         }
     }
 
@@ -111,8 +100,7 @@ public class Connection implements ContentSource {
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException
      */
-    private SecurityOptions getSecurityOptions()
-            throws KeyManagementException, NoSuchAlgorithmException {
+    private SecurityOptions getSecurityOptions() throws KeyManagementException, NoSuchAlgorithmException {
         if (null != securityOptions) {
             return securityOptions;
         }
@@ -138,8 +126,7 @@ public class Connection implements ContentSource {
      * @see com.marklogic.xcc.ContentSource#newSession()
      */
     public Session newSession() {
-        return new com.marklogic.ps.Session(this, getContentSource()
-                .newSession());
+        return new com.marklogic.ps.Session(this, getContentSource().newSession());
     }
 
     /**
@@ -182,37 +169,44 @@ public class Connection implements ContentSource {
         return cs[count++ % cs.length];
     }
 
+    public Session newSession(String userName, char[] password) {
+        return new com.marklogic.ps.Session(this, getContentSource().newSession(userName, password));
+    }
+
+    public Session newSession(String userName, char[] password, String contentbaseId) {
+        return new com.marklogic.ps.Session(this, getContentSource().newSession(userName, password, contentbaseId));
+    }
+
     /*
      * (non-Javadoc)
      *
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String)
      */
     public Session newSession(String contentbaseId) {
-        return new com.marklogic.ps.Session(this, getContentSource()
-                .newSession(contentbaseId));
+        return new com.marklogic.ps.Session(this, getContentSource().newSession(contentbaseId));
     }
 
     /*
      * (non-Javadoc)
-     *
+     * @deprecated
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String,
      * java.lang.String)
      */
+    @Override
+    @Deprecated
     public Session newSession(String userName, String password) {
-        return new com.marklogic.ps.Session(this, getContentSource()
-                .newSession(userName, password));
+        return new com.marklogic.ps.Session(this, getContentSource().newSession(userName, password.toCharArray()));
     }
 
     /*
      * (non-Javadoc)
-     *
+     * @deprecated
      * @see com.marklogic.xcc.ContentSource#newSession(java.lang.String,
      * java.lang.String, java.lang.String)
      */
-    public Session newSession(String userName, String password,
-            String contentbaseId) {
-        return new com.marklogic.ps.Session(this, getContentSource()
-                .newSession(userName, password, contentbaseId));
+    @Deprecated
+    public Session newSession(String userName, String password, String contentbaseId) {
+        return newSession(userName, password.toCharArray(), contentbaseId);
     }
 
     /*
@@ -235,8 +229,7 @@ public class Connection implements ContentSource {
         getContentSource().setDefaultLogger(logger);
     }
 
-    protected static SecurityOptions newTrustAnyoneOptions()
-            throws KeyManagementException, NoSuchAlgorithmException {
+    protected static SecurityOptions newTrustAnyoneOptions() throws KeyManagementException, NoSuchAlgorithmException {
         TrustManager[] trust = new TrustManager[] { new X509TrustManager() {
             public X509Certificate[] getAcceptedIssuers() {
                 return new X509Certificate[0];
@@ -245,21 +238,19 @@ public class Connection implements ContentSource {
             /**
              * @throws CertificateException
              */
-            public void checkClientTrusted(X509Certificate[] certs,
-                    String authType) throws CertificateException {
+            public void checkClientTrusted(X509Certificate[] certs, String authType) throws CertificateException {
                 // no exception means it's okay
             }
 
             /**
              * @throws CertificateException
              */
-            public void checkServerTrusted(X509Certificate[] certs,
-                    String authType) throws CertificateException {
+            public void checkServerTrusted(X509Certificate[] certs, String authType) throws CertificateException {
                 // no exception means it's okay
             }
         } };
 
-        SSLContext sslContext = SSLContext.getInstance("SSLv3");
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(null, trust, null);
         return new SecurityOptions(sslContext);
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,64 +28,62 @@ import java.io.IOException;
  */
 public class FilePathWriter extends AbstractWriter {
 
-    protected String root;
+    protected final String root;
 
     /**
-     * @param _configuration
-     * @throws SyncException
+     * @param configuration
      */
-    public FilePathWriter(Configuration _configuration)
-            throws SyncException {
-        super(_configuration);
-        
-        root = _configuration.getOutputPath();
+    public FilePathWriter(Configuration configuration) {
+        super(configuration);
+        root = configuration.getOutputPath();
     }
 
     /*
      * (non-Javadoc)
      * 
-     * @see com.marklogic.ps.xqsync.WriterInterface#write(java.lang.String,
-     * byte[], com.marklogic.ps.xqsync.XQSyncDocumentMetadata)
+     * @see com.marklogic.ps.xqsync.WriterInterface#write(java.lang.String, byte[], com.marklogic.ps.xqsync.XQSyncDocumentMetadata)
      */
-    public int write(String uri, byte[] bytes,
-            XQSyncDocumentMetadata _metadata) throws SyncException {
+    public int write(String uri, byte[] bytes, XQSyncDocumentMetadata metadata) throws SyncException {
         try {
-            File outputFile = new File(root,uri);
-            File parent = outputFile.getParentFile();
-            if (null == parent) {
-                throw new FatalException("no parent for " + uri);
-            }
-            if (!parent.exists()) {
-                parent.mkdirs();
-            }
+            File outputFile = new File(root, uri);
+            write(bytes, outputFile);
 
-            if (!parent.isDirectory()) {
-                throw new SyncException("parent is not a directory: "
-                        + parent.getCanonicalPath());
-            }
-
-            if (!parent.canWrite()) {
-                throw new SyncException(
-                        "cannot write to parent directory: "
-                                + parent.getCanonicalPath());
-            }
-
-            FileOutputStream fos = new FileOutputStream(outputFile);
-            fos.write(bytes);
-            fos.flush();
-            fos.close();
-
-            String metadataPath = XQSyncDocument
-                    .getMetadataPath(outputFile);
-            FileOutputStream mfos = new FileOutputStream(metadataPath);
-            byte[] metaBytes = _metadata.toXML().getBytes();
-            mfos.write(metaBytes);
-            mfos.flush();
-            mfos.close();
-
-            return bytes.length + metaBytes.length;
+            int metaBytesLength = writeMetadataFile(metadata, outputFile);
+            return bytes.length + metaBytesLength;
         } catch (IOException e) {
             throw new SyncException(e);
+        }
+    }
+
+    protected int writeMetadataFile(XQSyncDocumentMetadata metadata, File outputFile) throws IOException, SyncException {
+        String metadataFilePath = XQSyncDocument.getMetadataPath(outputFile);
+        byte[] metaBytes = metadata.toXML().getBytes();
+        write(metaBytes, metadataFilePath);
+        return metaBytes.length;
+    }
+
+    protected void write(byte[] bytes, String filePath) throws IOException, SyncException {
+        File file = new File(filePath);
+        write(bytes, file);
+    }
+
+    protected void write(byte[] bytes, File outputFile) throws IOException, SyncException {
+        File parent = outputFile.getParentFile();
+        if (null == parent) {
+            throw new FatalException("no parent for " + outputFile.getCanonicalPath());
+        }
+        if (!parent.exists()) {
+            parent.mkdirs();
+        }
+        if (!parent.isDirectory()) {
+            throw new SyncException("parent is not a directory: " + parent.getCanonicalPath());
+        }
+        if (!parent.canWrite()) {
+            throw new SyncException("cannot write to parent directory: " + parent.getCanonicalPath());
+        }
+        try (FileOutputStream mfos = new FileOutputStream(outputFile)) {
+            mfos.write(bytes);
+            mfos.flush();
         }
     }
 

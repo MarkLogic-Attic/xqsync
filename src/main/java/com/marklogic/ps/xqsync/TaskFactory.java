@@ -1,5 +1,5 @@
 /**
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,52 +32,42 @@ import com.marklogic.ps.timing.TimedEvent;
 public class TaskFactory {
 
     protected SimpleLogger logger;
-
-    protected Configuration configuration;
-
+    protected final Configuration configuration;
     protected WriterInterface[] writers;
-
     protected String outputPackagePath;
-
     protected volatile int count = 0;
-
     protected Monitor monitor;
 
     /**
-     * @param _config
-     * @param _monitor
+     * @param config
+     * @param monitor
      * @throws SyncException
      */
-    public TaskFactory(Configuration _config, Monitor _monitor)
+    public TaskFactory(Configuration config, Monitor monitor)
             throws SyncException {
-        configuration = _config;
-        if (null == _monitor) {
+        configuration = config;
+        if (null == monitor) {
             throw new NullPointerException("monitor may not be null!");
         }
-        monitor = _monitor;
+        this.monitor = monitor;
 
         logger = configuration.getLogger();
 
-        outputPackagePath = _config.getOutputPackagePath();
+        outputPackagePath = config.getOutputPackagePath();
 
         if (null != outputPackagePath) {
             try {
                 // create enough package writers to minimize contention
-                int threadCount = _config.getThreadCount();
-                int poolSize = Math.min(Runtime.getRuntime()
-                        .availableProcessors(), threadCount);
+                int threadCount = config.getThreadCount();
+                int poolSize = Math.min(Runtime.getRuntime().availableProcessors(), threadCount);
                 logger.info("creating " + poolSize + " writer(s)");
                 writers = new WriterInterface[poolSize];
                 String path;
-                String canonicalPath = new File(outputPackagePath)
-                        .getCanonicalPath();
+                String canonicalPath = new File(outputPackagePath).getCanonicalPath();
                 for (int i = 0; i < poolSize; i++) {
-                    path = OutputPackage.newPackagePath(canonicalPath, i,
-                            3);
+                    path = OutputPackage.newPackagePath(canonicalPath, i, 3);
                     logger.fine("new writer " + path);
-                    writers[i] = new PackageWriter(configuration,
-                            new OutputPackage(new File(path),
-                                    configuration));
+                    writers[i] = new PackageWriter(configuration, new OutputPackage(new File(path), configuration));
                 }
             } catch (IOException e) {
                 throw new SyncException(e);
@@ -87,32 +77,24 @@ public class TaskFactory {
     }
 
     /**
-     * @param _uris
+     * @param uris
      * @return
-     * @throws SyncException
      */
-    public Callable<TimedEvent[]> newTask(String[] _uris)
-            throws SyncException {
-        return new CallableSync(this, _uris);
+    public Callable<TimedEvent[]> newTask(String[] uris) {
+        return new CallableSync(this, uris);
     }
 
     /**
      * 
      */
     public void close() {
-        if (null != writers && null != writers[0]
-                && writers[0] instanceof PackageWriter) {
-            logger.info("closing " + writers.length
-                    + " output package(s)");
-            for (int i = 0; i < writers.length; i++) {
-                if (null == writers[i]) {
+        if (null != writers && null != writers[0] && writers[0] instanceof PackageWriter) {
+            logger.info("closing " + writers.length + " output package(s)");
+            for (WriterInterface writer : writers) {
+                if (null == writer) {
                     continue;
                 }
-                try {
-                    ((PackageWriter) writers[i]).close();
-                } catch (SyncException e) {
-                    logger.logException("cleanup " + i, e);
-                }
+                ((PackageWriter) writer).close();
             }
         }
     }

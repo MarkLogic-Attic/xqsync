@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,12 @@ package com.marklogic.ps.xqsync;
 public interface ReaderInterface {
 
     /**
-     * @param _uris
-     * @param _document
+     * @param uris
+     * @param document
      * @throws SyncException
      */
-    public void read(String[] _uris, DocumentInterface _document)
-            throws SyncException;
+    void read(String[] uris, DocumentInterface document) throws SyncException;
     
-    public void close();
+    void close();
 
 }

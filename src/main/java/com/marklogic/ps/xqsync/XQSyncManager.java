@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ public class XQSyncManager {
      * @author Michael Blakeley, michael.blakeley@marklogic.com
      *
      */
-    public class CallerBlocksPolicy implements RejectedExecutionHandler {
+    public static class CallerBlocksPolicy implements RejectedExecutionHandler {
 
         private BlockingQueue<Runnable> queue;
 
@@ -92,7 +92,7 @@ public class XQSyncManager {
             } catch (InterruptedException e) {
                 // someone is trying to interrupt us
                 // reset interrupt status and continue
-                Thread.interrupted();
+                Thread.currentThread().interrupt();
                 throw new RejectedExecutionException(e);
             }
         }
@@ -100,30 +100,21 @@ public class XQSyncManager {
     }
 
     public static final String NAME = XQSyncManager.class.getName();
-
     private static final String START_VARIABLE_NAME = "start";
-
     private static final String START_POSITION_PREDICATE = "[position() ge $start]\n";
-
     private static final String START_POSITION_DEFINE_VARIABLE = "declare variable $start as xs:integer external;\n";
-
     private com.marklogic.ps.Session inputSession;
-
-    private Configuration configuration;
-
+    private final Configuration configuration;
     private long itemsQueued;
-
     private UriQueue uriQueue;
-
     private UriQueue lastUriQueue;
-
     private Monitor monitor;
 
     /**
-     * @param _config
+     * @param config
      */
-    public XQSyncManager(Configuration _config) {
-        configuration = _config;
+    public XQSyncManager(Configuration config) {
+        configuration = config;
         logger = configuration.getLogger();
     }
 
@@ -139,20 +130,17 @@ public class XQSyncManager {
             logger.info("starting pool of " + threads
                     + " threads, queue size = " + queueSize);
             // an array queue should be somewhat lighter-weight
-            workQueue = new ArrayBlockingQueue<Runnable>(queueSize);
+            workQueue = new ArrayBlockingQueue<>(queueSize);
 
             // CallerBlocksPolicy will automatically throttle the queue,
             // except for runs that use input-connection.
             RejectedExecutionHandler policy = new CallerBlocksPolicy();
-            ThreadPoolExecutor pool = new ThreadPoolExecutor(threads,
-                    threads, 16, TimeUnit.SECONDS, workQueue, policy);
-            CompletionService<TimedEvent[]> completionService = new ExecutorCompletionService<TimedEvent[]>(
-                    pool);
+            ThreadPoolExecutor pool = new ThreadPoolExecutor(threads, threads, 16, TimeUnit.SECONDS, workQueue, policy);
+            CompletionService<TimedEvent[]> completionService = new ExecutorCompletionService<>(pool);
 
             // to attempt to avoid starvation, run the monitor with higher
             // priority than the thread pool will have.
-            monitor = new Monitor(configuration, pool, completionService,
-                    configuration.isFatalErrors());
+            monitor = new Monitor(configuration, pool, completionService, configuration.isFatalErrors());
             monitor.setPriority(1 + Thread.NORM_PRIORITY);
             monitor.start();
 
@@ -162,29 +150,26 @@ public class XQSyncManager {
             // queue, which feeds the completion service
             newUriQueue(completionService, pool, factory, monitor);
 
-            Session outputSession = configuration.newOutputSession();
-            if (null != outputSession) {
-                ContentbaseMetaData meta = outputSession
-                        .getContentbaseMetaData();
-                logger.info("output version info: client "
-                        + meta.getDriverVersionString() + ", server "
-                        + meta.getServerVersionString());
+            try (Session outputSession = configuration.newOutputSession()) {
+                if (null != outputSession) {
+                    ContentbaseMetaData meta = outputSession.getContentbaseMetaData();
+                    logger.info("output version info: client "
+                            + meta.getDriverVersionString() + ", server "
+                            + meta.getServerVersionString());
+                }
             }
 
             if (null != inputSession) {
-                ContentbaseMetaData meta = inputSession
-                        .getContentbaseMetaData();
+                ContentbaseMetaData meta = inputSession.getContentbaseMetaData();
                 logger.info("input version info: client "
                         + meta.getDriverVersionString() + ", server "
                         + meta.getServerVersionString());
                 itemsQueued = queueFromInputConnection();
             } else {
                 if (null != configuration.getInputPackagePath()) {
-                    itemsQueued = queueFromInputPackage(configuration
-                            .getInputPackagePath());
+                    itemsQueued = queueFromInputPackage(configuration.getInputPackagePath());
                 } else {
-                    itemsQueued = queueFromInputPath(configuration
-                            .getInputPath());
+                    itemsQueued = queueFromInputPath(configuration.getInputPath());
                 }
             }
 
@@ -218,14 +203,12 @@ public class XQSyncManager {
              * shut down the pool after queuing is complete and task count has
              * been set, not before then - to avoid races.
              */
-            logger.info("pool ready to shutdown, queue size "
-                    + uriQueue.getQueueSize());
+            logger.info("pool ready to shutdown, queue size " + uriQueue.getQueueSize());
             pool.shutdown();
 
             logger.info("waiting for monitor to exit");
             do {
-                logger.finest("waiting for monitor " + monitor + " "
-                        + (null != monitor) + " " + monitor.isAlive());
+                logger.finest("waiting for monitor " + monitor + " " + (null != monitor) + " " + monitor.isAlive());
                 try {
                     Thread.yield();
                     monitor.join();
@@ -234,8 +217,7 @@ public class XQSyncManager {
                     Thread.interrupted();
                     logger.logException("interrupted", e);
                 }
-                logger.finest("waiting for monitor " + monitor + " "
-                        + (null != monitor) + " " + monitor.isAlive());
+                logger.finest("waiting for monitor " + monitor + " " + (null != monitor) + " " + monitor.isAlive());
             } while (null != monitor && monitor.isAlive());
         } catch (Throwable t) {
             logger.logException("fatal error", t);
@@ -269,17 +251,13 @@ public class XQSyncManager {
     }
 
     /**
-     * @param _completionService
-     * @param _pool
-     * @param _factory
-     * @param _monitor
+     * @param completionService
+     * @param pool
+     * @param factory
+     * @param monitor
      */
-    private void newUriQueue(
-            CompletionService<TimedEvent[]> _completionService,
-            ThreadPoolExecutor _pool, TaskFactory _factory,
-            Monitor _monitor) {
-        uriQueue = new UriQueue(configuration, _completionService, _pool,
-                _factory, _monitor, new LinkedBlockingQueue<String>());
+    private void newUriQueue(CompletionService<TimedEvent[]> completionService, ThreadPoolExecutor pool, TaskFactory factory, Monitor monitor) {
+        uriQueue = new UriQueue(configuration, completionService, pool, factory, monitor, new LinkedBlockingQueue<>());
         uriQueue.start();
         // do not proceed until the uriQueue is running - fixes race
         while (!uriQueue.isActive()) {
@@ -293,19 +271,17 @@ public class XQSyncManager {
      * @throws SyncException
      *
      */
-    private long queueFromInputPackage(String _path) throws IOException,
+    private long queueFromInputPackage(String path) throws IOException,
             SyncException {
-        logger.fine(_path);
-        File file = new File(_path);
+        logger.fine(path);
+        File file = new File(path);
 
         if (!file.exists()) {
-            throw new IOException("missing expected input package path: "
-                    + _path);
+            throw new IOException("missing expected input package path: " + path);
         }
 
         if (!file.canRead()) {
-            throw new IOException("cannot read from input package path: "
-                    + _path);
+            throw new IOException("cannot read from input package path: " + path);
         }
 
         if (file.isFile()) {
@@ -313,41 +289,34 @@ public class XQSyncManager {
         }
 
         if (!file.isDirectory()) {
-            throw new IOException("unexpected file type: "
-                    + file.getCanonicalPath());
+            throw new IOException("unexpected file type: " + file.getCanonicalPath());
         }
 
         // directory, so look for zip children
         long total = 0;
         final String extension = Configuration.getPackageFileExtension();
-        FileFilter filter = new FileFilter() {
-            public boolean accept(File pathname) {
-                return (pathname.isDirectory() || (pathname.isFile() && pathname
-                        .getName().endsWith(extension)));
-            }
-        };
+        FileFilter filter = pathname -> (pathname.isDirectory() || (pathname.isFile() && pathname.getName().endsWith(extension)));
 
         File[] children = file.listFiles(filter);
         Arrays.sort(children);
 
         String childPath;
-        for (int i = 0; i < children.length; i++) {
-            childPath = children[i].getCanonicalPath();
+        for (File child : children) {
+            childPath = child.getCanonicalPath();
             total += queueFromInputPackage(childPath);
         }
         return total;
     }
 
     /**
-     * @param _path
+     * @param path
      * @return
      * @throws IOException
      * @throws SyncException
      */
-    private long queueFromInputPackageFile(File _path)
-            throws IOException, SyncException {
+    private long queueFromInputPackageFile(File path) throws IOException, SyncException {
         // list contents of package
-        logger.fine("listing package " + _path);
+        logger.fine("listing package " + path);
 
         // allow up to two active uriQueues
         while (null != lastUriQueue && 0 != lastUriQueue.getQueueSize()) {
@@ -355,17 +324,15 @@ public class XQSyncManager {
                 Thread.sleep(125);
             } catch (InterruptedException e) {
                 // reset interrupt status and continue
-                Thread.interrupted();
+                Thread.currentThread().interrupt();
                 logger.warning("interrupted, will continue");
             }
         }
 
-        InputPackage inputPackage = new InputPackage(_path
-                .getCanonicalPath(), configuration);
+        InputPackage inputPackage = new InputPackage(path.getCanonicalPath(), configuration);
         // ensure that the package won't close while euing
         inputPackage.addReference();
-        logger.fine("listing package " + _path + " ("
-                + inputPackage.size() + ")");
+        logger.fine("listing package " + path + " (" + inputPackage.size() + ")");
 
         // create a new factory and queue for each input package
         // shutdown may be called multiple times - that is ok
@@ -377,39 +344,38 @@ public class XQSyncManager {
         logger.fine("uriQueue = " + uriQueue + ", last = " + lastUriQueue);
 
         Iterator<String> iter = inputPackage.list().iterator();
-        String path;
+        String inputPackagePath;
         long count = 0;
 
         while (iter.hasNext()) {
-            path = iter.next();
-            logger.finest("queuing " + count + ": " + path);
+            inputPackagePath = iter.next();
+            logger.finest("queuing " + count + ": " + inputPackagePath);
             inputPackage.addReference();
-            uriQueue.add(path);
+            uriQueue.add(inputPackagePath);
             count++;
         }
 
         // clean up so that the package can be closed
         uriQueue.shutdown();
         inputPackage.closeReference();
-        logger.info("queued " + count + " from " + _path);
+        logger.info("queued " + count + " from " + path);
         return count;
     }
 
     /**
-     * @param _old
-     * @param _factory
+     * @param old
+     * @param factory
      */
-    private void newUriQueue(UriQueue _old, TaskFactory _factory) {
+    private void newUriQueue(UriQueue old, TaskFactory factory) {
         // copy from old to new
-        newUriQueue(_old.getCompletionService(), _old.getPool(), _factory, _old.getMonitor());
+        newUriQueue(old.getCompletionService(), old.getPool(), factory, old.getMonitor());
     }
 
     /**
      * @throws XccException
      * @throws SyncException
      */
-    private long queueFromInputConnection() throws XccException,
-            SyncException {
+    private long queueFromInputConnection() throws XccException {
         // use lexicon by default - this may throw an exception
         try {
             return queueFromInputConnection(true);
@@ -430,12 +396,11 @@ public class XQSyncManager {
     }
 
     /**
-     * @param _useLexicon
+     * @param useLexicon
      * @throws XccException
      * @throws SyncException
      */
-    private long queueFromInputConnection(boolean _useLexicon)
-            throws XccException, SyncException {
+    private long queueFromInputConnection(boolean useLexicon) throws XccException {
         String[] collectionUris = configuration.getInputCollectionUris();
         String[] directoryUris = configuration.getInputDirectoryUris();
         String[] documentUris = configuration.getInputDocumentUris();
@@ -445,26 +410,20 @@ public class XQSyncManager {
             if (null != collectionUris
                 || null != directoryUris
                 || null != userQuery) {
-                logger.warning("conflicting properties: only using "
-                               + Configuration.INPUT_DOCUMENT_URIS_KEY);
+                logger.warning("conflicting properties: only using " + Configuration.INPUT_DOCUMENT_URIS_KEY);
             }
         } else if (null != collectionUris) {
             if (null != directoryUris || null != userQuery) {
-                logger.warning("conflicting properties: only using "
-                               + Configuration.INPUT_COLLECTION_URI_KEY);
+                logger.warning("conflicting properties: only using " + Configuration.INPUT_COLLECTION_URI_KEY);
             }
-        } else if (null != directoryUris) {
-            if (null != userQuery) {
-                logger.warning("conflicting properties: only using "
-                               + Configuration.INPUT_DIRECTORY_URI_KEY);
-            }
+        } else if (null != directoryUris && null != userQuery) {
+            logger.warning("conflicting properties: only using " + Configuration.INPUT_DIRECTORY_URI_KEY);
         }
 
         Long startPosition = configuration.getStartPosition();
 
         if (null != startPosition) {
-            logger.info("using " + Configuration.INPUT_START_POSITION_KEY
-                    + "=" + startPosition.longValue());
+            logger.info("using " + Configuration.INPUT_START_POSITION_KEY + "=" + startPosition);
         }
 
         long count = 0;
@@ -484,15 +443,12 @@ public class XQSyncManager {
         // XCC has trouble caching really large result sequences
         // This will all end up in RAM anyway...
         RequestOptions opts = inputSession.getDefaultRequestOptions();
-        logger.fine("buffer size = " + opts.getResultBufferSize()
-                + ", caching = " + opts.getCacheResult());
+        logger.fine("buffer size = " + opts.getResultBufferSize() + ", caching = " + opts.getCacheResult());
         opts.setCacheResult(configuration.isInputQueryCachable());
         opts.setResultBufferSize(configuration.inputQueryBufferSize());
-        logger.info("buffer size = " + opts.getResultBufferSize()
-                + ", caching = " + opts.getCacheResult());
+        logger.info("buffer size = " + opts.getResultBufferSize() + ", caching = " + opts.getCacheResult());
 
         String uri;
-        ResultSequence rs;
         Request request;
 
         // support multiple collections or directories (but not both)
@@ -518,26 +474,24 @@ public class XQSyncManager {
                 request = getRequest(null == collectionUris ? null
                         : collectionUris[i], null == directoryUris ? null
                         : directoryUris[i], null == userQuery ? null
-                        : userQuery[i], startPosition, _useLexicon);
+                        : userQuery[i], startPosition, useLexicon);
                 request.setOptions(opts);
 
-                rs = inputSession.submitRequest(request);
-
-                while (rs.hasNext()) {
-                    uri = rs.next().asString();
-                    if (0 == count) {
-                        logger.info("queuing first task: " + uri);
+                try (ResultSequence rs = inputSession.submitRequest(request)){
+                    while (rs.hasNext()) {
+                        uri = rs.next().asString();
+                        if (0 == count) {
+                            logger.info("queuing first task: " + uri);
+                        }
+                        logger.finest("queuing " + count + ": " + uri);
+                        uriQueue.add(uri);
+                        count++;
                     }
-                    logger.finest("queuing " + count + ": " + uri);
-                    uriQueue.add(uri);
-                    count++;
                 }
-                rs.close();
             }
         } catch (StreamingResultException e) {
             logger.info("count = " + count);
-            logger
-                    .warning("Listing input URIs probably timed out:"
+            logger.warning("Listing input URIs probably timed out:"
                             + " try setting "
                             + Configuration.INPUT_CACHABLE_KEY + " or "
                             + Configuration.INPUT_QUERY_BUFFER_BYTES_KEY);
@@ -547,74 +501,65 @@ public class XQSyncManager {
     }
 
     /**
-     * @param _collectionUri
-     * @param _directoryUri
-     * @param _userQuery
-     * @param _startPosition
-     * @param _useLexicon
+     * @param collectionUri
+     * @param directoryUri
+     * @param userQuery
+     * @param startPosition
+     * @param useLexicon
      * @return
      * @throws XccException
      */
-    private Request getRequest(String _collectionUri,
-            String _directoryUri, String _userQuery, Long _startPosition,
-            boolean _useLexicon) throws XccException {
-        boolean hasStart = (_startPosition != null && _startPosition
-                .longValue() > 1);
+    private Request getRequest(String collectionUri, String directoryUri, String userQuery, Long startPosition, boolean useLexicon) throws XccException {
+        boolean hasStart = (startPosition != null && startPosition > 1);
         Request request;
         // TODO allow limit by forest names? would only work with cts:uris()
-        if (_collectionUri != null) {
-            request = getCollectionRequest(_collectionUri, hasStart,
-                    _useLexicon);
+        if (collectionUri != null) {
+            request = getCollectionRequest(collectionUri, hasStart, useLexicon);
 
             // if requested, delete the collection
             if (configuration.isDeleteOutputCollection()) {
-                Session outputSession = configuration.newOutputSession();
-                if (outputSession != null) {
-                    logger.info("deleting collection " + _collectionUri
-                            + " on output connection");
-                    outputSession.deleteCollection(_collectionUri);
-                    outputSession.close();
+                try (Session outputSession = configuration.newOutputSession()) {
+                    if (outputSession != null) {
+                        logger.info("deleting collection " + collectionUri + " on output connection");
+                        outputSession.deleteCollection(collectionUri);
+                    }
                 }
             }
-        } else if (_directoryUri != null) {
-            request = getDirectoryRequest(_directoryUri, hasStart,
-                    _useLexicon);
-        } else if (_userQuery != null) {
+        } else if (directoryUri != null) {
+            request = getDirectoryRequest(directoryUri, hasStart, useLexicon);
+        } else if (userQuery != null) {
             // set list of uris via a user-supplied query
-            logger.info("listing query: " + _userQuery);
+            logger.info("listing query: " + userQuery);
             if (hasStart) {
-                logger
-                        .warning("ignoring start value in user-supplied query");
+                logger.warning("ignoring start value in user-supplied query");
                 hasStart = false;
             }
-            request = inputSession.newAdhocQuery(_userQuery);
+            request = inputSession.newAdhocQuery(userQuery);
         } else {
             // list all the documents in the database
-            request = getUrisRequest(hasStart, _useLexicon);
+            request = getUrisRequest(hasStart, useLexicon);
         }
 
         if (hasStart) {
-            request.setNewIntegerVariable(START_VARIABLE_NAME,
-                    _startPosition);
+            request.setNewIntegerVariable(START_VARIABLE_NAME, startPosition);
         }
         return request;
     }
 
     /**
-     * @param _hasStart
+     * @param hasStart
+     * @param useLexicon
      * @return
      */
-    private Request getUrisRequest(boolean _hasStart, boolean _useLexicon) {
-        String query = Session.XQUERY_VERSION_1_0_ML
-                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
-        if (_useLexicon) {
+    private Request getUrisRequest(boolean hasStart, boolean useLexicon) {
+        String query = Session.XQUERY_VERSION_1_0_ML + (hasStart ? START_POSITION_DEFINE_VARIABLE : "");
+        if (useLexicon) {
             logger.info("listing all documents (with uri lexicon)");
-            query += "cts:uris('', 'document')"
-                    + (_hasStart ? START_POSITION_PREDICATE : "");
+            query += "cts:uris('', 'document')" + (hasStart ? START_POSITION_PREDICATE : "");
         } else {
             logger.info("listing all documents (no uri lexicon)");
             query += "for $i in doc()"
-                    + (_hasStart ? START_POSITION_PREDICATE : "")
+                    + (hasStart ? START_POSITION_PREDICATE : "")
                     + " return string(xdmp:node-uri($i))";
         }
         logger.fine(query);
@@ -622,71 +567,65 @@ public class XQSyncManager {
     }
 
     /**
-     * @param _uri
-     * @param _hasStart
+     * @param uri
+     * @param hasStart
      */
-    private Request getCollectionRequest(String _uri, boolean _hasStart,
-            boolean _useLexicon) {
-        logger.info("listing collection " + _uri);
+    private Request getCollectionRequest(String uri, boolean hasStart, boolean useLexicon) {
+        logger.info("listing collection " + uri);
         String query = Session.XQUERY_VERSION_1_0_ML
                 + "declare variable $uri as xs:string external;\n"
-                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
-        if (_useLexicon) {
-            query += "cts:uris('', 'document', cts:collection-query($uri))\n"
-                    + (_hasStart ? START_POSITION_PREDICATE : "");
+                + (hasStart ? START_POSITION_DEFINE_VARIABLE : "");
+        if (useLexicon) {
+            query += "cts:uris('', 'document', cts:collection-query($uri))\n" + (hasStart ? START_POSITION_PREDICATE : "");
         } else {
             query += "for $i in collection($uri)\n"
-                    + (_hasStart ? START_POSITION_PREDICATE : "")
+                    + (hasStart ? START_POSITION_PREDICATE : "")
                     + "return string(xdmp:node-uri($i))\n";
         }
         Request request = inputSession.newAdhocQuery(query);
-        request.setNewStringVariable("uri", _uri);
-        return request;
-    }
-
-    /**
-     * @param _uri
-     * @param _hasStart
-     * @return
-     */
-    private Request getDirectoryRequest(String _uri, boolean _hasStart,
-            boolean _useLexicon) {
-        logger.info("listing directory " + _uri);
-        String query = Session.XQUERY_VERSION_1_0_ML
-                + "declare variable $uri as xs:string external;\n"
-                + (_hasStart ? START_POSITION_DEFINE_VARIABLE : "");
-        if (_useLexicon) {
-            query += "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n"
-                    + (_hasStart ? START_POSITION_PREDICATE : "");
-        } else {
-            query += "for $i in xdmp:directory($uri, 'infinity')\n"
-                    + (_hasStart ? START_POSITION_PREDICATE : "")
-                    + "return string(xdmp:node-uri($i))\n";
-        }
-        logger.fine(query);
-        Request request = inputSession.newAdhocQuery(query);
-        String uri = _uri;
-        if (!uri.endsWith("/")) {
-            uri = uri + "/";
-        }
         request.setNewStringVariable("uri", uri);
         return request;
     }
 
     /**
-     * @param _inputPath
+     * @param uri
+     * @param hasStart
+     * @param useLexicon
+     * @return
+     */
+    private Request getDirectoryRequest(String uri, boolean hasStart, boolean useLexicon) {
+        logger.info("listing directory " + uri);
+        String query = Session.XQUERY_VERSION_1_0_ML
+                + "declare variable $uri as xs:string external;\n"
+                + (hasStart ? START_POSITION_DEFINE_VARIABLE : "");
+        if (useLexicon) {
+            query += "cts:uris('', 'document', cts:directory-query($uri, 'infinity'))\n" + (hasStart ? START_POSITION_PREDICATE : "");
+        } else {
+            query += "for $i in xdmp:directory($uri, 'infinity')\n"
+                    + (hasStart ? START_POSITION_PREDICATE : "")
+                    + "return string(xdmp:node-uri($i))\n";
+        }
+        logger.fine(query);
+        Request request = inputSession.newAdhocQuery(query);
+        String tempUri = uri;
+        if (!uri.endsWith("/")) {
+            tempUri = uri + "/";
+        }
+        request.setNewStringVariable("uri", tempUri);
+        return request;
+    }
+
+    /**
+     * @param inputPath
      * @return
      * @throws SyncException
      * @throws IOException
      */
-    private long queueFromInputPath(String _inputPath)
-            throws SyncException, IOException {
+    private long queueFromInputPath(String inputPath) throws IOException {
         // build documentList from a filesystem path
         // exclude stuff that ends with '.metadata'
-        logger.info("listing from " + _inputPath + ", excluding "
-                + XQSyncDocument.METADATA_REGEX);
-        FileFinder ff = new FileFinder(_inputPath, null,
-                XQSyncDocument.METADATA_REGEX);
+        logger.info("listing from " + inputPath + ", excluding " + XQSyncDocument.METADATA_REGEX);
+        FileFinder ff = new FileFinder(inputPath, null, XQSyncDocument.METADATA_REGEX);
         ff.find();
 
         Iterator<File> iter = ff.list().iterator();

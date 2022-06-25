@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c) 2008-2012 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,25 +28,25 @@ import com.marklogic.xcc.types.XSInteger;
 public interface MetadataInterface {
 
     /**
-     * @param _format
+     * @param format
      */
-    void setFormat(String _format);
+    void setFormat(String format);
 
     /**
-     * @param _uri
+     * @param uri
      */
-    void addCollection(String _uri);
+    void addCollection(String uri);
 
     /**
-     * @param _capability
-     * @param _role
+     * @param capability
+     * @param role
      */
-    void addPermission(String _capability, String _role);
+    void addPermission(String capability, String role);
 
     /**
-     * @param _quality
+     * @param quality
      */
-    void setQuality(XSInteger _quality);
+    void setQuality(XSInteger quality);
 
     /**
      * @return
@@ -54,9 +54,9 @@ public interface MetadataInterface {
     boolean isBinary();
 
     /**
-     * @param _xml
+     * @param xml
      */
-    void setProperties(String _xml);
+    void setProperties(String xml);
 
     /**
      * @return

@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2005-2017 MarkLogic Corporation
+ * Copyright (c)2005-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,22 +23,19 @@ package com.marklogic.ps.timing;
  * @author Michael Blakeley, MarkLogic Corporation
  */
 public class TimedEvent {
+
     private long bytes = 0;
-
     private long duration = -1;
-
     private boolean error = false;
-
-    private long start;
-    
+    private final long start;
     private String description = null;
 
     public TimedEvent() {
         start = System.nanoTime();
     }
 
-    public TimedEvent(boolean _error) {
-        error = _error;
+    public TimedEvent(boolean error) {
+        this.error = error;
         start = System.nanoTime();
     }
 
@@ -56,18 +53,18 @@ public class TimedEvent {
         return stop(bytes < 0 ? 0 : bytes, false);
     }
 
-    public long stop(long _bytes) {
-        return stop(_bytes, false);
+    public long stop(long bytes) {
+        return stop(bytes, false);
     }
 
     /**
-     * @param _error
+     * @param error
      */
-    public void stop(boolean _error) {
-        stop(-1, _error);
+    public void stop(boolean error) {
+        stop(-1, error);
     }
 
-    public long stop(long _bytes, boolean _error) {
+    public long stop(long bytes, boolean error) {
         // duplicate calls to stop() should be harmless
         if (duration > -1) {
             return duration;
@@ -83,10 +80,10 @@ public class TimedEvent {
         //}
 
         // bytes == -1 is a flag
-        if (_bytes > -1) {
-            bytes = _bytes;
+        if (bytes > -1) {
+            this.bytes = bytes;
         }
-        error = _error;
+        this.error = error;
         return duration;
     }
 
@@ -115,15 +112,15 @@ public class TimedEvent {
         return start;
     }
 
-    public void increment(long _bytes) {
-        bytes += _bytes;
+    public void increment(long bytes) {
+        this.bytes += bytes;
     }
 
     /**
-     * @param b
+     * @param bool
      */
-    public void setError(boolean b) {
-        error = true;
+    public void setError(boolean bool) {
+        error = bool;
     }
 
     public String getDescription() {

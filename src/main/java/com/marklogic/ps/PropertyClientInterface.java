@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2003-2017 MarkLogic Corporation
+ * Copyright (c)2003-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,6 @@ import java.util.Properties;
  */
 public interface PropertyClientInterface {
 
-    public void setProperties(Properties _properties);
+    void setProperties(Properties properties);
 
 }

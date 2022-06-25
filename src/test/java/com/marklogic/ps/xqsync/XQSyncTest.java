@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2017 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2017-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ public class XQSyncTest {
         String expected = Configuration.CONFIGURATION_CLASSNAME_DEFAULT;
         Properties properties = new Properties();
         properties.setProperty(Configuration.CONFIGURATION_CLASSNAME_KEY, expected);
-        properties.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, "xcc://admin:admin@localhost:9000");
-        properties.setProperty(Configuration.OUTPUT_CONNECTION_STRING_KEY, "xcc://admin:admin@localhost:9000");
+        properties.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, "xcc://xqsync-test-user:xqsync-test-password@localhost:9000");
+        properties.setProperty(Configuration.OUTPUT_CONNECTION_STRING_KEY, "xcc://xqsync-test-user:xqsync-test-password@localhost:9000");
         Configuration configuration = XQSync.initConfiguration(SimpleLogger.getSimpleLogger(), properties);
         assertNotNull(configuration);
         assertEquals(expected, configuration.getConfigurationClassName());
@@ -74,7 +74,7 @@ public class XQSyncTest {
     }
 
     @Test
-    public void getClassLoader() throws Exception {
+    public void getClassLoader() {
         assertNotNull(XQSync.getClassLoader());
     }
 

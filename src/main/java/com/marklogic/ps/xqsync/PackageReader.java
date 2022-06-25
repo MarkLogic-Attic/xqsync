@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,20 +29,19 @@ public class PackageReader extends FilePathReader {
     protected InputPackage pkg;
 
     /**
-     * @param _configuration
+     * @param configuration
      * @throws SyncException
      */
-    public PackageReader(Configuration _configuration)
-            throws SyncException {
+    public PackageReader(Configuration configuration) throws SyncException {
         // superclass takes care of some configuration
-        super(_configuration);
+        super(configuration);
     }
 
     /**
-     * @param _pkg
+     * @param pkg
      */
-    public void setPackage(InputPackage _pkg) {
-        pkg = _pkg;
+    public void setPackage(InputPackage pkg) {
+        this.pkg = pkg;
     }
 
     /*
@@ -52,12 +51,11 @@ public class PackageReader extends FilePathReader {
      * com.marklogic.ps.xqsync.DocumentInterface)
      */
     @Override
-    public void read(String[] _uris, DocumentInterface _document)
-            throws SyncException {
-        if (null == _uris) {
+    public void read(String[] uris, DocumentInterface document) throws SyncException {
+        if (null == uris) {
             throw new SyncException("null paths");
         }
-        if (null == _uris[0]) {
+        if (null == uris[0]) {
             throw new SyncException("empty paths");
         }
         if (null == pkg) {
@@ -66,8 +64,8 @@ public class PackageReader extends FilePathReader {
 
         String uri;
 
-        for (int i = 0; i < _uris.length; i++) {
-            uri = _uris[i];
+        for (int i = 0; i < uris.length; i++) {
+            uri = uris[i];
 
             if (uri == null) {
                 continue;
@@ -75,11 +73,11 @@ public class PackageReader extends FilePathReader {
 
             try {
                 // read the content: must work for bin or xml, so use bytes
-                _document.setContent(i, pkg.getContent(uri));
+                document.setContent(i, pkg.getContent(uri));
 
                 // read the metadata
                 MetadataInterface metadata = pkg.getMetadataEntry(uri);
-                _document.setMetadata(i, metadata);
+                document.setMetadata(i, metadata);
             } catch (IOException e) {
                 throw new SyncException(e);
             }

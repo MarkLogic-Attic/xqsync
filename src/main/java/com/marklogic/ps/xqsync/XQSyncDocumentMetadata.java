@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2012 Mark Logic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@
 package com.marklogic.ps.xqsync;
 
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Vector;
 
 import com.marklogic.xcc.ContentCapability;
 import com.marklogic.xcc.ContentPermission;
@@ -37,18 +37,12 @@ import com.thoughtworks.xstream.XStream;
  */
 public class XQSyncDocumentMetadata implements MetadataInterface {
 
-    static XStream xstream = new XStream();
-
+    static final XStream xstream = new XStream();
     DocumentFormat format = DocumentFormat.XML;
-
-    List<String> collectionsList = new Vector<String>();
-
-    List<ContentPermission> permissionsList = new Vector<ContentPermission>();
-
+    final List<String> collectionsList = new ArrayList<>();
+    final List<ContentPermission> permissionsList = new ArrayList<>();
     int quality = 0;
-
     String properties = null;
-
     protected String hashValue = null;
 
     /**
@@ -66,38 +60,38 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
     }
 
     /**
-     * @param _format
+     * @param format
      */
-    public void setFormat(DocumentFormat _format) {
-        format = _format;
+    public void setFormat(DocumentFormat format) {
+        this.format = format;
     }
 
     /**
-     * @param _collection
+     * @param collection
      */
-    public void addCollection(String _collection) {
-        collectionsList.add(_collection);
+    public void addCollection(String collection) {
+        collectionsList.add(collection);
     }
 
     /**
-     * @param _permission
+     * @param permission
      */
-    public void addPermission(ContentPermission _permission) {
-        permissionsList.add(_permission);
+    public void addPermission(ContentPermission permission) {
+        permissionsList.add(permission);
     }
 
     /**
-     * @param _quality
+     * @param quality
      */
-    public void setQuality(int _quality) {
-        quality = _quality;
+    public void setQuality(int quality) {
+        this.quality = quality;
     }
 
     /**
-     * @param _properties
+     * @param properties
      */
-    public void setProperties(String _properties) {
-        properties = _properties;
+    public void setProperties(String properties) {
+        this.properties = properties;
     }
 
     /**
@@ -128,8 +122,8 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
      * @return
      */
     public ContentPermission[] getPermissions() {
-        if (permissionsList.size() < 1) {
-            return null;
+        if (permissionsList.isEmpty()) {
+            return new ContentPermission[0];
         }
         return permissionsList.toArray(new ContentPermission[0]);
     }
@@ -180,18 +174,17 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
     }
 
     /**
-     * @param _format
+     * @param format
      */
-    public void setFormat(String _format) {
-        if (_format.equals(DocumentFormat.XML)
-                || _format.equals("element") || _format.equals("comment")
-                || _format.equals("processing-instruction")) {
+    public void setFormat(String format) {
+        if (DocumentFormat.XML.toString().equals(format)
+                || "element".equals(format) || "comment".equals(format)
+                || "processing-instruction".equals(format)) {
             setFormat(DocumentFormat.XML);
             return;
         }
 
-        if (_format.equals(DocumentFormat.TEXT)
-                || _format.equals(("text"))) {
+        if (DocumentFormat.TEXT.toString().equals(format) || "text".equals(format)) {
             setFormat(DocumentFormat.TEXT);
             return;
         }
@@ -201,24 +194,23 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
     }
 
     /**
-     * @param _capability
-     * @param _role
+     * @param capability
+     * @param role
      */
-    public void addPermission(String _capability, String _role) {
-        ContentCapability capability;
-        if (ContentPermission.UPDATE.toString().equals(_capability))
-            capability = ContentPermission.UPDATE;
-        else if (ContentPermission.INSERT.toString().equals(_capability))
-            capability = ContentPermission.INSERT;
-        else if (ContentPermission.EXECUTE.toString().equals(_capability))
-            capability = ContentPermission.EXECUTE;
-        else if (ContentPermission.READ.toString().equals(_capability))
-            capability = ContentPermission.READ;
-        else
-            throw new UnimplementedFeatureException(
-                    "unknown capability: " + _capability);
-
-        addPermission(new ContentPermission(capability, _role));
+    public void addPermission(String capability, String role) {
+        ContentCapability contentCapability;
+        if (ContentPermission.UPDATE.toString().equals(capability)) {
+            contentCapability = ContentPermission.UPDATE;
+        } else if (ContentPermission.INSERT.toString().equals(capability)) {
+            contentCapability = ContentPermission.INSERT;
+        } else if (ContentPermission.EXECUTE.toString().equals(capability)) {
+            contentCapability = ContentPermission.EXECUTE;
+        } else if (ContentPermission.READ.toString().equals(capability)) {
+            contentCapability = ContentPermission.READ;
+        } else {
+            throw new UnimplementedFeatureException("unknown capability: " + capability);
+        }
+        addPermission(new ContentPermission(contentCapability, role));
     }
 
     /**
@@ -243,14 +235,14 @@ public class XQSyncDocumentMetadata implements MetadataInterface {
     }
 
     /**
-     * @param _collections
+     * @param collections
      */
-    public void addCollections(String[] _collections) {
-        if (null == _collections || 1 > _collections.length) {
+    public void addCollections(String[] collections) {
+        if (null == collections || 1 > collections.length) {
             return;
         }
-        for (int i = 0; i < _collections.length; i++) {
-            addCollection(_collections[i]);
+        for (String collection : collections) {
+            addCollection(collection);
         }
     }
 

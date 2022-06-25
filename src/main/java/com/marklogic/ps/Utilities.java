@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2017 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -40,130 +41,133 @@ public class Utilities {
     private static final int BUFFER_SIZE = 32 * 1024;
 
     /**
-     * @param _path
+     * @param path
      * @return
      */
-    public static String getPathExtension(String _path) {
-        return _path.replaceFirst(".*\\.([^\\.]+)$", "$1");
+    public static String getPathExtension(String path) {
+        return path.replaceFirst(".*\\.([^\\.]+)$", "$1");
     }
 
-    public static String join(List<String> _items, String _delim) {
-        return join(_items.toArray(), _delim);
+    public static String join(List<String> items, String delim) {
+        return join(items.toArray(), delim);
     }
 
-    public static String join(Object[] _items, String _delim) {
-        String rval = "";
-        for (int i = 0; i < _items.length; i++)
-            if (i == 0)
-                rval = "" + _items[0];
-            else
-                rval += _delim + _items[i];
-        return rval;
+    public static String join(Object[] items, String delim) {
+        StringBuilder rval = new StringBuilder();
+        for (int i = 0; i < items.length; i++) {
+            if (i == 0) {
+                rval = new StringBuilder("" + items[0]);
+            } else {
+                rval.append(delim).append(items[i]);
+            }
+        }
+        return rval.toString();
     }
 
     /**
-     * @param _items
-     * @param _delim
+     * @param items
+     * @param delim
      * @return
      */
-    public static String join(String[] _items, String _delim) {
-        if (null == _items)
+    public static String join(String[] items, String delim) {
+        if (null == items) {
             return null;
-
-        String rval = "";
-        for (int i = 0; i < _items.length; i++)
-            if (i == 0)
-                rval = _items[0];
-            else
-                rval += _delim + _items[i];
-        return rval;
+        }
+        StringBuilder rval = new StringBuilder();
+        for (int i = 0; i < items.length; i++) {
+            if (i == 0) {
+                rval = new StringBuilder(items[0]);
+            } else {
+                rval.append(delim).append(items[i]);
+            }
+        }
+        return rval.toString();
     }
 
-    public static String escapeXml(String _in) {
-        if (_in == null)
+    public static String escapeXml(String in) {
+        if (in == null) {
             return "";
-        return _in.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+        }
+        return in.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
                 .replaceAll(">", "&gt;");
     }
 
-    public static long copy(InputStream _in, OutputStream _out)
-            throws IOException {
-        if (_in == null)
+    public static long copy(InputStream in, OutputStream out) throws IOException {
+        if (in == null) {
             throw new IOException("null InputStream");
-        if (_out == null)
+        }
+        if (out == null) {
             throw new IOException("null OutputStream");
-
+        }
         long totalBytes = 0;
         int len = 0;
         byte[] buf = new byte[BUFFER_SIZE];
         // int available = _in.available();
         // System.err.println("DEBUG: " + _in + ": available " + available);
-        while ((len = _in.read(buf, 0, BUFFER_SIZE)) > -1) {
-            _out.write(buf, 0, len);
-            _out.flush();
+        while ((len = in.read(buf, 0, BUFFER_SIZE)) > -1) {
+            out.write(buf, 0, len);
+            out.flush();
             totalBytes += len;
             // System.err.println("DEBUG: " + _out + ": wrote " + len);
         }
         // System.err.println("DEBUG: " + _in + ": last read " + len);
-
         // caller MUST close the stream for us
-
         return totalBytes;
     }
 
     /**
-     * @param _in
-     * @param _out
+     * @param in
+     * @param out
      * @throws IOException
      */
-    public static void copy(File _in, File _out) throws IOException {
-        InputStream in = new FileInputStream(_in);
-        OutputStream out = new FileOutputStream(_out);
-        copy(in, out);
+    public static void copy(File in, File out) throws IOException {
+        try (InputStream inputStream = new FileInputStream(in)) {
+            OutputStream outputStream = new FileOutputStream(out);
+            copy(inputStream, outputStream);
+        }
     }
 
-    public static long copy(Reader _in, OutputStream _out)
-            throws IOException {
-        if (_in == null)
+    public static long copy(Reader in, OutputStream out) throws IOException {
+        if (in == null) {
             throw new IOException("null Reader");
-        if (_out == null)
+        }
+        if (out == null) {
             throw new IOException("null OutputStream");
-
-        OutputStreamWriter writer = new OutputStreamWriter(_out, "UTF-8");
-        long len = copy(_in, writer);
-
+        }
+        OutputStreamWriter writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+        long len = copy(in, writer);
         // caller MUST close the stream for us
-        _out.flush();
+        out.flush();
         return len;
     }
 
     /**
-     * @param _in
-     * @param _out
+     * @param in
+     * @param out
      * @throws IOException
      */
-    public static long copy(Reader _in, Writer _out) throws IOException {
-        if (_in == null)
+    public static long copy(Reader in, Writer out) throws IOException {
+        if (in == null) {
             throw new IOException("null Reader");
-        if (_out == null)
+        }
+        if (out == null) {
             throw new IOException("null Writer");
-
+        }
         long totalChars = 0;
         int len = 0;
         char[] cbuf = new char[BUFFER_SIZE];
-        while ((len = _in.read(cbuf, 0, BUFFER_SIZE)) > -1) {
-            _out.write(cbuf, 0, len);
-            _out.flush();
+        while ((len = in.read(cbuf, 0, BUFFER_SIZE)) > -1) {
+            out.write(cbuf, 0, len);
+            out.flush();
             totalChars += len;
         }
 
         // caller MUST close the stream for us
 
         // check to see if we copied enough data
-        if (1 > totalChars)
-            throw new IOException("expected at least " + 1
-                    + " Chars, copied only " + totalChars);
-
+        if (1 > totalChars) {
+            throw new IOException("expected at least " + 1 + " Chars, copied only " + totalChars);
+        }
         return totalChars;
     }
 
@@ -173,76 +177,75 @@ public class Utilities {
      * @throws IOException
      * @throws FileNotFoundException
      */
-    public static void copy(String inFilePath, String outFilePath)
-            throws FileNotFoundException, IOException {
-        copy(new FileInputStream(inFilePath), new FileOutputStream(
-                outFilePath));
+    public static void copy(String inFilePath, String outFilePath) throws IOException {
+        try (FileInputStream fileInputStream = new FileInputStream(inFilePath);
+            FileOutputStream fileOutputStream = new FileOutputStream(outFilePath)
+        ) {
+            copy(fileInputStream, fileOutputStream);
+        }
     }
 
-    public static void deleteFile(File _file) throws IOException {
-        if (!_file.exists())
-            return;
 
+
+    public static void deleteFile(File file) throws IOException {
+        if (!file.exists()) {
+            return;
+        }
         boolean success;
 
-        if (!_file.isDirectory()) {
-            success = _file.delete();
+        if (!file.isDirectory()) {
+            success = file.delete();
             if (!success) {
-                throw new IOException("error deleting "
-                        + _file.getCanonicalPath());
+                throw new IOException("error deleting " + file.getCanonicalPath());
             }
             return;
         }
 
         // directory, so recurse
-        File[] children = _file.listFiles();
+        File[] children = file.listFiles();
         if (children != null) {
-            for (int i = 0; i < children.length; i++) {
+            for (File child : children) {
                 // recurse
-                deleteFile(children[i]);
+                deleteFile(child);
             }
         }
 
         // now this directory should be empty
-        if (_file.exists()) {
-            _file.delete();
+        if (file.exists()) {
+            file.delete();
         }
     }
 
-    public static final boolean stringToBoolean(String str) {
+    public static boolean stringToBoolean(String str) {
         // let the caller decide: should an unset string be true or false?
         return stringToBoolean(str, false);
     }
 
-    public static final boolean stringToBoolean(String str,
-            boolean defaultValue) {
-        if (str == null)
+    public static boolean stringToBoolean(String str, boolean defaultValue) {
+        if (str == null) {
             return defaultValue;
-
+        }
         String lcStr = str.toLowerCase();
-        if (str == "" || str.equals("0") || lcStr.equals("f")
-                || lcStr.equals("false") || lcStr.equals("n")
-                || lcStr.equals("no"))
-            return false;
-
-        return true;
+        return !"".equals(str) && !"0".equals(str) && !"f".equals(lcStr)
+            && !"false".equals(lcStr) && !"n".equals(lcStr)
+            && !"no".equals(lcStr);
     }
 
     /**
-     * @param _path
+     * @param path
      * @throws IOException
      */
-    public static void deleteFile(String _path) throws IOException {
-        deleteFile(new File(_path));
+    public static void deleteFile(String path) throws IOException {
+        deleteFile(new File(path));
     }
 
-    public static String buildModulePath(Class<?> _class) {
-        return "/" + _class.getName().replace('.', '/') + ".xqy";
+    public static String buildModulePath(Class<?> clazz) {
+        return "/" + clazz.getName().replace('.', '/') + ".xqy";
     }
 
-    public static String buildModulePath(Package _package, String _name) {
-        return "/" + _package.getName().replace('.', '/') + "/" + _name
-                + (_name.endsWith(".xqy") ? "" : ".xqy");
+    public static String buildModulePath(Package pkg, String name) {
+        return "/" + pkg.getName().replace('.', '/') + "/" + name
+                + (name.endsWith(".xqy") ? "" : ".xqy");
     }
 
     /**

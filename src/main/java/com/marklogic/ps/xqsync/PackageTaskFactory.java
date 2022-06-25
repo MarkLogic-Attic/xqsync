@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,15 +25,14 @@ package com.marklogic.ps.xqsync;
 public class PackageTaskFactory extends TaskFactory {
 
     /**
-     * @param _config
-     * @param _monitor
-     * @param _inputPackage
+     * @param config
+     * @param monitor
+     * @param inputPackage
      * @throws SyncException
      */
-    public PackageTaskFactory(Configuration _config, Monitor _monitor,
-            InputPackage _inputPackage) throws SyncException {
-        super(_config, _monitor);
-        inputPackage = _inputPackage;
+    public PackageTaskFactory(Configuration config, Monitor monitor, InputPackage inputPackage) throws SyncException {
+        super(config, monitor);
+        this.inputPackage = inputPackage;
     }
 
     protected InputPackage inputPackage;
@@ -45,8 +44,8 @@ public class PackageTaskFactory extends TaskFactory {
      */
     @Override
     public ReaderInterface getReader() throws SyncException {
-        ReaderInterface reader = new PackageReader(configuration);
-        ((PackageReader) reader).setPackage(inputPackage);
+        PackageReader reader = new PackageReader(configuration);
+        reader.setPackage(inputPackage);
         return reader;
     }
 

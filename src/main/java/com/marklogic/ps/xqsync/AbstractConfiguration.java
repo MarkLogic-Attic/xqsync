@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 Mark Logic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,24 +36,18 @@ import com.marklogic.ps.SimpleLogger;
 public class AbstractConfiguration {
 
     protected static final String DEFAULT_SUFFIX = "_DEFAULT";
-
     protected static final String KEY_SUFFIX = "_KEY";
-
     protected static SimpleLogger logger;
-
-    protected Map<String, Object> defaults = new HashMap<String, Object>();
-
+    protected final Map<String, Object> defaults = new HashMap<>();
     protected Properties properties = new Properties();
 
-    protected void setDefaults() throws IllegalArgumentException,
-            SecurityException, IllegalAccessException,
-            NoSuchFieldException {
+    protected void setDefaults() throws IllegalArgumentException, SecurityException, IllegalAccessException, NoSuchFieldException {
         Field[] fields = this.getClass().getFields();
         String name, key;
-        for (int i = 0; i < fields.length; i++) {
-            name = fields[i].getName();
+        for (Field field : fields) {
+            name = field.getName();
             if (name.endsWith(KEY_SUFFIX)) {
-                key = (String) fields[i].get(this);
+                key = (String) field.get(this);
                 if (!defaults.containsKey(key)) {
                     defaults.put(key, null);
                     logger.fine(key + "=(null)");
@@ -63,10 +57,10 @@ public class AbstractConfiguration {
             if (name.endsWith(DEFAULT_SUFFIX)) {
                 // the true key is the value of the key-named field
                 key = (String) this.getClass().getField(
-                        name.substring(0, name.length()
-                                - DEFAULT_SUFFIX.length())
-                                + KEY_SUFFIX).get(this);
-                defaults.put(key, fields[i].get(this));
+                    name.substring(0, name.length()
+                        - DEFAULT_SUFFIX.length())
+                        + KEY_SUFFIX).get(this);
+                defaults.put(key, field.get(this));
                 logger.fine(key + "=" + defaults.get(key));
                 continue;
             }
@@ -74,19 +68,19 @@ public class AbstractConfiguration {
     }
 
     /**
-     * @param _props
+     * @param props
      */
-    public void load(Properties _props) {
-        properties.putAll(_props);
+    public void load(Properties props) {
+        properties.putAll(props);
     }
 
     /**
-     * @param _stream
+     * @param stream
      * @throws IOException
      */
-    public void load(InputStream _stream) throws IOException {
+    public void load(InputStream stream) throws IOException {
         Properties newProperties = new Properties();
-        newProperties.load(_stream);
+        newProperties.load(stream);
         load(newProperties);
     }
 
@@ -105,8 +99,7 @@ public class AbstractConfiguration {
         while (keys.hasMoreElements()) {
             key = (String) keys.nextElement();
             // known jre pattern
-            if (key.matches(ignorePatterns)
-                || key.matches(ignorePrefixPatterns)) {
+            if (key.matches(ignorePatterns) || key.matches(ignorePrefixPatterns)) {
                 logger.fine("known system key: ignoring " + key);
                 continue;
             }
@@ -128,22 +121,22 @@ public class AbstractConfiguration {
     }
 
     /**
-     * @param _props
+     * @param props
      */
-    private void applyDefaults(Properties _props) {
+    private void applyDefaults(Properties props) {
         // apply default values to properties
         Iterator<String> iter = defaults.keySet().iterator();
         String key;
         Object value;
         while (iter.hasNext()) {
             key = iter.next();
-            if (_props.containsKey(key)) {
+            if (props.containsKey(key)) {
                 continue;
             }
             value = defaults.get(key);
             if (null != value) {
                 logger.fine("applying default " + key + "=" + value);
-                _props.setProperty(key.toString(), value.toString());
+                props.setProperty(key, value.toString());
             }
         }
     }
@@ -163,10 +156,10 @@ public class AbstractConfiguration {
     }
 
     /**
-     * @param _logger
+     * @param logger
      */
-    public void setLogger(SimpleLogger _logger) {
-        logger = _logger;
+    public void setLogger(SimpleLogger logger) {
+        this.logger = logger;
     }
 
 }

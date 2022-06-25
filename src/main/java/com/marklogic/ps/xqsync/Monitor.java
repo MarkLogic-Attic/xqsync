@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * (c)2006-2012 MarkLogic Corporation
+ * (c)2006-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,59 +37,46 @@ public class Monitor extends Thread {
 
     // TODO make these constants configurable?
     protected static final int DISPLAY_MILLIS = 60 * 1000;
-
     protected static final int FUTURE_MILLIS = 15 * 60 * 1000;
-
     protected static final int SLEEP_MILLIS = 500;
-
-    protected static SimpleLogger logger;
-
+    protected SimpleLogger logger;
     protected boolean running = true;
-
     protected ThreadPoolExecutor pool;
-
-    protected CompletionService<TimedEvent[]> completionService;
-
+    protected final CompletionService<TimedEvent[]> completionService;
     protected boolean fatalErrors = Configuration.FATAL_ERRORS_DEFAULT_BOOLEAN;
-
     protected Timer timer;
-
     protected long taskCount = 0;
-
     protected boolean taskCountFinal = false;
-
-    protected Object taskCountMutex = new Object();
-
-    protected Configuration config;
+    protected final Object taskCountMutex = new Object();
+    protected final Configuration config;
 
     /**
-     * @param _config
-     * @param _pool
-     * @param _cs
-     * @param _fatalErrors
+     * @param config
+     * @param pool
+     * @param cs
+     * @param fatalErrors
      */
-    public Monitor(Configuration _config, ThreadPoolExecutor _pool,
-            CompletionService<TimedEvent[]> _cs, boolean _fatalErrors) {
+    public Monitor(Configuration config, ThreadPoolExecutor pool, CompletionService<TimedEvent[]> cs, boolean fatalErrors) {
         super("MonitorThread");
-        config = _config;
-        completionService = _cs;
-        pool = _pool;
-        logger = _config.getLogger();
-        fatalErrors = _fatalErrors;
+        this.config = config;
+        completionService = cs;
+        this.pool = pool;
+        logger = config.getLogger();
+        this.fatalErrors = fatalErrors;
     }
 
+    @Override
     public void run() {
+        if (null == logger) {
+            throw new NullPointerException("must call setLogger");
+        }
         try {
-            if (null == logger) {
-                throw new NullPointerException("must call setLogger");
-            }
             logger.info("starting");
             monitor();
-            yield();
+            Thread.yield();
         } catch (Exception e) {
             if (e instanceof ExecutionException) {
-                logger.logException("fatal execution error", e
-                                .getCause());
+                logger.logException("fatal execution error", e.getCause());
             } else {
                 logger.logException("fatal error", e);
             }
@@ -98,8 +85,7 @@ public class Monitor extends Thread {
         } finally {
             pool.shutdownNow();
             running = false;
-            logger.info("exiting after " + timer.getEventCount() + "/"
-                        + taskCount + ", " + timer.getProgressMessage());
+            logger.info("exiting after " + timer.getEventCount() + "/" + taskCount + ", " + timer.getProgressMessage());
         }
     }
 
@@ -117,9 +103,7 @@ public class Monitor extends Thread {
      *
      */
     protected void monitor() throws ExecutionException {
-        int displayMillis = DISPLAY_MILLIS;
         int futureMillis = FUTURE_MILLIS;
-        int sleepMillis = SLEEP_MILLIS;
         Future<TimedEvent[]> future = null;
         /* Initialize lastFutureMillis so that we do not get
          * warnings on slow queue startup.
@@ -129,7 +113,7 @@ public class Monitor extends Thread {
         long lastFutureMillis = currentMillis;
         TimedEvent[] lastEvent = null;
 
-        logger.finest("looping every " + sleepMillis + ", core="
+        logger.finest("looping every " + SLEEP_MILLIS + ", core="
                 + pool.getCorePoolSize() + ", active="
                 + pool.getActiveCount() + ", tasks=" + taskCount);
 
@@ -138,28 +122,26 @@ public class Monitor extends Thread {
         // run until all futures have been checked
         do {
             // try to avoid thread starvation
-            yield();
+            Thread.yield();
 
             // check completed tasks
             // sometimes this goes so fast that we never leave the loop,
             // so progress is never displayed... so limit the number of loops.
             do {
                 try {
-                    future = completionService.poll(SLEEP_MILLIS,
-                            TimeUnit.MILLISECONDS);
+                    future = completionService.poll(SLEEP_MILLIS, TimeUnit.MILLISECONDS);
                     if (null != future) {
                         // record result, or throw exception
                         lastFutureMillis = System.currentTimeMillis();
                         try {
                             lastEvent = future.get();
                             if (null == lastEvent) {
-                                throw new FatalException(
-                                        "unexpected null event");
+                                throw new FatalException("unexpected null event");
                             }
-                            for (int i = 0; i < lastEvent.length; i++) {
+                            for (TimedEvent timedEvent : lastEvent) {
                                 // discard events to reduce memory utilization
-                                if (null != lastEvent[i]) {
-                                    timer.add(lastEvent[i], false);
+                                if (null != timedEvent) {
+                                    timer.add(timedEvent, false);
                                 }
                             }
                         } catch (ExecutionException e) {
@@ -167,8 +149,7 @@ public class Monitor extends Thread {
                                 throw e;
                             }
                             Throwable cause = e.getCause();
-                            if (null != cause
-                                    && cause instanceof FatalException) {
+                            if (cause instanceof FatalException) {
                                 throw (FatalException) cause;
                             }
                             logger.logException("non-fatal", e);
@@ -178,13 +159,13 @@ public class Monitor extends Thread {
                 } catch (InterruptedException e) {
                     // reset interrupt status and continue
                     Thread.interrupted();
-                    logger.logException("interrupted in poll() or get()",
-                            e);
+                    logger.logException("interrupted in poll() or get()", e);
+                    Thread.currentThread().interrupt();
                     continue;
                 }
 
                 currentMillis = System.currentTimeMillis();
-                if (currentMillis - lastDisplayMillis > displayMillis) {
+                if (currentMillis - lastDisplayMillis > DISPLAY_MILLIS) {
                     lastDisplayMillis = currentMillis;
                     logger.finer("thread count: core="
                             + pool.getCorePoolSize() + ", active="
@@ -211,8 +192,7 @@ public class Monitor extends Thread {
                          + ", last future = " + lastFutureMillis);
             // currentMillis has already been set recently
             if (currentMillis - lastFutureMillis > futureMillis) {
-                logger.warning("no futures received in over "
-                               + futureMillis + " ms");
+                logger.warning("no futures received in over " + futureMillis + " ms");
                 break;
             }
         } while (running && !pool.isTerminated());
@@ -220,17 +200,17 @@ public class Monitor extends Thread {
     }
 
     /**
-     * @param _logger
+     * @param logger
      */
-    public void setLogger(SimpleLogger _logger) {
-        logger = _logger;
+    public void setLogger(SimpleLogger logger) {
+        this.logger = logger;
     }
 
     /**
-     * @param _pool
+     * @param pool
      */
-    public void setPool(ThreadPoolExecutor _pool) {
-        pool = _pool;
+    public void setPool(ThreadPoolExecutor pool) {
+        this.pool = pool;
     }
 
     /**
@@ -252,22 +232,20 @@ public class Monitor extends Thread {
     }
 
     /**
-     * @param _count
+     * @param count
      */
-    public void setFinalTaskCount(long _count) {
+    public void setFinalTaskCount(long count) {
         synchronized (taskCountMutex) {
             if (taskCountFinal) {
                 // get the stack trace to track this down
                 throw new FatalException("BUG!", new SyncException(
-                        "setter on final task count " + _count));
+                        "setter on final task count " + count));
             }
-            if (_count != taskCount) {
+            if (count != taskCount) {
                 // get the stack trace to track this down
-                throw new FatalException("BUG!", new SyncException(
-                        "setter on final task count " + _count + " != "
-                                + taskCount));
+                throw new FatalException("BUG!", new SyncException("setter on final task count " + count + " != " + taskCount));
             }
-            logger.fine("setting " + _count);
+            logger.fine("setting " + count);
             taskCountFinal = true;
         }
     }
@@ -296,18 +274,15 @@ public class Monitor extends Thread {
                         : (timer.getBytesPerSecond() + " B/sec to "
                                 + throttledBytesPerSecond + " B/sec")));
         // call the methods every time
-        while ((throttledEventsPerSecond > 0 && (throttledEventsPerSecond < timer
-                .getEventsPerSecond()))
+        while ((throttledEventsPerSecond > 0 && (throttledEventsPerSecond < timer.getEventsPerSecond()))
                 || (throttledBytesPerSecond > 0 && (throttledBytesPerSecond < timer
                         .getBytesPerSecond()))) {
             if (isEvents) {
-                sleepMillis = (long) Math
-                        .ceil(Timer.MILLISECONDS_PER_SECOND
+                sleepMillis = (long) Math.ceil(Timer.MILLISECONDS_PER_SECOND
                                 * ((timer.getEventCount() / throttledEventsPerSecond) - timer
                                         .getDurationSeconds()));
             } else {
-                sleepMillis = (long) Math
-                        .ceil(Timer.MILLISECONDS_PER_SECOND
+                sleepMillis = (long) Math.ceil(Timer.MILLISECONDS_PER_SECOND
                                 * ((timer.getBytes() / throttledBytesPerSecond) - timer
                                         .getDurationSeconds()));
             }

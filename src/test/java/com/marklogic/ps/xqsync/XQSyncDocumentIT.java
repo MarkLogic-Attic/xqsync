@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,19 +22,14 @@ import java.net.URI;
 import java.util.Properties;
 
 import com.marklogic.ps.Connection;
-import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
-import com.marklogic.ps.xqsync.Configuration;
-import com.marklogic.ps.xqsync.FilePathReader;
-import com.marklogic.ps.xqsync.FilePathWriter;
-import com.marklogic.ps.xqsync.SessionReader;
-import com.marklogic.ps.xqsync.XQSyncDocument;
 import com.marklogic.xcc.AdhocQuery;
 import com.marklogic.xcc.Content;
 import com.marklogic.xcc.ContentCapability;
 import com.marklogic.xcc.ContentCreateOptions;
 import com.marklogic.xcc.ContentFactory;
 import com.marklogic.xcc.ContentPermission;
+import com.marklogic.xcc.Session;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
@@ -50,67 +45,66 @@ public class XQSyncDocumentIT {
         props.setProperty(SimpleLogger.LOG_LEVEL, "INFO");
         props.setProperty(SimpleLogger.LOG_HANDLER, "CONSOLE");
         URI uri = new URI("xcc://xqsync-test-user:xqsync-test-password@localhost:9000");
-        props.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, uri
-                .toString());
+        props.setProperty(Configuration.INPUT_CONNECTION_STRING_KEY, uri.toString());
         props.setProperty(Configuration.OUTPUT_PATH_KEY, "/dev/null");
-        Connection c = new Connection(uri);
-        Session sess = (Session) c.newSession();
-        String documentUri = this.getClass().getName()
-                + "/testPermissions.xml";
+        Connection connection = new Connection(uri);
+        try (Session sess = connection.newSession();
+             com.marklogic.ps.Session xqsyncSession = new com.marklogic.ps.Session(connection, sess)) {
+            assertEquals(0, xqsyncSession.getCount());
+            String documentUri = this.getClass().getName() + "/testPermissions.xml";
 
-        String documentString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            String documentString = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                 + "<!-- this is a test -->\n"
                 + "<test id=\"foo\"/>";
-        ContentCreateOptions createOptions = ContentCreateOptions.newXmlInstance();
+            ContentCreateOptions createOptions = ContentCreateOptions.newXmlInstance();
 
-        // write the test document
-        Content content = ContentFactory.newContent(documentUri, documentString, createOptions);
-        sess.insertContent(content);
+            // write the test document
+            Content content = ContentFactory.newContent(documentUri, documentString, createOptions);
+            sess.insertContent(content);
 
-        // set the permissions
-        AdhocQuery req = sess.newAdhocQuery(Session.XQUERY_VERSION_1_0_ML
+            // set the permissions
+            AdhocQuery req = sess.newAdhocQuery(com.marklogic.ps.Session.XQUERY_VERSION_1_0_ML
                 + "declare variable $URI as xs:string external;\n"
                 + "let $perms := xdmp:permission('admin', 'read')\n"
                 + "return xdmp:document-set-permissions($URI, $perms)\n");
-        req.setNewStringVariable("URI", documentUri);
-        sess.submitRequest(req);
+            req.setNewStringVariable("URI", documentUri);
+            sess.submitRequest(req);
+            assertEquals(1, xqsyncSession.getCount());
 
-        // retrieve the test document
-        Configuration config = new Configuration();
-        config.setLogger(SimpleLogger.getSimpleLogger());
-        config.setProperties(props);
-        config.configure();
-        SessionReader reader = new SessionReader(config);
-        FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(
-                new String[] { documentUri }, reader, writer, config);
-        doc.read();
-        String retrievedXml = new String(doc.getContent(0));
+            // retrieve the test document
+            Configuration config = new Configuration();
+            config.setLogger(SimpleLogger.getSimpleLogger());
+            config.setProperties(props);
+            config.configure();
+            SessionReader reader = new SessionReader(config);
+            FilePathWriter writer = new FilePathWriter(config);
+            XQSyncDocument doc = new XQSyncDocument(new String[]{documentUri}, reader, writer, config);
+            doc.read();
+            String retrievedXml = new String(doc.getContent(0));
 
-        // test the round-trip of the XML
-        assertEquals(documentString, retrievedXml);
+            // test the round-trip of the XML
+            assertEquals(documentString, retrievedXml);
 
-        // test the permissions
-        ContentPermission[] permissions = doc.getMetadata(0)
-                .getPermissions();
-        SimpleLogger logger = config.getLogger();
-        logger.fine("found permissions " + permissions.length);
-        for (int i = 0; i < permissions.length; i++) {
-            logger.finer("permission[" + i + "] = " + permissions[i]);
-        }
-        assertEquals(1, permissions.length);
-        assertEquals(permissions[0].getCapability(),
-                ContentCapability.READ);
-        assertEquals(permissions[0].getRole(), "admin");
+            // test the permissions
+            ContentPermission[] permissions = doc.getMetadata(0).getPermissions();
+            SimpleLogger logger = config.getLogger();
+            logger.fine("found permissions " + permissions.length);
+            for (int i = 0; i < permissions.length; i++) {
+                logger.finer("permission[" + i + "] = " + permissions[i]);
+            }
+            assertEquals(1, permissions.length);
+            assertEquals(ContentCapability.READ, permissions[0].getCapability());
+            assertEquals("admin", permissions[0].getRole());
 
-        // on success, delete the test document
-        // (otherwise we might inspect it)
-        req = sess.newAdhocQuery(Session.XQUERY_VERSION_1_0_ML
+            // on success, delete the test document
+            // (otherwise we might inspect it)
+            req = sess.newAdhocQuery(com.marklogic.ps.Session.XQUERY_VERSION_1_0_ML
                 + "declare variable $URI as xs:string external;\n"
                 + "xdmp:document-delete($URI)\n");
-        req.setNewStringVariable("URI", documentUri);
-        sess.submitRequest(req);
+            req.setNewStringVariable("URI", documentUri);
+            sess.submitRequest(req);
 
-        sess.close();
+            assertEquals(0, xqsyncSession.getCount());
+        }
     }
 }

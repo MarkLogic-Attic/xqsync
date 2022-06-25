@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,27 +18,25 @@
  */
 package com.marklogic.ps.xqsync;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
  * @author Michael Blakeley, MarkLogic Corporation
  *
  */
-public class PackageWriter extends AbstractWriter {
+public class PackageWriter extends AbstractWriter implements Closeable {
 
-    OutputPackage pkg;
+    final OutputPackage pkg;
 
     /**
-     * @param _configuration
-     * @param _pkg
-     * @throws SyncException
+     * @param configuration
+     * @param pkg
      */
-    public PackageWriter(Configuration _configuration, OutputPackage _pkg)
-            throws SyncException {
+    public PackageWriter(Configuration configuration, OutputPackage pkg) {
         // superclass takes care of some configuration
-        super(_configuration);
-
-        pkg = _pkg;
+        super(configuration);
+        this.pkg = pkg;
     }
 
     /*
@@ -47,20 +45,19 @@ public class PackageWriter extends AbstractWriter {
      * @see com.marklogic.ps.xqsync.WriterInterface#write(java.lang.String,
      * byte[], com.marklogic.ps.xqsync.XQSyncDocumentMetadata)
      */
-    public int write(String _uri, byte[] _bytes,
-            XQSyncDocumentMetadata _metadata) throws SyncException {
+    public int write(String uri, byte[] bytes, XQSyncDocumentMetadata metadata) throws SyncException {
         if (null == pkg) {
             throw new SyncException("null output package");
         }
-        if (null == _bytes) {
+        if (null == bytes) {
             throw new SyncException("null output bytes");
         }
-        if (null == _metadata) {
+        if (null == metadata) {
             throw new SyncException("null output metadata");
         }
         try {
             // bytes from one document should not overflow int
-            return (int) pkg.write(_uri, _bytes, _metadata);
+            return (int) pkg.write(uri, bytes, metadata);
         } catch (IOException e) {
             throw new SyncException(e);
         }
@@ -68,10 +65,9 @@ public class PackageWriter extends AbstractWriter {
     }
 
     /**
-     * @throws SyncException
      *
      */
-    public void close() throws SyncException {
+    public void close() {
         if (null != pkg) {
             pkg.close();
         }

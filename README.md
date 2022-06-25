@@ -2,15 +2,10 @@
 [![Download the latest version](https://api.bintray.com/packages/marklogic/maven/xqsync/images/download.svg)](https://bintray.com/marklogic/maven/xqsync/_latestVersion)
 [![Javadocs](https://www.javadoc.io/badge/com.marklogic/xqsync.svg?color=blue)](https://www.javadoc.io/doc/com.marklogic/xqsync)
 -->
-[![Dependency Status](https://www.versioneye.com/user/projects/596a777a368b08005868208a/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/596a777a368b08005868208a)
-
 [![Travis-ci gradle build status](https://travis-ci.org/marklogic-community/xqsync.svg?branch=develop)](https://travis-ci.org/marklogic-community/xqsync)
-[![CircleCI maven build status](https://circleci.com/gh/marklogic-community/xqsync/tree/develop.svg?style=shield)](https://circleci.com/gh/marklogic-community/xqsync/tree/develop)
 [![Codecov code coverage](https://codecov.io/gh/marklogic-community/xqsync/branch/develop/graph/badge.svg)](https://codecov.io/gh/marklogic-community/xqsync/branch/develop)
 [![SonarQube Quality](https://sonarcloud.io/api/project_badges/measure?project=com.marklogic%3Axqsync%3Adevelop&metric=alert_status)](https://sonarcloud.id/dashboard?id=com.marklogic%3Axqsync%3Adevelop)
 [![SonarQube Maintainability](https://sonarcloud.io/api/project_badges/measure?project=com.marklogic%3Axqsync%3Adevelop&metric=sqale_rating)](https://sonarcloud.io/component_measures/domain/Maintainability?id=com.marklogic%3Axqsync%3Adevelop)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/95ab38d35fbd467c9f31e12f2902d2d0)](https://www.codacy.com/app/mads-hansen/xqsync?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=marklogic-community/xqsync&amp;utm_campaign=Badge_Grade)
-
 
 ## XQSync: a Wheelbarrow for Content
 MarkLogic Server includes built-in support for online, transactional backup and restore of both databases and forests. However, the on-disk format of these backups is platform-specific.
@@ -28,8 +23,7 @@ Use XQSync when:
 XQSync is a Java command-line tool. The entry point is the main method in the `com.marklogic.ps.xqsync.XQSync` class. This class takes zero or more property files as its arguments. Any specified system properties will override file-based properties, and properties found in later files may override properties specified in earlier files on the command line. See src/xqsync.sh for a sample shell script.
 
 ```
-java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
-  com.marklogic.ps.xqsync.XQSync 
+java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar com.marklogic.ps.xqsync.XQSync 
 ```
 
 > Note: XQSync needs a lot of heap space for large synchronization tasks. Be prepared to increase the Java VM heap space limit, using -Xmx. Depending on the version of Java used, -Xincgc may also help.
@@ -38,9 +32,8 @@ java -cp xqsync.jar:xcc.jar:xstream.jar:xpp3.jar \
 
  - one of: INPUT_PACKAGE, INPUT_CONNECTION_STRING
  - one of: OUTPUT_PACKAGE, OUTPUT_CONNECTION_STRING
-
-
-> Note that this requirements can be overriden by a subclass of `com.marklogic.ps.xqsync.Configuration`. See Customization for details.
+ 
+> Note that these requirements can be overriden by a subclass of `com.marklogic.ps.xqsync.Configuration`. See Customization for details.
 
 A full listing of [available properties](https://github.com/marklogic-community/xqsync/wiki/Properties).
  

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,34 +20,24 @@ package com.marklogic.ps.xqsync;
 
 import com.marklogic.ps.SimpleLogger;
 
+import java.io.Closeable;
+
 /**
  * @author Michael Blakeley, MarkLogic Corporation
  * 
  */
-public abstract class AbstractReader implements ReaderInterface {
+public abstract class AbstractReader implements ReaderInterface, Closeable {
 
-    protected SimpleLogger logger;
-
-    protected Configuration configuration;
+    protected final SimpleLogger logger;
+    protected final Configuration configuration;
 
     /**
-     * @param _configuration
-     * @throws SyncException
+     * @param configuration
      */
-    public AbstractReader(Configuration _configuration)
-            throws SyncException {
-        configuration = _configuration;
+    protected AbstractReader(Configuration configuration) throws SyncException {
+        this.configuration = configuration;
         logger = configuration.getLogger();
     }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.marklogic.ps.xqsync.ReaderInterface#read(java.lang.String,
-     * com.marklogic.ps.xqsync.DocumentInterface)
-     */
-    public abstract void read(String[] _uris, DocumentInterface _document)
-            throws SyncException;
 
     public void close() {
         // do nothing

@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2017 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * @author Michael Blakeley, MarkLogic Corporation
@@ -33,93 +32,85 @@ import java.util.Vector;
 public class FileFinder {
 
     private String startPath = "";
-
     private FileFilter filter;
-
-    private List<File> list = new Vector<File>();
-
+    private final List<File> list = new ArrayList<>();
     private String includePattern;
-
     private String excludePattern;
 
     /**
-     * @param _path
+     * @param path
      */
-    public FileFinder(String _path) {
-        if (_path == null)
+    public FileFinder(String path) {
+        if (path == null) {
             throw new NullPointerException("starting path cannot be null");
-
-        startPath = _path;
+        }
+        startPath = path;
     }
 
     /**
-     * @param _path
-     * @param _pattern
+     * @param path
+     * @param pattern
      */
-    public FileFinder(String _path, String _pattern) {
-        if (_path == null)
+    public FileFinder(String path, String pattern) {
+        if (path == null) {
             throw new NullPointerException("starting path cannot be null");
-
-        startPath = _path;
-        includePattern = _pattern;
+        }
+        startPath = path;
+        includePattern = pattern;
     }
 
     /**
-     * @param _f
+     * @param file
      * @throws IOException
      */
-    public FileFinder(File _f) throws IOException {
-        if (_f == null) {
+    public FileFinder(File file) throws IOException {
+        if (file == null) {
             throw new NullPointerException("starting path cannot be null");
         }
 
-        startPath = _f.getCanonicalPath();
+        startPath = file.getCanonicalPath();
     }
 
     /**
-     * @param _f
-     * @param _pattern
+     * @param file
+     * @param pattern
      * @throws IOException
      */
-    public FileFinder(File _f, String _pattern) throws IOException {
-        if (_f == null) {
+    public FileFinder(File file, String pattern) throws IOException {
+        if (file == null) {
             throw new NullPointerException("starting path cannot be null");
         }
-
-        startPath = _f.getCanonicalPath();
-        includePattern = _pattern;
+        startPath = file.getCanonicalPath();
+        includePattern = pattern;
     }
 
     /**
-     * @param _f
-     * @param _includePattern
-     * @param _excludePattern
+     * @param file
+     * @param includePattern
+     * @param excludePattern
      * @throws IOException
      */
-    public FileFinder(File _f, String _includePattern,
-            String _excludePattern) throws IOException {
-        if (_f == null) {
+    public FileFinder(File file, String includePattern, String excludePattern) throws IOException {
+        if (file == null) {
             throw new NullPointerException("starting path cannot be null");
         }
-
-        startPath = _f.getCanonicalPath();
-        includePattern = _includePattern;
-        excludePattern = _excludePattern;
+        startPath = file.getCanonicalPath();
+        this.includePattern = includePattern;
+        this.excludePattern = excludePattern;
     }
 
     /**
-     * @param _path
-     * @param _includePattern
-     * @param _excludePattern
+     * @param path
+     * @param includePattern
+     * @param excludePattern
      */
-    public FileFinder(String _path, String _includePattern,
-            String _excludePattern) {
-        if (_path == null)
+    public FileFinder(String path, String includePattern, String excludePattern) {
+        if (path == null) {
             throw new NullPointerException("starting path cannot be null");
-
-        startPath = _path;
-        includePattern = _includePattern;
-        excludePattern = _excludePattern;
+        }
+        startPath = path;
+        this.includePattern = includePattern;
+        this.excludePattern = excludePattern;
     }
 
     /**
@@ -145,65 +136,41 @@ public class FileFinder {
             theFile = ff.remove();
             System.out.println("found file: " + theFile.getCanonicalPath());
         }
-
     }
 
     public void find() throws IOException {
         if (filter == null) {
             if (includePattern == null && excludePattern == null) {
                 // find any file
-                filter = new FileFilter() {
-                    public boolean accept(File _f) {
-                        return _f.isDirectory() || _f.isFile();
-                    }
-                };
+                filter = file -> file.isDirectory() || file.isFile();
             } else if (excludePattern == null) {
-                filter = new FileFilter() {
-                    public boolean accept(File _f) {
-                        return _f.isDirectory()
-                                || (_f.isFile() && _f.getName().matches(
-                                        includePattern));
-                    }
-                };
+                filter = file -> file.isDirectory() || (file.isFile() && file.getName().matches(includePattern));
             } else if (includePattern == null) {
                 // exclude only
-                filter = new FileFilter() {
-                    public boolean accept(File _f) {
-                        return _f.isDirectory()
-                                || (_f.isFile() && !_f.getName().matches(
-                                        excludePattern));
-                    }
-                };
+                filter = file -> file.isDirectory() || (file.isFile() && !file.getName().matches(excludePattern));
             } else {
                 // both are defined
-                filter = new FileFilter() {
-                    public boolean accept(File _f) {
-                        return _f.isDirectory()
-                                || (_f.isFile()
-                                        && _f.getName().matches(includePattern) && !_f
-                                        .getName().matches(excludePattern));
-                    }
-                };
+                filter = file -> file.isDirectory() || (file.isFile() && file.getName().matches(includePattern) && !file.getName().matches(excludePattern));
             }
         }
 
-        if (startPath == null)
+        if (startPath == null) {
             startPath = "";
-
+        }
         File[] dirList = new File(startPath).listFiles(filter);
 
-        if (dirList == null)
+        if (dirList == null) {
             return;
-
-        for (int i = 0; i < dirList.length; i++) {
-            if (dirList[i].isFile()) {
-                list.add(dirList[i]);
+        }
+        for (File file : dirList) {
+            if (file.isFile()) {
+                list.add(file);
                 continue;
             }
 
-            if (dirList[i].isDirectory()) {
+            if (file.isDirectory()) {
                 // recurse
-                startPath = dirList[i].getCanonicalPath();
+                startPath = file.getCanonicalPath();
                 find();
                 continue;
             }
@@ -215,14 +182,13 @@ public class FileFinder {
     }
 
     public int size() {
-        if (list == null)
-            throw new NullPointerException(
-                    "FileFinder has not been initialized");
-
+        if (list == null) {
+            throw new NullPointerException("FileFinder has not been initialized");
+        }
         return list.size();
     }
 
-    public List <File>list() {
+    public List<File>list() {
         return list;
     }
 
@@ -230,9 +196,9 @@ public class FileFinder {
      * @return
      * @throws IOException
      */
-    public List <String>listCanonicalPaths() throws IOException {
+    public List<String>listCanonicalPaths() throws IOException {
         int size = list.size();
-        List <String>paths = new ArrayList<String>(size);
+        List <String>paths = new ArrayList<>(size);
         Iterator<File> iter = list.iterator();
         File f;
         while (iter.hasNext()) {
@@ -243,13 +209,13 @@ public class FileFinder {
     }
 
     /**
-     * @param _root
+     * @param root
      * @return
      */
-    public List <String>listRelativePaths(String _root) {
-        int rootLength = _root.length();
+    public List<String>listRelativePaths(String root) {
+        int rootLength = root.length();
         int size = list.size();
-        List <String>paths = new ArrayList<String>(size);
+        List <String>paths = new ArrayList<>(size);
         Iterator<File> iter = list.iterator();
         File f;
         while (iter.hasNext()) {
@@ -260,10 +226,10 @@ public class FileFinder {
     }
 
     /**
-     * @param _file
+     * @param file
      */
-    public void add(File _file) {
-        list.add(_file);
+    public void add(File file) {
+        list.add(file);
     }
 
 }

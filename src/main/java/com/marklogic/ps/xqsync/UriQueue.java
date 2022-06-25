@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2012 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,55 +40,38 @@ import com.marklogic.ps.timing.TimedEvent;
 public class UriQueue extends Thread {
 
     protected static final long SLEEP_MILLIS = 125;
-
-    protected Configuration configuration;
-
+    protected final Configuration configuration;
     protected volatile BlockingQueue<String> queue;
-
-    protected TaskFactory factory;
-
-    protected CompletionService<TimedEvent[]> completionService;
-
+    protected final TaskFactory factory;
+    protected final CompletionService<TimedEvent[]> completionService;
     protected boolean active;
-
-    protected ThreadPoolExecutor pool;
-
-    protected SimpleLogger logger;
-
-    protected Monitor monitor;
-
+    protected final ThreadPoolExecutor pool;
+    protected final SimpleLogger logger;
+    protected final Monitor monitor;
     protected boolean useQueueFile = false;
-
     protected File queueFile;
-
     protected PrintWriter queueFileWriter;
-
     protected BufferedReader queueFileReader;
-
     protected int queueFileEntries = 0;
-
-    protected Object queueFileMutex = new Object();
+    protected final Object queueFileMutex = new Object();
 
 
     /**
-     * @param _configuration
-     * @param _cs
-     * @param _pool
-     * @param _factory
-     * @param _monitor
-     * @param _queue
+     * @param configuration
+     * @param cs
+     * @param pool
+     * @param factory
+     * @param monitor
+     * @param queue
      */
-    public UriQueue(Configuration _configuration,
-            CompletionService<TimedEvent[]> _cs,
-            ThreadPoolExecutor _pool, TaskFactory _factory,
-            Monitor _monitor, BlockingQueue<String> _queue) {
+    public UriQueue(Configuration configuration, CompletionService<TimedEvent[]> cs, ThreadPoolExecutor pool, TaskFactory factory, Monitor monitor, BlockingQueue<String> queue) {
         super("UriQueueThread");
-        configuration = _configuration;
-        pool = _pool;
-        factory = _factory;
-        monitor = _monitor;
-        queue = _queue;
-        completionService = _cs;
+        this.configuration = configuration;
+        this.pool = pool;
+        this.factory = factory;
+        this.monitor = monitor;
+        this.queue = queue;
+        completionService = cs;
         logger = configuration.getLogger();
         useQueueFile = configuration.useQueueFile();
     }
@@ -98,6 +81,7 @@ public class UriQueue extends Thread {
      * 
      * @see java.lang.Thread#run()
      */
+    @Override
     public void run() {
         active = true;
         long count = 0;
@@ -127,6 +111,7 @@ public class UriQueue extends Thread {
                         // reset interrupt status and continue
                         Thread.interrupted();
                         logger.logException("interrupted", e);
+                        Thread.currentThread().interrupt();
                         if (null == uri) {
                             continue;
                         }
@@ -145,6 +130,7 @@ public class UriQueue extends Thread {
                             Thread.sleep(200);
                         } catch (InterruptedException e) {
                             // do nothing
+                            Thread.currentThread().interrupt();
                         }
                     }
 
@@ -164,7 +150,7 @@ public class UriQueue extends Thread {
                     completionService.submit(factory.newTask(buffer));
                     buffer = new String[buffer.length];
                     bufferIndex = 0;
-                    yield();
+                    Thread.yield();
                 }
 
                 count++;
@@ -178,7 +164,7 @@ public class UriQueue extends Thread {
                     buffer[i] = null;
                 }
                 completionService.submit(factory.newTask(buffer));
-                yield();
+                Thread.yield();
             }
 
         } catch (SyncException e) {
@@ -212,22 +198,22 @@ public class UriQueue extends Thread {
     }
 
     /**
-     * @param _uri
+     * @param uri
      */
-    public void add(String _uri) {
-        yield();
+    public void add(String uri) {
+        Thread.yield();
         synchronized (queueFileMutex) {
 
             if (!useQueueFile)
-                queue.add(_uri);
+                queue.add(uri);
             else { 
-                addUriToFile(_uri);
+                addUriToFile(uri);
                 queueFileEntries++;
             }
 
             monitor.incrementTaskCount();
         }
-        yield();
+        Thread.yield();
     }
 
     /**
@@ -271,26 +257,26 @@ public class UriQueue extends Thread {
     /**
      * Add the uri to a temporary file
      */
-    private void addUriToFile(String _uri) {
+    private void addUriToFile(String uri) {
 
         if (null == queueFile) {
             try {
                 
                 if (configuration.getUriQueueFile() != null) {
                     queueFile = new File(configuration.getUriQueueFile());
-                    if (queueFile.exists())
+                    if (queueFile.exists()) {
                         queueFile.delete();
+                    }
                     queueFile.createNewFile();
                 } else if (configuration.getTmpDir() != null) {
-                    queueFile = File.createTempFile("xqsync", ".txt", 
-                                                    new File(configuration.getTmpDir()));
+                    queueFile = File.createTempFile("xqsync", ".txt", new File(configuration.getTmpDir()));
                 } else {
                     queueFile = File.createTempFile("xqsync", ".txt");
                 }
 
-                if (!configuration.keepUriQueueFile())
+                if (!configuration.keepUriQueueFile()) {
                     queueFile.deleteOnExit();
-
+                }
                 queueFileWriter = new PrintWriter(queueFile);
                 queueFileReader = new BufferedReader(new FileReader(queueFile));
             } catch (Exception e) {
@@ -300,7 +286,7 @@ public class UriQueue extends Thread {
             } 
         }
 
-        queueFileWriter.println(_uri);
+        queueFileWriter.println(uri);
         queueFileWriter.flush();
     }
 

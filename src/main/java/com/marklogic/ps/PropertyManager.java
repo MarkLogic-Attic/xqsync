@@ -1,5 +1,5 @@
 /*
- * Copyright (c)2004-2017 MarkLogic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.logging.Level;
 
 /**
  * @author Michael Blakeley, MarkLogic Corporation
@@ -29,28 +30,22 @@ import java.util.Properties;
  */
 public class PropertyManager extends Thread {
 
-    static protected SimpleLogger logger = SimpleLogger.getSimpleLogger();
-
+    protected static final SimpleLogger logger = SimpleLogger.getSimpleLogger();
     protected File propertyFile;
-
     protected long lastModified;
-
     private static final long SLEEP_TIME = 500;
-
-    private Properties properties;
-
-    protected String propertyFilePath;
-
+    private final Properties properties;
+    protected final String propertyFilePath;
     protected PropertyClientInterface[] clients;
 
     /**
      *
-     * @param _propertyFilePath
+     * @param propertyFilePath
      */
-    public PropertyManager(String _propertyFilePath) {
+    public PropertyManager(String propertyFilePath) {
         // set up to periodically check propertyFile for changes
-        propertyFilePath = _propertyFilePath;
-        propertyFile = new File(_propertyFilePath);
+        this.propertyFilePath = propertyFilePath;
+        propertyFile = new File(propertyFilePath);
         lastModified = propertyFile.lastModified();
         properties = new Properties();
         //reload();
@@ -61,17 +56,20 @@ public class PropertyManager extends Thread {
      * @throws IOException
      */
     protected void reload() throws IOException {
-        properties.load(new FileInputStream(propertyFilePath));
+        try (FileInputStream fileInputStream = new FileInputStream(propertyFilePath)) {
+            properties.load(fileInputStream);
+        }
         logger.configureLogger(properties);
     }
 
+    @Override
     public void run() {
         long newLastModified;
-        while (propertyFile != null && propertyFile.exists()
-                && propertyFile.canRead()) {
+        while (propertyFile != null && propertyFile.exists() && propertyFile.canRead()) {
             newLastModified = propertyFile.lastModified();
-            // logger.finest("checking properties: " + newLastModified + " > " +
-            // lastModified);
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest("checking properties: " + newLastModified + " > " + lastModified);
+            }
             if (newLastModified > lastModified) {
                 logger.info("updating properties");
                 try {
@@ -79,9 +77,10 @@ public class PropertyManager extends Thread {
                     // each object in services must implement
                     // PropertyClientInterface
                     if (clients != null) {
-                        for (int i = 0; i < clients.length; i++) {
-                            if (clients[i] != null)
-                                clients[i].setProperties(properties);
+                        for (PropertyClientInterface client : clients) {
+                            if (client != null) {
+                                client.setProperties(properties);
+                            }
                         }
                     }
                 } catch (IOException e) {
@@ -94,30 +93,28 @@ public class PropertyManager extends Thread {
                 Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException e) {
                 // reset interrupt status and continue
-                Thread.interrupted();
+                Thread.currentThread().interrupt();
             }
         }
     }
 
     /**
-     * @param _clients
+     * @param clients
      */
-    public void addClients(PropertyClientInterface[] _clients) {
-        clients = _clients;
+    public void addClients(PropertyClientInterface[] clients) {
+        this.clients = clients;
     }
 
     /**
-     * @param _client
+     * @param client
      */
-    public void add(PropertyClientInterface _client) {
-        if (clients == null)
-            clients = new PropertyClientInterface[] { _client };
-        else {
+    public void add(PropertyClientInterface client) {
+        if (clients == null) {
+            clients = new PropertyClientInterface[]{client};
+        } else {
             PropertyClientInterface[] newClients = new PropertyClientInterface[1 + clients.length];
-            for (int i = 0; i < clients.length; i++) {
-                newClients[i] = clients[i];
-            }
-            newClients[clients.length] = _client;
+            System.arraycopy(clients, 0, newClients, 0, clients.length);
+            newClients[clients.length] = client;
             clients = newClients;
         }
     }

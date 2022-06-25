@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2008-2012 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2008-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,68 +28,64 @@ import java.io.Reader;
 public interface DocumentInterface {
 
     /**
-     * @param _index
-     * @param _bytes
+     * @param index
+     * @param bytes
      * @throws SyncException
      */
-    public void setContent(int _index, byte[] _bytes)
-            throws SyncException;
+    void setContent(int index, byte[] bytes) throws SyncException;
 
     /**
-     * @param _index
-     * @param _metadata
+     * @param index
+     * @param metadata
      * @throws SyncException
      */
-    public void setMetadata(int _index, Reader _metadata)
-            throws SyncException;
+    void setMetadata(int index, Reader metadata) throws SyncException;
 
     /**
      * @throws SyncException
      * 
      */
-    public int sync() throws SyncException;
+    int sync() throws SyncException;
 
     /**
-     * @param _index
-     * @param _metadata
+     * @param index
+     * @param metadata
      */
-    public void setMetadata(int _index, MetadataInterface _metadata);
+    void setMetadata(int index, MetadataInterface metadata);
 
     /**
      * @return
      */
-    public MetadataInterface newMetadata();
+    MetadataInterface newMetadata();
 
     /**
-     * @param _index
-     * @param _is
+     * @param index
+     * @param is
      * @throws SyncException
      */
-    public void setContent(int _index, InputStream _is)
-            throws SyncException;
+    void setContent(int index, InputStream is) throws SyncException;
 
     /**
-     * @param _index
-     * @param _reader
+     * @param index
+     * @param reader
      * @throws SyncException
      */
-    public void setContent(int _index, Reader _reader)
-            throws SyncException;
+    void setContent(int index, Reader reader) throws SyncException;
 
     /**
-     * @param _index
+     * @param index
      * @return
      */
-    public String getOutputUri(int _index);
+    String getOutputUri(int index);
 
     /**
-     * @param _index
+     * @param index
      */
-    public void clearPermissions(int _index);
+    void clearPermissions(int index);
 
     /**
-     * @param _index
+     * @param index
      */
-    public void clearProperties(int _index);
+    void clearProperties(int index);
 
 }

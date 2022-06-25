@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2005-2017 MarkLogic Corporation
+ * Copyright (c)2005-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,13 +32,13 @@ import java.io.PrintWriter;
  */
 public class OneLineFormatter extends Formatter {
 
-    private Date dat = new Date();
-    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-    private FieldPosition pos = new FieldPosition(0);
+    private final Date dat = new Date();
+    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private final FieldPosition pos = new FieldPosition(0);
 
     // Line separator string.  This is the value of the line.separator
     // property at the moment that the OneLineFormatter was created.
-    private String lineSeparator = System.getProperty("line.separator");
+    private final String lineSeparator = System.getProperty("line.separator");
 
     /**
      * Format the given LogRecord.
@@ -47,31 +47,31 @@ public class OneLineFormatter extends Formatter {
      * It is recommended to use the {@link Formatter#formatMessage}
      * convenience method to localize and format the message field.
      *
-     * @param record the log record to be formatted.
+     * @param logRecord the log record to be formatted.
      * @return a formatted log record
      */
-    public synchronized String format(LogRecord record) {
+    public synchronized String format(LogRecord logRecord) {
 
         StringBuffer sb = new StringBuffer();
 
         // Minimize memory allocations here.
-        dat.setTime(record.getMillis());
+        dat.setTime(logRecord.getMillis());
         formatter.format(dat, sb, pos);
 
         sb.append(" ");
 
-        String message = formatMessage(record);
-        sb.append(record.getLevel().getLocalizedName());
+        String message = formatMessage(logRecord);
+        sb.append(logRecord.getLevel().getLocalizedName());
         sb.append(": ");
         sb.append(message);
         sb.append(lineSeparator);
-        if (record.getThrown() != null) {
+        if (logRecord.getThrown() != null) {
             try {
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);
-                record.getThrown().printStackTrace(pw);
+                logRecord.getThrown().printStackTrace(pw);
                 pw.close();
-                sb.append(sw.toString());
+                sb.append(sw);
             } catch (Exception ex) {
             }
         }

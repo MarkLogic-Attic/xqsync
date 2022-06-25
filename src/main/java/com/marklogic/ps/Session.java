@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c) 2006-2017 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2006-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,10 +51,8 @@ public class Session implements com.marklogic.xcc.Session {
      *
      */
     public static final String XQUERY_VERSION_1_0_ML = "xquery version \"1.0-ml\";\n";
-
-    private com.marklogic.xcc.Session session;
-
-    private Connection conn;
+    private final com.marklogic.xcc.Session session;
+    private final Connection conn;
 
     /**
      * @param session
@@ -96,8 +94,8 @@ public class Session implements com.marklogic.xcc.Session {
      *
      * @see com.marklogic.xcc.Session#commit()
      */
-    public void commit() throws RequestException{
-        session.commit();
+    public boolean commit() throws RequestException{
+        return session.commit();
     }
 
     /*
@@ -118,6 +116,10 @@ public class Session implements com.marklogic.xcc.Session {
         session.close();
     }
 
+    public boolean isAutoCommit() {
+        return session.isAutoCommit();
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -132,8 +134,7 @@ public class Session implements com.marklogic.xcc.Session {
      *
      * @see com.marklogic.xcc.Session#submitRequest(com.marklogic.xcc.Request)
      */
-    public ResultSequence submitRequest(Request request)
-            throws RequestException {
+    public ResultSequence submitRequest(Request request) throws RequestException {
         return session.submitRequest(request);
     }
 
@@ -143,8 +144,7 @@ public class Session implements com.marklogic.xcc.Session {
      * @see com.marklogic.xcc.Session#newAdhocQuery(java.lang.String,
      * com.marklogic.xcc.RequestOptions)
      */
-    public AdhocQuery newAdhocQuery(String queryText,
-            RequestOptions options) {
+    public AdhocQuery newAdhocQuery(String queryText, RequestOptions options) {
         return session.newAdhocQuery(queryText, options);
     }
 
@@ -163,8 +163,7 @@ public class Session implements com.marklogic.xcc.Session {
      * @see com.marklogic.xcc.Session#newModuleInvoke(java.lang.String,
      * com.marklogic.xcc.RequestOptions)
      */
-    public ModuleInvoke newModuleInvoke(String moduleUri,
-            RequestOptions options) {
+    public ModuleInvoke newModuleInvoke(String moduleUri, RequestOptions options) {
         return session.newModuleInvoke(moduleUri, options);
     }
 
@@ -183,8 +182,7 @@ public class Session implements com.marklogic.xcc.Session {
      * @see com.marklogic.xcc.Session#newModuleSpawn(java.lang.String,
      * com.marklogic.xcc.RequestOptions)
      */
-    public ModuleSpawn newModuleSpawn(String moduleUri,
-            RequestOptions options) {
+    public ModuleSpawn newModuleSpawn(String moduleUri, RequestOptions options) {
         return session.newModuleSpawn(moduleUri, options);
     }
 
@@ -216,7 +214,7 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     public List<RequestException> insertContentCollectErrors(Content[] content){
-        return new ArrayList<RequestException>(0);
+        return new ArrayList<>(0);
     }
 
     /*
@@ -226,6 +224,10 @@ public class Session implements com.marklogic.xcc.Session {
      */
     public ContentbaseMetaData getContentbaseMetaData() {
         return session.getContentbaseMetaData();
+    }
+
+    public void setAutoCommit(boolean autoCommit) {
+        session.setAutoCommit(autoCommit);
     }
 
     /*
@@ -248,6 +250,14 @@ public class Session implements com.marklogic.xcc.Session {
         return session.getDefaultRequestOptions();
     }
 
+    public void setUpdate(Update update) {
+        session.setUpdate(update);
+    }
+
+    public Update getUpdate() {
+        return session.getUpdate();
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -262,8 +272,7 @@ public class Session implements com.marklogic.xcc.Session {
      *
      * @see com.marklogic.xcc.Session#getCurrentServerPointInTime()
      */
-    public BigInteger getCurrentServerPointInTime()
-            throws RequestException {
+    public BigInteger getCurrentServerPointInTime() throws RequestException {
         return session.getCurrentServerPointInTime();
     }
 
@@ -303,15 +312,14 @@ public class Session implements com.marklogic.xcc.Session {
         return session.getUserObject();
     }
 
-    public boolean existsDocument(String _uri) throws XccException {
+    public boolean existsDocument(String uri) throws XccException {
         String query = XQUERY_VERSION_1_0_ML
                 + "declare variable $URI as xs:string external;\n"
                 + "boolean(doc($URI))\n";
         AdhocQuery req = session.newAdhocQuery(query);
-        req.setNewStringVariable("URI", _uri);
+        req.setNewStringVariable("URI", uri);
         ResultSequence result = session.submitRequest(req);
-        return ((XSBoolean) (result.next().getItem()))
-                .asPrimitiveBoolean();
+        return ((XSBoolean) (result.next().getItem())).asPrimitiveBoolean();
     }
 
     public long getCount() throws XccException {
@@ -322,40 +330,39 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     /**
-     * @param _uri
+     * @param uri
      * @throws XccException
      */
-    public void deleteDocument(String _uri) throws XccException {
+    public void deleteDocument(String uri) throws XccException {
         // ignore documents that do not exist
         String query = XQUERY_VERSION_1_0_ML
                 + "declare variable $URI as xs:string external;\n"
                 + "if (boolean(doc($URI)))\n"
                 + "then xdmp:document-delete($URI) else ()\n";
         AdhocQuery req = session.newAdhocQuery(query);
-        req.setNewStringVariable("URI", _uri);
+        req.setNewStringVariable("URI", uri);
         session.submitRequest(req);
     }
 
     /**
-     * @param _uri
+     * @param uri
      * @throws XccException
      */
-    public void deleteCollection(String _uri) throws XccException {
+    public void deleteCollection(String uri) throws XccException {
         String query = XQUERY_VERSION_1_0_ML
                 + "declare variable $URI as xs:string external;\n"
                 + "xdmp:collection-delete($URI)\n";
         AdhocQuery req = session.newAdhocQuery(query);
-        req.setNewStringVariable("URI", _uri);
+        req.setNewStringVariable("URI", uri);
         session.submitRequest(req);
     }
 
     /**
-     * @param _uri
-     * @param _xmlString
+     * @param uri
+     * @param xmlString
      * @throws XccException
      */
-    public void setDocumentProperties(String _uri, String _xmlString)
-            throws XccException {
+    public void setDocumentProperties(String uri, String xmlString) throws XccException {
         // if an empty string is passed in,
         // properties will be set to empty sequence
         // this doesn't affect last-modified, though, if it's active
@@ -366,8 +373,8 @@ public class Session implements com.marklogic.xcc.Session {
                 + "xdmp:document-set-properties($URI,\n"
                 + "  xdmp:unquote($XML-STRING)/prop:properties/node() )\n";
         AdhocQuery req = session.newAdhocQuery(query);
-        req.setNewStringVariable("URI", _uri);
-        req.setNewStringVariable("XML-STRING", _xmlString);
+        req.setNewStringVariable("URI", uri);
+        req.setNewStringVariable("XML-STRING", xmlString);
         session.submitRequest(req);
     }
 
@@ -380,21 +387,19 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     /**
-     * @param _names
+     * @param names
      * @return
      * @throws XccException
      */
-    public BigInteger[] forestNamesToIds(String[] _names)
-            throws XccException {
-        if (_names == null) {
-            return null;
+    public BigInteger[] forestNamesToIds(String[] names) throws XccException {
+        if (names == null) {
+            return new BigInteger[0];
         }
 
-        Map<String, BigInteger> map = session.getContentbaseMetaData()
-                .getForestMap();
-        List<BigInteger> list = new ArrayList<BigInteger>();
-        for (int i = 0; i < _names.length; i++) {
-            list.add(map.get(_names[i]));
+        Map<String, BigInteger> map = session.getContentbaseMetaData().getForestMap();
+        List<BigInteger> list = new ArrayList<>();
+        for (String name : names) {
+            list.add(map.get(name));
         }
         return list.toArray(new BigInteger[0]);
     }
@@ -431,16 +436,19 @@ public class Session implements com.marklogic.xcc.Session {
      * transaction.
     * </p>
      * @param mode The new transaction mode
+     * @deprecated
      */
+    @Deprecated
     public void setTransactionMode(TransactionMode mode) {
         session.setTransactionMode(mode);
     }
 
     /**
      * Get the current transaction mode.
-     * 
+     * @deprecated
      * @return The current transaction mode setting.
      */
+    @Deprecated
     public TransactionMode getTransactionMode() {
         return session.getTransactionMode();
     }
@@ -480,7 +488,7 @@ public class Session implements com.marklogic.xcc.Session {
     }
 
     public int getCachedTxnTimeout() {
-        throw new java.lang.UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new java.lang.UnsupportedOperationException("Not supported yet.");
     }
     
 }

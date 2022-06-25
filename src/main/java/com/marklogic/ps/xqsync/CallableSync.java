@@ -1,6 +1,6 @@
 /** -*- mode: java; indent-tabs-mode: nil; c-basic-offset: 4; -*-
  *
- * Copyright (c)2004-2012 Mark Logic Corporation
+ * Copyright (c)2004-2022 MarkLogic Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
  */
 package com.marklogic.ps.xqsync;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.Callable;
 
 import com.marklogic.ps.SimpleLogger;
@@ -31,19 +30,17 @@ import com.marklogic.ps.timing.TimedEvent;
  */
 public class CallableSync implements Callable<TimedEvent[]> {
 
-    protected String[] inputUris;
-
-    protected TaskFactory taskFactory;
-
-    protected Monitor monitor;
+    protected final String[] inputUris;
+    protected final TaskFactory taskFactory;
+    protected final Monitor monitor;
 
     /**
-     * @param _taskFactory
-     * @param _uris
+     * @param taskFactory
+     * @param uris
      */
-    public CallableSync(TaskFactory _taskFactory, String[] _uris) {
-        taskFactory = _taskFactory;
-        inputUris = _uris;
+    public CallableSync(TaskFactory taskFactory, String[] uris) {
+        this.taskFactory = taskFactory;
+        inputUris = uris;
         monitor = taskFactory.getMonitor();
     }
 
@@ -58,7 +55,7 @@ public class CallableSync implements Callable<TimedEvent[]> {
         // revisit - throttle before or after creating the timed event? 
         monitor.checkThrottle();
 
-        TimedEvent te[] = new TimedEvent[inputUris.length];
+        TimedEvent[] te = new TimedEvent[inputUris.length];
         for (int i = 0; i < inputUris.length; i++) {
             if (null == inputUris[i]) {
                 continue;
@@ -78,8 +75,7 @@ public class CallableSync implements Callable<TimedEvent[]> {
             throw new FatalException("null writer");
         }
 
-        logger.fine("starting sync of " + inputUris.length + ": "
-                + inputUris[0]);
+        logger.fine("starting sync of " + inputUris.length + ": " + inputUris[0]);
 
         try {
             DocumentInterface document = new XQSyncDocument(inputUris,
@@ -96,17 +92,18 @@ public class CallableSync implements Callable<TimedEvent[]> {
             return te;
         } catch (SyncException e) {
             // we want to know which URI was at fault
-            for (int i = 0; i < inputUris.length; i++)
-                logger.severe("sync failed for: " + inputUris[i]);
+            for (String uris : inputUris) {
+                logger.severe("sync failed for: " + uris);
+            }
             if (reader instanceof PackageReader) {
-                logger.warning("error in input package "
-                               + ((PackageReader) reader).getPath());
+                logger.warning("error in input package " + ((PackageReader) reader).getPath());
             }
             throw e;
         } catch (Throwable t) {
             // we want to know which URI was at fault
-            for (int i = 0; i < inputUris.length; i++)
-                logger.severe("sync failed for: " + inputUris[i]);
+            for (String uris : inputUris) {
+                logger.severe("sync failed for: " + uris);
+            }
             throw new FatalException(t);
         } finally {
             if (null != reader) {
@@ -118,22 +115,14 @@ public class CallableSync implements Callable<TimedEvent[]> {
     }
 
     /**
-     * @throws NoSuchMethodException
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     * @throws InvocationTargetException
      */
-    private void initialize() throws NoSuchMethodException,
-            InstantiationException, IllegalAccessException,
-            InvocationTargetException {
+    private void initialize() {
         if (null == inputUris) {
-            throw new NullPointerException(
-                    "missing required field: inputUri");
+            throw new NullPointerException("missing required field: inputUri");
         }
 
         if (null == taskFactory) {
-            throw new NullPointerException(
-                    "missing required field: taskFactory");
+            throw new NullPointerException("missing required field: taskFactory");
         }
     }
 

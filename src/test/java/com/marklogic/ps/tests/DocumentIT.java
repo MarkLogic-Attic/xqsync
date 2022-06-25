@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import com.marklogic.ps.Connection;
 import com.marklogic.ps.Session;
 import com.marklogic.ps.SimpleLogger;
 import com.marklogic.ps.xqsync.Configuration;
-import com.marklogic.ps.xqsync.FilePathReader;
 import com.marklogic.ps.xqsync.FilePathWriter;
 import com.marklogic.ps.xqsync.SessionReader;
 import com.marklogic.ps.xqsync.XQSyncDocument;
@@ -84,8 +83,7 @@ public class DocumentIT {
         config.configure();
         SessionReader reader = new SessionReader(config);
         FilePathWriter writer = new FilePathWriter(config);
-        XQSyncDocument doc = new XQSyncDocument(
-                new String[] { documentUri }, reader, writer, config);
+        XQSyncDocument doc = new XQSyncDocument(new String[] { documentUri }, reader, writer, config);
         doc.read();
         String retrievedXml = new String(doc.getContent(0));
 
@@ -101,9 +99,8 @@ public class DocumentIT {
             logger.finer("permission[" + i + "] = " + permissions[i]);
         }
         assertEquals(1, permissions.length);
-        assertEquals(permissions[0].getCapability(),
-                ContentCapability.READ);
-        assertEquals(permissions[0].getRole(), "admin");
+        assertEquals(ContentCapability.READ, permissions[0].getCapability());
+        assertEquals("admin", permissions[0].getRole());
 
         // on success, delete the test document
         // (otherwise we might inspect it)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2007-2017 MarkLogic Corporation. All rights reserved.
+ * Copyright (c) 2007-2022 MarkLogic Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ package com.marklogic.ps.timing;
 
 import org.junit.Test;
 
-import java.sql.Time;
-
 import static org.junit.Assert.*;
 
 /**
@@ -29,7 +27,7 @@ import static org.junit.Assert.*;
  */
 public class TimerTest {
     @Test
-    public void addZeroEvents() throws Exception {
+    public void addZeroEvents() {
         Timer timer = new Timer();
         timer.add(timer);
         assertEquals(0,timer.getEventCount());
@@ -37,7 +35,7 @@ public class TimerTest {
     }
 
     @Test
-    public void addTimedEvent() throws Exception {
+    public void addTimedEvent() {
         Timer timer = new Timer();
         TimedEvent timedEvent = new TimedEvent();
         timedEvent.setDescription("my timer event");
@@ -47,7 +45,7 @@ public class TimerTest {
     }
 
     @Test
-    public void addTimedEventButNotKeep() throws Exception {
+    public void addTimedEventButNotKeep() {
         Timer timer = new Timer();
         TimedEvent timedEvent = new TimedEvent();
         timedEvent.setDescription("my timer event");
@@ -57,7 +55,7 @@ public class TimerTest {
     }
 
     @Test
-    public void addErrorTimedEvent() throws Exception {
+    public void addErrorTimedEvent() {
         TimedEvent timedEvent = new TimedEvent(true);
         timedEvent.setError(true);
 
@@ -76,7 +74,7 @@ public class TimerTest {
     @Test
     public void getBytesPerSecond() {
         TimedEvent timedEvent = new TimedEvent();
-        timedEvent.increment(50000l);
+        timedEvent.increment(50000L);
         Timer timer = new Timer();
         timer.add(timedEvent);
         assertNotEquals(0d, timer.getBytesPerSecond(), 0.00001);
