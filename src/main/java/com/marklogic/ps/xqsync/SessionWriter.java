@@ -203,13 +203,12 @@ public class SessionWriter extends AbstractWriter {
             // permissions
             metadata[i].addPermissions(permissionRoles);
             ContentPermission[] permissions = metadata[i].getPermissions();
-            if (null != permissions) {
+            if (permissions.length > 0) {
                 options.setPermissions(permissions);
             }
             // collections
             String[] collections = metadata[i].getCollections();
-            logger.fine("collections = "
-                        + Utilities.join(collections, " "));
+            logger.fine("collections = " + Utilities.join(collections, " "));
             options.setCollections(collections);
 
             // quality

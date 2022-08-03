@@ -304,4 +304,11 @@ public class Utilities {
         return size;
     }
 
+    public static boolean isNotEmpty(String[] array) {
+        return !isEmpty(array);
+    }
+
+    public static boolean isEmpty(String[] array) {
+        return array == null || array.length == 0;
+    }
 }

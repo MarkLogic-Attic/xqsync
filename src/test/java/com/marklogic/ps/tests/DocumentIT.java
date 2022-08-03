@@ -91,8 +91,7 @@ public class DocumentIT {
         assertEquals(documentString, retrievedXml);
 
         // test the permissions
-        ContentPermission[] permissions = doc.getMetadata(0)
-                .getPermissions();
+        ContentPermission[] permissions = doc.getMetadata(0).getPermissions();
         SimpleLogger logger = config.getLogger();
         logger.fine("found permissions " + permissions.length);
         for (int i = 0; i < permissions.length; i++) {

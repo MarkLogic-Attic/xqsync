@@ -22,8 +22,11 @@ import java.util.Properties;
 
 import com.marklogic.ps.SimpleLogger;
 import org.junit.Test;
+
+import static com.marklogic.ps.xqsync.Configuration.INPUT_COLLECTION_URI_KEY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -49,5 +52,24 @@ public class ConfigurationTest {
         assertTrue(configuration.isValidConnectionString("xccs://" + uriSuffix));
         assertTrue(configuration.isValidConnectionString("xdbc://" + uriSuffix));
         assertFalse(configuration.isValidConnectionString("http://" + uriSuffix));
+    }
+
+    @Test
+    public void testGetInputCollectionUris() {
+        Properties properties = new Properties();
+        properties.setProperty(INPUT_COLLECTION_URI_KEY, "foo bar");
+        Configuration configuration = new Configuration();
+        configuration.properties = properties;
+        String[] inputCollectionUris = configuration.getInputCollectionUris();
+        assertEquals(2, inputCollectionUris.length);
+        assertEquals("foo", inputCollectionUris[0]);
+    }
+
+    @Test
+    public void testGetInputCollectionUrisWhenNull() {
+        Properties properties = new Properties();
+        Configuration configuration = new Configuration();
+        configuration.properties = properties;
+        assertNull(configuration.getInputCollectionUris());
     }
 }

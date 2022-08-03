@@ -220,8 +220,7 @@ public class Configuration extends AbstractConfiguration {
         configureThrottling();
 
         // miscellaneous
-        String startPositionString = properties
-                .getProperty(INPUT_START_POSITION_KEY);
+        String startPositionString = properties.getProperty(INPUT_START_POSITION_KEY);
         if (startPositionString != null) {
             startPosition = new Long(startPositionString);
             if (startPosition < 2) {
@@ -579,7 +578,7 @@ public class Configuration extends AbstractConfiguration {
         String property = properties.getProperty(key);
         logger.fine(key + "=" + property + " using " + pattern);
         if (null == property) {
-            return new String[0];
+            return null;
         }
         return property.split(pattern);
     }
