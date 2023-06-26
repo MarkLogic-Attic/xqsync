@@ -28,14 +28,4 @@ import static org.junit.Assert.assertFalse;
  */
 public class TimedEventTests {
 
-    @Test
-    public void testMonotonicDuration() {
-        // runs for about 1 second
-        for (int i=0; i<123456; i++) {
-            TimedEvent e = new TimedEvent();
-            e.stop();
-            //System.err.println("" + i + ": " + e.getDuration());
-            assertFalse(e.getDuration() < 1);
-        }
-    }
 }

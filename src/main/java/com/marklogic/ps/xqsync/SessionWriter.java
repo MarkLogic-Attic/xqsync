@@ -197,9 +197,6 @@ public class SessionWriter extends AbstractWriter {
                 options = ContentCreateOptions.newXmlInstance();
             }
 
-            // resolve entities, this seems to be always set to false
-            options.setResolveEntities(false);
-
             // permissions
             metadata[i].addPermissions(permissionRoles);
             ContentPermission[] permissions = metadata[i].getPermissions();
