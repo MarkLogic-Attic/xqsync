@@ -58,10 +58,10 @@ configurations {
 }
 
 dependencies {
-    api group: 'com.marklogic', name: 'marklogic-xcc', version: '11.0.2'
-    api group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.19'
+    api group: 'com.marklogic', name: 'marklogic-xcc', version: '11.0.3'
+    api group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.20'
     api group: 'org.ogce', name: 'xpp3', version: '1.1.6'
-    api group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.3'
+    api group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2'
     testImplementation 'junit:junit:4.13.2'
 }
 
